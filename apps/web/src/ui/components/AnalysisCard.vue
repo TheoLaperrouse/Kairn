@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight, CircleAlert, CircleCheck, Compass, Feather } from 'lucide-vue-next'
+import { ArrowRight, CircleAlert, CircleCheck, Compass, Feather, HeartPulse } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useTrainingStore } from '../../application/stores/training'
 import { VERDICT_LABELS, VERDICT_TONES, formatDuration, formatNumber } from '../../domain/format'
@@ -7,6 +7,7 @@ import type { WorkoutAnalysis } from '../../domain/models'
 import InsightList from './InsightList.vue'
 
 const props = defineProps<{ analysis: WorkoutAnalysis; actual: { distanceKm: number; elevationGainM: number } }>()
+const emit = defineEmits<{ profileUpdated: [] }>()
 const training = useTrainingStore()
 
 const tone = computed(() => VERDICT_TONES[props.analysis.verdict])
@@ -31,6 +32,22 @@ const rows = computed(() => {
   }
   return list
 })
+
+const updatingHrMax = ref(false)
+const hrMaxUpdated = ref(false)
+async function adoptHrMax() {
+  const profile = training.profile
+  const observed = props.analysis.hrMaxSuggestion?.observed
+  if (!profile || !observed) return
+  updatingHrMax.value = true
+  try {
+    await training.saveProfile({ ...profile, hrMax: observed })
+    hrMaxUpdated.value = true
+    emit('profileUpdated')
+  } finally {
+    updatingHrMax.value = false
+  }
+}
 
 const nextSession = computed(() => (props.analysis.nextStep?.sessionId ? training.sessionById(props.analysis.nextStep.sessionId) : undefined))
 const lightening = ref(false)
@@ -82,6 +99,16 @@ async function lighten() {
     </table>
 
     <InsightList :insights="analysis.insights" />
+
+    <div v-if="analysis.hrMaxSuggestion && training.profile && !hrMaxUpdated" class="hrmax">
+      <HeartPulse :size="18" aria-hidden="true" />
+      <span>
+        FC max relevée : <strong class="num">{{ analysis.hrMaxSuggestion.observed }} bpm</strong>
+        <template v-if="analysis.hrMaxSuggestion.current"> (profil : {{ analysis.hrMaxSuggestion.current }} bpm)</template>
+      </span>
+      <button type="button" class="btn btn-sm" :disabled="updatingHrMax" @click="adoptHrMax">Utiliser comme FC max</button>
+    </div>
+    <p v-if="hrMaxUpdated" class="small muted" role="status">FC max mise à jour : zones et analyses recalculées.</p>
 
     <div v-if="analysis.nextStep" class="next">
       <ArrowRight :size="18" aria-hidden="true" />
@@ -204,6 +231,21 @@ async function lighten() {
   text-align: right;
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
+}
+.hrmax {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  border: 1px dashed var(--border-strong);
+}
+.hrmax > svg {
+  color: var(--danger);
+}
+.hrmax .btn {
+  margin-left: auto;
 }
 .next {
   display: grid;

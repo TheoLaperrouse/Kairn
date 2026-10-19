@@ -226,6 +226,10 @@ export class SqliteActivityRepository implements ActivityRepository {
     return parse<Activity>(this.db.prepare('SELECT data FROM activities WHERE id = ? AND user_id = ?').get(id, userId))
   }
 
+  findByExternalId(userId: string, externalId: string): Activity | undefined {
+    return parse<Activity>(this.db.prepare('SELECT data FROM activities WHERE user_id = ? AND external_id = ?').get(userId, externalId))
+  }
+
   existsByExternalId(userId: string, externalId: string): boolean {
     return Boolean(this.db.prepare('SELECT 1 FROM activities WHERE user_id = ? AND external_id = ?').get(userId, externalId))
   }

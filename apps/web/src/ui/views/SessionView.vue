@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Activity, ArrowLeft, Check, Clock, Lightbulb, Mountain, Play, RotateCcw, Route, Save, Sparkles, Star, X } from 'lucide-vue-next'
+import { Activity, ArrowLeft, Compass, Check, Clock, Lightbulb, Mountain, Play, RotateCcw, Route, Save, Sparkles, Star, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useApi } from '../../application/api-provider'
 import { useContentStore } from '../../application/stores/content'
 import { useTrainingStore } from '../../application/stores/training'
-import { SESSION_TYPE_LABELS, formatDate, formatDuration } from '../../domain/format'
+import { SESSION_TYPE_LABELS, formatDate, formatDuration, formatNumber } from '../../domain/format'
 import type { Activity as ActivityModel, RoutineDetail, SessionStatus, WorkoutAnalysis, WorkoutStep } from '../../domain/models'
 import AnalysisCard from '../components/AnalysisCard.vue'
 import ExerciseFigure from '../components/ExerciseFigure.vue'
@@ -24,6 +24,10 @@ const savedNotes = ref(false)
 const error = ref<string>()
 const api = useApi()
 const done = ref<{ activity: ActivityModel; analysis: WorkoutAnalysis }>()
+
+async function reloadAnalysis() {
+  if (done.value) done.value = { ...done.value, analysis: await api.activityAnalysis(done.value.activity.id) }
+}
 
 // Séance faite avec une activité rattachée : son analyse s'affiche sous le statut.
 watch(
@@ -119,10 +123,11 @@ async function saveNotes() {
           <p class="eyebrow">{{ formatDate(session.date) }} · {{ SESSION_TYPE_LABELS[session.type] }}</p>
           <h1>{{ session.title }}</h1>
           <p class="lead">{{ session.objective }}</p>
+          <p v-if="session.purpose" class="purpose"><Compass :size="16" aria-hidden="true" /> {{ session.purpose }}</p>
           <div class="facts">
             <span class="fact"><Clock :size="16" aria-hidden="true" /><strong class="num">{{ formatDuration(session.durationMin) }}</strong></span>
-            <span v-if="session.distanceKm" class="fact"><Route :size="16" aria-hidden="true" /><strong class="num">{{ session.distanceKm }}</strong> km</span>
-            <span v-if="session.elevationGainM" class="fact"><Mountain :size="16" aria-hidden="true" /><strong class="num">{{ session.elevationGainM }}</strong> m D+</span>
+            <span v-if="session.distanceKm" class="fact"><Route :size="16" aria-hidden="true" /><strong class="num">{{ formatNumber(session.distanceKm, 1) }}</strong> km</span>
+            <span v-if="session.elevationGainM" class="fact"><Mountain :size="16" aria-hidden="true" /><strong class="num">{{ formatNumber(session.elevationGainM) }}</strong> m D+</span>
             <ZoneBadge v-if="session.sport !== 'STRENGTH'" :zone="session.zone" />
             <span v-if="session.keySession" class="chip chip-accent"><Star :size="12" aria-hidden="true" /> Séance clé</span>
           </div>
@@ -160,7 +165,7 @@ async function saveNotes() {
       </div>
       <p v-if="error" class="alert alert-error" role="alert">{{ error }}</p>
 
-      <AnalysisCard v-if="done" :analysis="done.analysis" :actual="done.activity" />
+      <AnalysisCard v-if="done" :analysis="done.analysis" :actual="done.activity" @profile-updated="reloadAnalysis" />
 
       <section v-if="session.routineId" class="card routine" aria-labelledby="routine-title">
         <div class="card-title">
@@ -298,6 +303,20 @@ async function saveNotes() {
 .lead {
   color: var(--text-2);
   max-width: 62ch;
+}
+.purpose {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  max-width: 62ch;
+  color: var(--text-2);
+  font-size: 0.92rem;
+}
+.purpose svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--teal);
 }
 .facts {
   display: flex;

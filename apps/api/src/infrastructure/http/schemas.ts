@@ -205,5 +205,6 @@ export const notificationSettingsSchema = {
     morning: { type: 'object', required: ['enabled', 'time'], additionalProperties: false, properties: { enabled: { type: 'boolean' }, time } },
     weekly: { type: 'object', required: ['enabled', 'time'], additionalProperties: false, properties: { enabled: { type: 'boolean' }, time } },
     analysis: { type: 'object', required: ['enabled'], additionalProperties: false, properties: { enabled: { type: 'boolean' } } },
+    checkIn: { type: 'object', required: ['enabled', 'time'], additionalProperties: false, properties: { enabled: { type: 'boolean' }, time } },
   },
 } as const

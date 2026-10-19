@@ -1,5 +1,7 @@
-import { profileFromSamples, type Activity, type ImportedActivity } from '../../domain/activity/activity'
-import { matchActivityToSession } from '../../domain/activity/session-matcher'
+import { activityDay, profileFromSamples, sportFromLabel, type Activity, type ImportedActivity } from '../../domain/activity/activity'
+import { isGenericName, suggestActivityName } from '../../domain/activity/activity-name'
+import { assignDay } from '../../domain/activity/session-matcher'
+import { DEFAULT_TIME_ZONE, localTime, type IsoDate } from '../../domain/shared/dates'
 import { DomainError, NotFoundError } from '../../domain/shared/errors'
 import {
   RateLimitedError,
@@ -12,6 +14,7 @@ import {
   type IdGenerator,
   type IntegrationStore,
   type PlanRepository,
+  type TimeZoneProvider,
 } from '../ports'
 
 export type ImportOutcome =
@@ -51,6 +54,7 @@ export class ActivityService {
     private readonly clock: Clock,
     private readonly ids: IdGenerator,
     private readonly listeners: ActivityImportListener[] = [],
+    private readonly timeZones: TimeZoneProvider = { timeZoneOf: () => DEFAULT_TIME_ZONE },
   ) {}
 
   /** Liste allégée : la trace détaillée n'est renvoyée qu'avec une activité seule. */
@@ -68,6 +72,7 @@ export class ActivityService {
     const activity = this.get(userId, id)
     this.activities.delete(userId, id)
     if (activity.plannedSessionId) this.unlinkSession(userId, activity.plannedSessionId)
+    this.relinkDay(userId, activityDay(activity))
   }
 
   /** `automatic` : import sans action de l'utilisateur (dossier surveillé), qui mérite une notification. */
@@ -85,13 +90,14 @@ export class ActivityService {
   store(userId: string, imported: ImportedActivity, label = imported.name, automatic = false): ImportOutcome {
     if (this.activities.existsByExternalId(userId, imported.externalId)) return { status: 'DUPLICATE', filename: label }
 
-    const plan = this.plans.get(userId)
-    const session = plan ? matchActivityToSession(imported, plan.sessions) : undefined
+    const localDate = imported.localDate ?? localTime(new Date(imported.startTime), this.timeZones.timeZoneOf(userId)).date
     const profile = imported.profile.length < 2 && imported.samples?.length ? profileFromSamples(imported.samples) : imported.profile
-    const activity: Activity = { ...imported, profile, id: this.ids.next(), userId, plannedSessionId: session?.id }
-    this.activities.save(activity)
-    if (session) this.plans.updateSession(userId, { ...session, status: 'DONE', activityId: activity.id })
+    const id = this.ids.next()
+    this.activities.save({ ...imported, localDate, profile, id, userId, autoNamed: isGenericName(imported.name) })
+    this.relinkDay(userId, localDate)
+    const activity = this.activities.get(userId, id)!
     for (const listener of this.listeners) listener.activityImported(userId, activity, automatic)
+    const session = this.plans.get(userId)?.sessions.find((s) => s.id === activity.plannedSessionId)
     const { samples: _samples, ...light } = activity
     return { status: 'IMPORTED', activity: light, matchedSessionTitle: session?.title }
   }
@@ -148,6 +154,28 @@ export class ActivityService {
       ? [owner]
       : this.integrations.connectedUsers(providerName).filter((id) => !this.integrations.get(id, providerName)?.athleteId)
     return Promise.all(userIds.map((userId) => this.syncSafely(userId, providerName)))
+  }
+
+  /** Activité supprimée chez le fournisseur : on la retire aussi, et sa séance repasse « prévue ». */
+  removeProviderActivity(providerName: string, athleteId: string, externalId: string): void {
+    const owner = this.integrations.findUserByAthleteId(providerName, athleteId)
+    const activity = owner ? this.activities.findByExternalId(owner, externalId) : undefined
+    if (owner && activity) this.delete(owner, activity.id)
+  }
+
+  /**
+   * Activité modifiée chez le fournisseur. Un changement de sport (rando passée en course…)
+   * peut changer la séance qui lui correspond : on refait le rattachement.
+   */
+  updateProviderActivity(providerName: string, athleteId: string, externalId: string, change: { name?: string; sportLabel?: string }): void {
+    const owner = this.integrations.findUserByAthleteId(providerName, athleteId)
+    const activity = owner ? this.activities.findByExternalId(owner, externalId) : undefined
+    if (!owner || !activity) return
+    const sport = change.sportLabel ? sportFromLabel(change.sportLabel) : activity.sport
+    const name = change.name?.trim()
+    const updated: Activity = { ...activity, sport, ...(name ? { name, autoNamed: isGenericName(name) } : {}) }
+    this.activities.save(updated)
+    if (sport !== activity.sport) this.relinkDay(owner, activityDay(activity))
   }
 
   /** L'athlète a retiré l'accès à Kairn depuis le fournisseur. */
@@ -224,6 +252,32 @@ export class ActivityService {
     if (!provider) throw new NotFoundError('Fournisseur', name)
     if (!provider.isConfigured()) throw new DomainError(`${name} n'est pas configuré sur ce serveur`)
     return provider
+  }
+
+  /**
+   * Recalcule les rattachements d'une journée : séances du jour libres ou déjà
+   * liées à une activité du jour. Une séance cochée à la main sans activité peut être reprise ;
+   * si elle ne l'est pas, elle reste faite.
+   */
+  private relinkDay(userId: string, day: IsoDate): void {
+    const activities = this.activities.list(userId, 200).filter((a) => activityDay(a) === day)
+    const ids = new Set(activities.map((a) => a.id))
+    const sessions = (this.plans.get(userId)?.sessions ?? []).filter((s) => s.date === day && (!s.activityId || ids.has(s.activityId)))
+    const assignment = assignDay(activities, sessions)
+
+    for (const activity of activities) {
+      const sessionId = assignment.get(activity.id)
+      const name = activity.autoNamed ? suggestActivityName(activity, sessions.find((s) => s.id === sessionId)) : activity.name
+      if (activity.plannedSessionId !== sessionId || activity.name !== name) this.activities.save({ ...activity, plannedSessionId: sessionId, name })
+    }
+    for (const session of sessions) {
+      const activityId = activities.find((a) => assignment.get(a.id) === session.id)?.id
+      if (activityId && (session.activityId !== activityId || session.status !== 'DONE')) {
+        this.plans.updateSession(userId, { ...session, status: 'DONE', activityId })
+      } else if (!activityId && session.activityId) {
+        this.plans.updateSession(userId, { ...session, status: 'PLANNED', activityId: undefined })
+      }
+    }
   }
 
   private unlinkSession(userId: string, sessionId: string): void {

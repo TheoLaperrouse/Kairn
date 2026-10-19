@@ -18,8 +18,8 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useActivitiesStore } from '../../application/stores/activities'
 import { useTrainingStore } from '../../application/stores/training'
-import { SPORT_LABELS, formatDate, formatNumber, formatRelative, formatSeconds } from '../../domain/format'
-import type { ImportOutcome, Sport } from '../../domain/models'
+import { SPORT_LABELS, VERDICT_LABELS, VERDICT_TONES, formatDate, formatNumber, formatRelative, formatSeconds } from '../../domain/format'
+import { activityDay, type ImportOutcome, type Sport } from '../../domain/models'
 import VamProgressCard from '../components/VamProgressCard.vue'
 
 const store = useActivitiesStore()
@@ -219,9 +219,14 @@ const totals = computed(() => {
             </span>
             <span class="main">
               <strong>{{ a.name }}</strong>
-              <span class="small muted">
-                {{ formatDate(a.startTime) }}
-                <template v-if="sessionTitle(a.plannedSessionId)"> · <span class="linked">✓ {{ sessionTitle(a.plannedSessionId) }}</span></template>
+              <span class="small muted meta">
+                {{ formatDate(activityDay(a)) }}
+                <template v-if="sessionTitle(a.plannedSessionId) && sessionTitle(a.plannedSessionId) !== a.name">
+                  · <span class="linked">✓ {{ sessionTitle(a.plannedSessionId) }}</span>
+                </template>
+                <span v-if="store.verdicts[a.id] && store.verdicts[a.id]!.verdict !== 'HORS_PLAN'" class="verdict" :class="VERDICT_TONES[store.verdicts[a.id]!.verdict]">
+                  {{ VERDICT_LABELS[store.verdicts[a.id]!.verdict] }}
+                </span>
               </span>
             </span>
             <span class="stats num">
@@ -404,6 +409,26 @@ const totals = computed(() => {
 }
 .linked {
   color: var(--success);
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+}
+.verdict {
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.verdict.success {
+  border-color: var(--success);
+}
+.verdict.warning {
+  border-color: var(--warning);
 }
 .stats {
   display: flex;

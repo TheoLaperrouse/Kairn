@@ -1,4 +1,4 @@
-import type { Activity, ActivitySample } from '../activity/activity'
+import { activityDay, type Activity, type ActivitySample } from '../activity/activity'
 import { addDays, startOfWeek, type IsoDate } from '../shared/dates'
 
 /**
@@ -110,7 +110,7 @@ export function buildVamProgress(activities: Activity[], today: IsoDate, weekCou
     const curve = vamCurve(a.samples!)
     return VAM_DURATIONS.flatMap((minutes) => {
       const effort = curve[minutes]
-      return effort ? [{ minutes, mark: { vam: effort.vam, activityId: a.id, activityName: a.name, date: a.startTime.slice(0, 10) } }] : []
+      return effort ? [{ minutes, mark: { vam: effort.vam, activityId: a.id, activityName: a.name, date: activityDay(a) } }] : []
     })
   })
 

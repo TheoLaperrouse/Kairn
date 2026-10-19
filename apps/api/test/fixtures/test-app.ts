@@ -89,7 +89,7 @@ export async function buildTestApp(now: Date, options: { providers?: ActivityPro
   const app = await buildServer(
     {
       accounts: new AccountService(new repos.SqliteUserRepository(db), new repos.SqliteSessionRepository(db), new ScryptPasswordHasher(), new RandomTokenService(), clock, ids),
-      training: new TrainingService(profiles, goals, plans, catalog, clock, ids),
+      training: new TrainingService(profiles, goals, plans, catalog, clock, ids, activities),
       activities: activityService,
       dashboard: new DashboardService(profiles, goals, plans, activities, clock),
       content: new ContentService(catalog),

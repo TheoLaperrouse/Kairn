@@ -6,7 +6,7 @@ import { useApi } from '../../application/api-provider'
 import { useActivitiesStore } from '../../application/stores/activities'
 import { useTrainingStore } from '../../application/stores/training'
 import { SPORT_LABELS, formatDate, formatDuration, formatNumber, formatSeconds } from '../../domain/format'
-import type { Activity, VamDuration, WorkoutAnalysis } from '../../domain/models'
+import { activityDay, type Activity, type VamDuration, type WorkoutAnalysis } from '../../domain/models'
 import ActivityTraceChart from '../components/ActivityTraceChart.vue'
 import AnalysisCard from '../components/AnalysisCard.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
@@ -40,6 +40,10 @@ const vamEfforts = computed(() =>
     return effort ? [{ ...effort, record: analysis.value!.vamRecords.some((r) => r.minutes === minutes) }] : []
   }),
 )
+
+async function reloadAnalysis() {
+  analysis.value = await api.activityAnalysis(props.id).catch(() => analysis.value)
+}
 
 const hasTrace = computed(() => (activity.value?.samples?.length ?? 0) >= 2)
 
@@ -92,7 +96,7 @@ async function remove() {
         <div>
           <p class="eyebrow">{{ SPORT_LABELS[activity.sport] }} · {{ SOURCE_LABELS[activity.source] }}</p>
           <h1>{{ activity.name }}</h1>
-          <p class="lead">{{ formatDate(activity.startTime) }}</p>
+          <p class="lead">{{ formatDate(activityDay(activity)) }}</p>
         </div>
         <button type="button" class="btn btn-danger btn-sm" @click="confirming = true"><Trash2 :size="16" aria-hidden="true" /> Supprimer</button>
       </header>
@@ -130,7 +134,7 @@ async function remove() {
         </div>
       </dl>
 
-      <AnalysisCard v-if="analysis" :analysis="analysis" :actual="activity" />
+      <AnalysisCard v-if="analysis" :analysis="analysis" :actual="activity" @profile-updated="reloadAnalysis" />
 
       <section class="card" aria-labelledby="profile-title">
         <div class="card-title"><h2 id="profile-title">{{ hasTrace ? 'Trace' : 'Profil altimétrique' }}</h2></div>

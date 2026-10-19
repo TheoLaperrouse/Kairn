@@ -112,6 +112,8 @@ export interface PlannedSession {
   notes?: string
   adjustment?: string
   originalDate?: IsoDate
+  /** Rôle de la séance dans la préparation. */
+  purpose?: string
 }
 
 export interface PlanWeek {
@@ -147,6 +149,8 @@ export interface Activity {
   sport: Sport
   name: string
   startTime: string
+  /** Jour du départ dans le fuseau du coureur (absent sur les activités anciennes). */
+  localDate?: IsoDate
   durationSec: number
   distanceKm: number
   elevationGainM: number
@@ -179,6 +183,11 @@ export interface Climb {
 }
 
 export type Verdict = 'CONFORME' | 'TROP_INTENSE' | 'PAS_ASSEZ_INTENSE' | 'ECOURTEE' | 'PROLONGEE' | 'HORS_PLAN'
+export interface ActivityVerdict {
+  verdict: Verdict
+  score?: number
+}
+
 export type InsightTone = 'POSITIVE' | 'ATTENTION' | 'INFO'
 export type InsightTopic = 'INTENSITE' | 'DUREE' | 'DENIVELE' | 'MONTEE' | 'DESCENTE' | 'ENDURANCE' | 'NUTRITION' | 'DONNEES' | 'CHARGE'
 
@@ -206,6 +215,7 @@ export interface WorkoutAnalysis {
   decouplingPct?: number
   load: number
   plannedLoad?: number
+  hrMaxSuggestion?: { observed: number; current?: number }
   comparison?: {
     sessionId: string
     sessionTitle: string
@@ -287,6 +297,7 @@ export interface WeeklySummary {
     id: string
     name: string
     startTime: string
+    localDate: IsoDate
     sport: Sport
     durationSec: number
     distanceKm: number
@@ -301,6 +312,7 @@ export interface NotificationSettings {
   morning: { enabled: boolean; time: string }
   weekly: { enabled: boolean; time: string }
   analysis: { enabled: boolean }
+  checkIn: { enabled: boolean; time: string }
 }
 
 export interface NotificationStatus {
@@ -619,4 +631,9 @@ export interface RaceCourseView {
   course: RaceCourse
   plan: RacePlan
   goalMismatch?: { distanceKm: number; elevationGainM: number }
+}
+
+/** Jour d'une activité : le jour local quand il est connu. */
+export function activityDay(activity: Pick<Activity, 'startTime' | 'localDate'>): IsoDate {
+  return activity.localDate ?? activity.startTime.slice(0, 10)
 }

@@ -191,7 +191,7 @@ const STATUS_LABELS = { DONE: 'faite', SKIPPED: 'non réalisée', PLANNED: 'pas 
         <ul v-else class="list activities">
           <li v-for="a in summary.activities" :key="a.id">
             <RouterLink :to="`/activites/${a.id}`" class="activity">
-              <span class="when muted small">{{ formatShortDate(a.startTime) }}</span>
+              <span class="when muted small">{{ formatShortDate(a.localDate) }}</span>
               <span class="what">
                 <strong>{{ a.name }}</strong>
                 <small class="muted">{{ SPORT_LABELS[a.sport] }} · {{ formatSeconds(a.durationSec) }}<template v-if="a.distanceKm"> · {{ formatNumber(a.distanceKm, 1) }} km</template><template v-if="a.elevationGainM"> · {{ formatNumber(a.elevationGainM) }} m D+</template></small>

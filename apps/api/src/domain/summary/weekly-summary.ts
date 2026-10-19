@@ -1,4 +1,4 @@
-import type { Activity } from '../activity/activity'
+import { activityDay, type Activity } from '../activity/activity'
 import { type Climb } from '../analysis/climbs'
 import { shareAtOrAbove, totalSeconds, type TimeInZones } from '../analysis/heart-rate-zones'
 import { analyzeWorkout, type Insight, type Verdict, type WorkoutAnalysis } from '../analysis/workout-analysis'
@@ -54,7 +54,7 @@ export interface WeeklySummary {
   insights: Insight[]
   nextWeek?: WeekInfo & { targets: WeekVolumeTotals; keySessions: Array<{ id: string; title: string; date: IsoDate }> }
   headline: string
-  activities: Array<{ id: string; name: string; startTime: string; sport: Activity['sport']; durationSec: number; distanceKm: number; elevationGainM: number; verdict: Verdict; headline: string }>
+  activities: Array<{ id: string; name: string; startTime: string; localDate: IsoDate; sport: Activity['sport']; durationSec: number; distanceKm: number; elevationGainM: number; verdict: Verdict; headline: string }>
 }
 
 export interface SummaryInput {
@@ -68,7 +68,7 @@ export interface SummaryInput {
   checkIns: CheckIn[]
 }
 
-const day = (activity: Activity) => activity.startTime.slice(0, 10)
+const day = activityDay
 
 /** Historique minimal pour que le modèle forme / fatigue soit interprétable. */
 const HISTORY_FOR_FORM_DAYS = 28
@@ -192,6 +192,7 @@ export function buildWeeklySummary(input: SummaryInput): WeeklySummary {
       id: a.id,
       name: a.name,
       startTime: a.startTime,
+      localDate: day(a),
       sport: a.sport,
       durationSec: a.durationSec,
       distanceKm: a.distanceKm,

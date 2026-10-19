@@ -51,6 +51,7 @@ export interface ActivityRepository {
   list(userId: string, limit?: number): Activity[]
   get(userId: string, id: string): Activity | undefined
   existsByExternalId(userId: string, externalId: string): boolean
+  findByExternalId(userId: string, externalId: string): Activity | undefined
   save(activity: Activity): void
   delete(userId: string, id: string): boolean
 }
@@ -139,6 +140,10 @@ export class RateLimitedError extends Error {
     super(`Quota d'appels ${provider} atteint`)
     this.name = 'RateLimitedError'
   }
+}
+
+export interface TimeZoneProvider {
+  timeZoneOf(userId: string): string
 }
 
 /** Prévenu à chaque nouvelle activité (analyse et notification après une synchro automatique). */

@@ -2,17 +2,22 @@ import type { Activity } from '../../domain/activity/activity'
 import {
   DEFAULT_NOTIFICATION_SETTINGS,
   analysisMessage,
+  checkInReminderMessage,
   dueWeeklySummary,
+  isCheckInReminderDue,
   isMorningDue,
   isValidTimeZone,
-  localTime,
   morningMessage,
+  normalizeSettings,
   validateNotificationSettings,
   weeklyMessage,
   type NotificationSettings,
+  type LatestReadiness,
   type NotificationState,
   type PushMessage,
 } from '../../domain/notifications/notification'
+import { computeReadiness } from '../../domain/wellness/check-in'
+import { addDays, localTime, type IsoDate } from '../../domain/shared/dates'
 import { DomainError } from '../../domain/shared/errors'
 import type {
   ActivityImportListener,
@@ -77,7 +82,8 @@ export class NotificationService implements ActivityImportListener {
     return this.status(userId)
   }
 
-  updateSettings(userId: string, settings: NotificationSettings): NotificationStatus {
+  updateSettings(userId: string, input: Partial<NotificationSettings>): NotificationStatus {
+    const settings = normalizeSettings(input)
     validateNotificationSettings(settings)
     this.settingsStore.save(userId, settings, this.load(userId).state)
     return this.status(userId)
@@ -121,10 +127,15 @@ export class NotificationService implements ActivityImportListener {
     if (isMorningDue(settings, state, local)) {
       next.lastMorning = local.date
       this.settingsStore.save(userId, settings, next)
-      const message = morningMessage(this.plans.get(userId)?.sessions ?? [], {
-        date: local.date,
-        checkInDone: this.checkIns.listSince(userId, local.date).some((c) => c.date === local.date),
-      })
+      const message = morningMessage(this.plans.get(userId)?.sessions ?? [], { date: local.date, latest: this.latestReadiness(userId, local.date) })
+      if (message) await this.deliver(userId, message)
+    }
+
+    if (isCheckInReminderDue(settings, state, local)) {
+      next.lastCheckInReminder = local.date
+      this.settingsStore.save(userId, settings, next)
+      const done = this.checkIns.listSince(userId, local.date).some((c) => c.date === local.date)
+      const message = done ? undefined : checkInReminderMessage(this.plans.get(userId)?.sessions ?? [], local.date)
       if (message) await this.deliver(userId, message)
     }
 
@@ -152,6 +163,16 @@ export class NotificationService implements ActivityImportListener {
   }
 
   private load(userId: string): { settings: NotificationSettings; state: NotificationState } {
-    return this.settingsStore.get(userId) ?? { settings: DEFAULT_NOTIFICATION_SETTINGS, state: {} }
+    const stored = this.settingsStore.get(userId)
+    return stored ? { settings: normalizeSettings(stored.settings), state: stored.state } : { settings: DEFAULT_NOTIFICATION_SETTINGS, state: {} }
+  }
+
+  /** Bilan du matin d'aujourd'hui ou d'hier, s'il y en a un. */
+  private latestReadiness(userId: string, today: IsoDate): LatestReadiness | undefined {
+    const history = this.checkIns.listSince(userId, addDays(today, -16))
+    const latest = history.filter((c) => c.date <= today && c.date >= addDays(today, -1)).at(-1)
+    if (!latest) return undefined
+    const { level, action } = computeReadiness(latest, history.filter((c) => c.date < latest.date))
+    return { date: latest.date, level, action }
   }
 }

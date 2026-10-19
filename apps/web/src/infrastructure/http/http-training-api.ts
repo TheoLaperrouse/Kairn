@@ -33,6 +33,7 @@ import type {
   NotificationStatus,
   PushSubscriptionPayload,
   VamProgress,
+  ActivityVerdict,
 } from '../../domain/models'
 
 /** Adaptateur HTTP : la session voyage dans un cookie httpOnly posé par le serveur. */
@@ -113,6 +114,9 @@ export class HttpTrainingApi implements TrainingApi {
   }
   activity(id: string) {
     return this.request<Activity>('GET', `/api/activities/${encodeURIComponent(id)}`)
+  }
+  activityVerdicts() {
+    return this.request<Record<string, ActivityVerdict>>('GET', '/api/activities/verdicts')
   }
   activityAnalysis(id: string) {
     return this.request<WorkoutAnalysis>('GET', `/api/activities/${encodeURIComponent(id)}/analysis`)

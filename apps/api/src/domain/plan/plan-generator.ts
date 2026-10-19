@@ -35,6 +35,8 @@ export interface PlanRequest {
   today: IsoDate
   createdAt: string
   routines: RoutineSummary[]
+  /** Vitesse réelle d'entraînement (km-effort/h) mesurée sur les sorties récentes ; à défaut, la valeur type du niveau. */
+  trainingSpeedKme?: number
 }
 
 /** Volume hebdomadaire au pic (h) pour un coureur intermédiaire. */
@@ -94,7 +96,7 @@ export function generatePlan(request: PlanRequest): TrainingPlan {
   }
 
   const warnings = collectWarnings(goal, profile, category, totalWeeks)
-  const skeleton = buildSkeleton(start, totalWeeks, category, profile, goal)
+  const skeleton = buildSkeleton(start, totalWeeks, category, profile, goal, request.trainingSpeedKme ?? TRAINING_SPEED_KME[profile.level])
   const raceDurationH = estimateRaceDurationH(goal, profile.level)
 
   const sessions: PlannedSession[] = []
@@ -163,6 +165,7 @@ function buildSkeleton(
   category: TrailCategory,
   profile: AthleteProfile,
   goal: RaceGoal,
+  speedKme: number,
 ): WeekSkeleton[] {
   const taper = Math.min(TAPER_WEEKS[category], Math.max(totalWeeks - 3, 1))
   const buildWeeks = totalWeeks - 1 - taper
@@ -179,7 +182,7 @@ function buildSkeleton(
 
   const peak = Math.min(PEAK_HOURS[category] * LEVEL_VOLUME_FACTOR[profile.level], profile.maxWeeklyHours)
   const currentHours =
-    kmEffort(profile.currentWeeklyKm, profile.currentWeeklyElevationM) / TRAINING_SPEED_KME[profile.level]
+    kmEffort(profile.currentWeeklyKm, profile.currentWeeklyElevationM) / speedKme
   const startHours = Math.min(clamp(currentHours * 1.05, peak * 0.45, peak * 0.85), peak)
 
   // Cycle 3:1 — toutes les 4e semaines de construction sont allégées, sauf juste avant l'affûtage.
@@ -543,7 +546,8 @@ function createSession(
   if (type === 'COURSE') return { ...base, distanceKm: goal.distanceKm, elevationGainM: goal.elevationGainM }
 
   const sessionRatio = ratio * content.verticalShare
-  const effort = (durationMin / 60) * TRAINING_SPEED_KME[profile.level] * (content.zone >= 4 ? 1.05 : 1)
+  const speed = request.trainingSpeedKme ?? TRAINING_SPEED_KME[profile.level]
+  const effort = (durationMin / 60) * speed * (content.zone >= 4 ? 1.05 : 1)
   const distanceKm = effort / (1 + sessionRatio / 100)
   return {
     ...base,

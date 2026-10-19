@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bell, BellOff, BellRing, CalendarCheck, LoaderCircle, Send, Share, Smartphone, Sparkles, Trash2 } from 'lucide-vue-next'
+import { Bell, BellOff, BellRing, CalendarCheck, ClipboardCheck, LoaderCircle, Send, Share, Smartphone, Sparkles, Trash2 } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useNotificationsStore } from '../../application/stores/notifications'
 import { formatRelative } from '../../domain/format'
@@ -105,6 +105,24 @@ const test = () => run(async () => {
           />
         </label>
         <p class="small muted">Uniquement les jours où une séance est prévue.</p>
+      </div>
+
+      <div class="pref">
+        <label class="switch">
+          <span><ClipboardCheck :size="18" aria-hidden="true" /> Rappel du bilan du matin</span>
+          <input type="checkbox" :checked="settings.checkIn.enabled" @change="update((s) => ({ ...s, checkIn: { ...s.checkIn, enabled: ($event.target as HTMLInputElement).checked } }))" />
+        </label>
+        <label v-if="settings.checkIn.enabled" class="time">
+          <span class="small text-2">à</span>
+          <input
+            type="time"
+            class="input"
+            :value="settings.checkIn.time"
+            aria-label="Heure du rappel du bilan du matin"
+            @change="update((s) => ({ ...s, checkIn: { ...s.checkIn, time: ($event.target as HTMLInputElement).value } }))"
+          />
+        </label>
+        <p class="small muted">S’il n’est pas encore rempli, les jours de séance.</p>
       </div>
 
       <div class="pref">

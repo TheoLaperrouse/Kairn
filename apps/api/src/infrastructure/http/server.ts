@@ -263,6 +263,13 @@ function registerStravaWebhook(app: FastifyInstance, activities: ActivityService
     if (!athleteId) return { ok: true }
     if (event.object_type === 'athlete' && event.updates?.authorized === 'false') {
       activities.disconnectAthlete('strava', athleteId)
+    } else if (event.object_type === 'activity' && event.aspect_type === 'delete') {
+      activities.removeProviderActivity('strava', athleteId, `strava:${event.object_id}`)
+    } else if (event.object_type === 'activity' && event.aspect_type === 'update') {
+      const { title, type, sport_type: sportType } = event.updates ?? {}
+      if (title || type || sportType) {
+        activities.updateProviderActivity('strava', athleteId, `strava:${event.object_id}`, { name: title, sportLabel: sportType ?? type })
+      }
     } else if (event.object_type === 'activity' && event.aspect_type === 'create') {
       void activities.syncAthlete('strava', athleteId).then((results) => {
         for (const result of results) {
@@ -279,6 +286,7 @@ function registerInsightRoutes(api: FastifyInstance, { analyses, summaries, prog
   api.get<{ Querystring: { weeks?: string } }>('/api/progress/vam', async (request) =>
     progress.vam(userId(request), request.query.weeks ? Number(request.query.weeks) || undefined : undefined),
   )
+  api.get('/api/activities/verdicts', async (request) => analyses.verdicts(userId(request)))
   api.get<{ Params: { id: string } }>('/api/activities/:id/analysis', async (request) =>
     analyses.analyze(userId(request), request.params.id),
   )

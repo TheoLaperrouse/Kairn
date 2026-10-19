@@ -3,11 +3,11 @@ import {
   DEFAULT_NOTIFICATION_SETTINGS as settings,
   dueWeeklySummary,
   isMorningDue,
-  localTime,
   morningMessage,
   validateNotificationSettings,
   weeklyMessage,
 } from '../../src/domain/notifications/notification'
+import { localTime } from '../../src/domain/shared/dates'
 import { generatePlan } from '../../src/domain/plan/plan-generator'
 import { addDays } from '../../src/domain/shared/dates'
 import { buildWeeklySummary } from '../../src/domain/summary/weekly-summary'
@@ -46,20 +46,20 @@ describe('morning reminder', () => {
       aSession({ id: 'a', date: '2027-03-03', status: 'PLANNED', title: 'Sortie longue', durationMin: 150, distanceKm: 22, elevationGainM: 900, keySession: true, objective: 'Habituer le corps à la durée.' }),
       aSession({ id: 'b', date: '2027-03-04', status: 'PLANNED' }),
     ]
-    const message = morningMessage(sessions, { date: '2027-03-03', checkInDone: false })!
+    const message = morningMessage(sessions, { date: '2027-03-03' })!
     expect(message.title).toBe('Séance clé aujourd’hui')
     expect(message.body).toBe('🏃 Sortie longue · 2 h 30, 22 km, 900 m D+\nHabituer le corps à la durée.\nFais ton bilan du matin : Kairn ajuste la séance si besoin.')
     expect(message.url).toBe('/seance/a')
   })
 
   it('stays silent on rest days or when the session is already done', () => {
-    expect(morningMessage([aSession({ date: '2027-03-03', status: 'DONE' })], { date: '2027-03-03', checkInDone: true })).toBeUndefined()
-    expect(morningMessage([], { date: '2027-03-03', checkInDone: true })).toBeUndefined()
+    expect(morningMessage([aSession({ date: '2027-03-03', status: 'DONE' })], { date: '2027-03-03' })).toBeUndefined()
+    expect(morningMessage([], { date: '2027-03-03' })).toBeUndefined()
   })
 
   it('wishes a good race on race day', () => {
     const race = aSession({ type: 'COURSE', title: 'CCC', date: '2027-08-27', status: 'PLANNED' })
-    expect(morningMessage([race], { date: '2027-08-27', checkInDone: true })!.title).toBe('Jour de course 🏔️')
+    expect(morningMessage([race], { date: '2027-08-27' })!.title).toBe('Jour de course 🏔️')
   })
 })
 

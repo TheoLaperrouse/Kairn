@@ -35,6 +35,8 @@ interface StravaActivity {
   sport_type?: string
   type?: string
   start_date: string
+  /** Heure locale du départ, notée comme si elle était UTC (« 2026-10-19T00:30:00Z »). */
+  start_date_local?: string
   moving_time: number
   distance: number
   total_elevation_gain: number
@@ -183,6 +185,7 @@ function toImported(activity: StravaActivity): ImportedActivity {
     sport: sportFromLabel(activity.sport_type ?? activity.type),
     name: activity.name,
     startTime: new Date(activity.start_date).toISOString(),
+    localDate: activity.start_date_local?.slice(0, 10),
     durationSec: activity.moving_time,
     distanceKm: Math.round(activity.distance / 10) / 100,
     elevationGainM: Math.round(activity.total_elevation_gain),

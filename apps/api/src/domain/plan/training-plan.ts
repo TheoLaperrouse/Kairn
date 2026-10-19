@@ -55,6 +55,8 @@ export interface PlannedSession {
   adjustment?: string
   /** Date initialement prévue, si la séance a été déplacée. */
   originalDate?: IsoDate
+  /** Rôle de la séance dans la préparation : calculé à la lecture, jamais enregistré. */
+  purpose?: string
 }
 
 export interface PlanWeek {

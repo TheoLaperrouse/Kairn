@@ -1,4 +1,4 @@
-import type { Activity, ActivitySample } from '../activity/activity'
+import { activityDay, type Activity, type ActivitySample } from '../activity/activity'
 import type { AthleteProfile } from '../athlete/athlete-profile'
 import type { PlannedSession, SessionType, Zone } from '../plan/training-plan'
 import { addDays, daysBetween, weekday } from '../shared/dates'
@@ -54,6 +54,8 @@ export interface WorkoutAnalysis {
   decouplingPct?: number
   load: number
   plannedLoad?: number
+  /** FC max du profil dépassée (ou absente) : valeur observée à proposer, sur 10 s pour écarter les pics du capteur. */
+  hrMaxSuggestion?: { observed: number; current?: number }
   comparison?: PlanComparison
   verdict: Verdict
   /** Note de conformité au plan, sur 100. */
@@ -121,6 +123,7 @@ export function analyzeWorkout(activity: Activity, context: AnalysisContext): Wo
     decouplingPct,
     load,
     plannedLoad: session ? expectedActivityLoad(session, Boolean(activity.avgHeartRate && context.profile.hrMax && context.profile.hrRest)) : undefined,
+    hrMaxSuggestion: hrMaxSuggestion(activity, context),
     comparison,
     verdict,
     score: comparison ? score(comparison, verdict) : undefined,
@@ -131,6 +134,27 @@ export function analyzeWorkout(activity: Activity, context: AnalysisContext): Wo
   analysis.insights = insights(activity, analysis, context)
   analysis.nextStep = nextStep(activity, analysis, context.sessions)
   return analysis
+}
+
+/** Au-delà, c'est une erreur du capteur, pas une FC. */
+const MAX_PLAUSIBLE_HR = 225
+/** Sans trace, la FC max annoncée par la montre est un point isolé : on exige un net dépassement. */
+const SUMMARY_HR_MARGIN = 3
+
+function observedMaxHeartRate(activity: Activity): number | undefined {
+  const fromSamples = activity.samples?.flatMap((s) => (s.hr === undefined ? [] : [s.hr])) ?? []
+  const max = fromSamples.length ? Math.max(...fromSamples) : activity.maxHeartRate ? activity.maxHeartRate - SUMMARY_HR_MARGIN : undefined
+  return max && max <= MAX_PLAUSIBLE_HR ? max : undefined
+}
+
+function hrMaxSuggestion(activity: Activity, context: AnalysisContext): WorkoutAnalysis['hrMaxSuggestion'] {
+  const current = context.profile.hrMax
+  if (current) {
+    const observed = observedMaxHeartRate(activity)
+    return observed && observed > current ? { observed, current } : undefined
+  }
+  const observed = Math.max(0, ...[activity, ...context.history].map((a) => observedMaxHeartRate(a) ?? 0))
+  return observed > 0 ? { observed } : undefined
 }
 
 function bestClimbOf(climbs: Climb[]): Climb | undefined {
@@ -429,14 +453,26 @@ function insights(activity: Activity, a: WorkoutAnalysis, context: AnalysisConte
 
   if (!a.hasDetail) {
     list.push({ tone: 'INFO', topic: 'DONNEES', title: 'Analyse partielle', text: 'La trace détaillée n’est pas (encore) disponible : zones cardiaques et montées seront analysées dès sa récupération.' })
+  } else if (a.hrMaxSuggestion?.current) {
+    list.push({
+      tone: 'ATTENTION',
+      topic: 'DONNEES',
+      title: 'FC max dépassée',
+      text: `${a.hrMaxSuggestion.observed} bpm tenus 10 s, au-dessus des ${a.hrMaxSuggestion.current} bpm de ton profil. Mets ta FC max à jour : toutes tes zones, et donc tes analyses, seront plus justes.`,
+    })
   } else if (!context.profile.hrMax && activity.avgHeartRate) {
-    list.push({ tone: 'INFO', topic: 'DONNEES', title: 'Zones cardiaques', text: 'Renseigne ta FC max (et ta FC de repos) dans ton profil pour obtenir le temps passé dans chaque zone.' })
+    list.push({
+      tone: 'INFO',
+      topic: 'DONNEES',
+      title: 'Zones cardiaques',
+      text: `Renseigne ta FC max (et ta FC de repos) pour obtenir le temps passé dans chaque zone.${a.hrMaxSuggestion ? ` La plus haute FC relevée sur tes sorties est ${a.hrMaxSuggestion.observed} bpm : c’est au moins ta FC max.` : ''}`,
+    })
   }
   return list
 }
 
 function nextStep(activity: Activity, a: WorkoutAnalysis, sessions: PlannedSession[]): WorkoutAnalysis['nextStep'] {
-  const day = activity.startTime.slice(0, 10)
+  const day = activityDay(activity)
   const next = sessions
     .filter((s) => s.date > day && s.status === 'PLANNED' && s.sport !== 'STRENGTH')
     .sort((x, y) => x.date.localeCompare(y.date))[0]

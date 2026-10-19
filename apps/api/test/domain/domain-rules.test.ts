@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { cumulativeGain, sportFromLabel } from '../../src/domain/activity/activity'
-import { matchActivityToSession } from '../../src/domain/activity/session-matcher'
+import { assignDay } from '../../src/domain/activity/session-matcher'
 import { describeDevice } from '../../src/domain/account/account'
 import { categorize, estimateRaceDurationH, kmEffort } from '../../src/domain/goal/race-goal'
 import { computeFuelingPlan } from '../../src/domain/nutrition/race-fueling'
@@ -45,8 +45,36 @@ describe('activities', () => {
       { ...base, id: 'b', date: '2027-03-02', type: 'SORTIE_LONGUE', sport: 'RUN', title: 'SL', durationMin: 150 },
       { ...base, id: 'c', date: '2027-03-02', type: 'VELO_ENDURANCE', sport: 'BIKE', title: 'Vélo', durationMin: 140 },
     ]
-    const match = matchActivityToSession({ sport: 'RUN', startTime: '2027-03-02T07:00:00Z', durationSec: 2.2 * 3600 }, sessions)
-    expect(match?.id).toBe('b')
+    const assignment = assignDay([{ id: 'run', sport: 'RUN', durationSec: 2.2 * 3600 }], sessions)
+    expect(assignment.get('run')).toBe('b')
+  })
+
+  it('assigns a double session by best overall fit, whatever the import order', () => {
+    const base = { weekIndex: 0, objective: '', zone: 2 as const, keySession: false, steps: [], tips: [], status: 'PLANNED' as const }
+    const sessions: PlannedSession[] = [
+      { ...base, id: 'morning', date: '2027-03-02', type: 'ENDURANCE', sport: 'RUN', title: 'EF', durationMin: 60 },
+      { ...base, id: 'evening', date: '2027-03-02', type: 'RECUPERATION', sport: 'RUN', title: 'Récup', durationMin: 30 },
+    ]
+    // The 45-min run came first and took the 60-min session; with the 65-min run in, the best fit is 65 → 60 and 45 → 30.
+    const assignment = assignDay(
+      [
+        { id: 'first', sport: 'RUN', durationSec: 45 * 60, plannedSessionId: 'morning' },
+        { id: 'second', sport: 'RUN', durationSec: 65 * 60 },
+      ],
+      sessions,
+    )
+    expect(assignment.get('first')).toBe('evening')
+    expect(assignment.get('second')).toBe('morning')
+  })
+
+  it('keeps the existing link when two assignments are equivalent', () => {
+    const base = { weekIndex: 0, objective: '', zone: 2 as const, keySession: false, steps: [], tips: [], status: 'PLANNED' as const }
+    const sessions: PlannedSession[] = [
+      { ...base, id: 'a', date: '2027-03-02', type: 'ENDURANCE', sport: 'RUN', title: 'EF', durationMin: 40 },
+      { ...base, id: 'b', date: '2027-03-02', type: 'ENDURANCE', sport: 'RUN', title: 'EF', durationMin: 60 },
+    ]
+    const assignment = assignDay([{ id: 'run', sport: 'RUN', durationSec: 50 * 60, plannedSessionId: 'b' }], sessions)
+    expect(assignment.get('run')).toBe('b')
   })
 })
 

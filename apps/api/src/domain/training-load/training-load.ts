@@ -1,5 +1,5 @@
 import type { AthleteProfile } from '../athlete/athlete-profile'
-import type { Activity } from '../activity/activity'
+import { activityDay, type Activity } from '../activity/activity'
 import { ZONE_LOAD_FACTOR, type PlannedSession, type Zone } from '../plan/training-plan'
 import { addDays, daysBetween, type IsoDate } from '../shared/dates'
 
@@ -67,6 +67,20 @@ export function expectedActivityLoad(session: PlannedSession, withHeartRate: boo
  * Série quotidienne de charge du `from` au `to` inclus. Les jours postérieurs à `today`
  * utilisent la charge prévue par le plan : on projette la forme jusqu'au jour de course.
  */
+/**
+ * La charge réalisée se calcule à la FC dès qu'elle est connue (TRIMP), sinon à la durée.
+ * La charge prévue doit suivre la même échelle, sinon la projection jusqu'au jour de course
+ * mélange deux unités : on retient l'échelle des sorties récentes.
+ */
+export function usesHeartRateLoad(profile: Pick<AthleteProfile, 'hrMax' | 'hrRest'>, activities: Activity[]): boolean {
+  if (!profile.hrMax || !profile.hrRest) return false
+  const recent = [...activities]
+    .filter((a) => a.sport !== 'STRENGTH')
+    .sort((a, b) => b.startTime.localeCompare(a.startTime))
+    .slice(0, 10)
+  return recent.length === 0 || recent.filter((a) => a.avgHeartRate).length * 2 >= recent.length
+}
+
 export function computeLoadSeries(
   activities: Activity[],
   sessions: PlannedSession[],
@@ -75,15 +89,16 @@ export function computeLoadSeries(
   to: IsoDate,
   today: IsoDate,
 ): LoadPoint[] {
+  const heartRateScale = usesHeartRateLoad(profile, activities)
   const actual = new Map<IsoDate, number>()
   for (const activity of activities) {
-    const day = activity.startTime.slice(0, 10)
+    const day = activityDay(activity)
     actual.set(day, (actual.get(day) ?? 0) + activityLoad(activity, profile))
   }
   const planned = new Map<IsoDate, number>()
   for (const session of sessions) {
     if (session.status === 'SKIPPED') continue
-    planned.set(session.date, (planned.get(session.date) ?? 0) + plannedLoad(session))
+    planned.set(session.date, (planned.get(session.date) ?? 0) + expectedActivityLoad(session, heartRateScale))
   }
 
   const points: LoadPoint[] = []

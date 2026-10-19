@@ -1,4 +1,5 @@
 import type { Sport } from '../plan/training-plan'
+import type { IsoDate } from '../shared/dates'
 
 export type ActivitySource = 'FIT' | 'GPX' | 'TCX' | 'STRAVA' | 'GARMIN_FOLDER' | 'MANUAL'
 
@@ -30,18 +31,27 @@ export interface Activity {
   sport: Sport
   name: string
   startTime: string
+  /** Jour calendaire du départ dans le fuseau du coureur : une sortie à 0 h 30 compte pour ce jour-là, pas pour la veille en UTC. */
+  localDate?: IsoDate
   durationSec: number
   distanceKm: number
   elevationGainM: number
   avgHeartRate?: number
   maxHeartRate?: number
   profile: ProfilePoint[]
+  /** Nom généré par Kairn (le nom d'origine était générique) : il suit les changements de rattachement. */
+  autoNamed?: boolean
   /**
    * Trace détaillée : absente si elle n'a pas encore été récupérée (Strava),
    * vide si la source n'en fournit pas (activité saisie à la main, renfo sans capteur).
    */
   samples?: ActivitySample[]
   plannedSessionId?: string
+}
+
+/** Jour de la sortie ; les activités importées avant l'ajout du jour local retombent sur la date UTC. */
+export function activityDay(activity: Pick<Activity, 'startTime' | 'localDate'>): IsoDate {
+  return activity.localDate ?? activity.startTime.slice(0, 10)
 }
 
 /** Résultat brut d'un parseur ou d'un fournisseur, avant rattachement à un utilisateur. */

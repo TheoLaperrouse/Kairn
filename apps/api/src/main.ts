@@ -18,6 +18,7 @@ import { WellnessService } from './application/use-cases/wellness-service'
 import { WorkoutExportService } from './application/use-cases/workout-export-service'
 import { TrainingService } from './application/use-cases/training-service'
 import { normalizeEmail } from './domain/account/account'
+import { DEFAULT_TIME_ZONE } from './domain/shared/dates'
 import { IcsCalendarEncoder } from './infrastructure/calendar/ics-calendar-encoder'
 import { StaticContentCatalog } from './infrastructure/catalog/static-catalog'
 import { FitWorkoutEncoder } from './infrastructure/fit/fit-workout-encoder'
@@ -84,9 +85,10 @@ const pushSender = new WebPushSender({
   privateKey: new SqliteSecretStore(db).getOrCreate('vapid', generateVapidKeys),
   subject: env.VAPID_SUBJECT ?? (publicUrl.startsWith('https://') ? publicUrl : 'mailto:kairn@localhost'),
 })
+const notificationSettings = new SqliteNotificationSettingsRepository(db)
 const notifications = new NotificationService(
   new SqlitePushSubscriptionRepository(db),
-  new SqliteNotificationSettingsRepository(db),
+  notificationSettings,
   pushSender,
   plans,
   checkIns,
@@ -98,7 +100,7 @@ const notifications = new NotificationService(
 
 const services = {
   accounts: new AccountService(users, new SqliteSessionRepository(db), new ScryptPasswordHasher(), tokens, clock, ids),
-  training: new TrainingService(profiles, goals, plans, catalog, clock, ids),
+  training: new TrainingService(profiles, goals, plans, catalog, clock, ids, activityRepository),
   activities: new ActivityService(
     activityRepository,
     plans,
@@ -108,6 +110,7 @@ const services = {
     clock,
     ids,
     [notifications],
+    { timeZoneOf: (userId) => notificationSettings.get(userId)?.settings.timeZone ?? DEFAULT_TIME_ZONE },
   ),
   dashboard: new DashboardService(profiles, goals, plans, activityRepository, clock),
   content: new ContentService(catalog),
