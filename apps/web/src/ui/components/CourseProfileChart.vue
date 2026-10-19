@@ -1,8 +1,4 @@
 <script setup lang="ts">
-/**
- * Profil altimétrique du parcours officiel : montées / descentes, ravitaillements,
- * portions de nuit et temps de passage prévu au survol.
- */
 import { computed, ref } from 'vue'
 import { formatNumber } from '../../domain/format'
 import type { AidStation, CoursePoint, CourseSegment, RacePlan } from '../../domain/models'
@@ -166,7 +162,6 @@ const tooltipStyle = computed(() => {
       <path :d="area" fill="url(#course-fill)" />
       <path :d="line" class="line" />
 
-      <!-- Bande de nature du terrain sous l'axe -->
       <rect
         v-for="(segment, i) in segments"
         :key="`s${i}`"

@@ -5,6 +5,7 @@ import { addDays, daysBetween, weekday } from '../shared/dates'
 import { formatInt, formatKm, formatMinutes, formatPercent, weekdayName } from '../shared/format'
 import { activityLoad, expectedActivityLoad } from '../training-load/training-load'
 import { aggregateVerticalSpeed, detectClimbs, movingSeconds, type Climb } from './climbs'
+import { vamCurve, vamRecords, type VamCurve, type VamDuration } from './vam-curve'
 import { heartRateZones, shareAtOrAbove, timeInZones, totalSeconds, type HeartRateZones, type TimeInZones } from './heart-rate-zones'
 
 export type Verdict = 'CONFORME' | 'TROP_INTENSE' | 'PAS_ASSEZ_INTENSE' | 'ECOURTEE' | 'PROLONGEE' | 'HORS_PLAN'
@@ -45,6 +46,10 @@ export interface WorkoutAnalysis {
   descentSpeed?: number
   /** Médiane des meilleures VAM des 8 semaines précédentes (au moins 3 sorties). */
   vamBaseline?: number
+  /** Meilleures VAM tenues 5, 10, 20 et 30 min sur cette sortie. */
+  vamCurve: VamCurve
+  /** Records personnels battus, avec l'ancienne meilleure valeur. */
+  vamRecords: Array<{ minutes: VamDuration; vam: number; previous: number }>
   /** Perte d'efficience (allure-effort / FC) entre la 1re et la 2e moitié, en %. */
   decouplingPct?: number
   load: number
@@ -111,6 +116,8 @@ export function analyzeWorkout(activity: Activity, context: AnalysisContext): Wo
     bestClimb,
     descentSpeed: aggregateVerticalSpeed(descents),
     vamBaseline,
+    vamCurve: hasDetail && activity.sport === 'RUN' ? vamCurve(samples) : {},
+    vamRecords: vamRecords(activity, context.history).map(({ effort, previous }) => ({ minutes: effort.minutes, vam: effort.vam, previous })),
     decouplingPct,
     load,
     plannedLoad: session ? expectedActivityLoad(session, Boolean(activity.avgHeartRate && context.profile.hrMax && context.profile.hrRest)) : undefined,
@@ -340,6 +347,18 @@ function insights(activity: Activity, a: WorkoutAnalysis, context: AnalysisConte
         list.push({ tone: 'POSITIVE', topic: 'DENIVELE', title: 'D+ au rendez-vous', text: `${formatInt(activity.elevationGainM)} m de dénivelé pour ${formatInt(c.plannedElevationM)} m prévus.` })
       }
     }
+  }
+
+  if (a.vamRecords.length) {
+    const [first, ...others] = a.vamRecords
+    list.push({
+      tone: 'POSITIVE',
+      topic: 'MONTEE',
+      title: a.vamRecords.length > 1 ? 'Records de VAM' : 'Record de VAM',
+      text:
+        `Nouveau record sur ${first!.minutes} min : ${formatInt(first!.vam)} m/h (précédent : ${formatInt(first!.previous)} m/h).` +
+        (others.length ? ` Aussi sur ${others.map((r) => `${r.minutes} min (${formatInt(r.vam)} m/h)`).join(', ')}.` : ''),
+    })
   }
 
   if (a.climbs.length && a.ascentVam) {

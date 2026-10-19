@@ -29,7 +29,6 @@ export const useAuthStore = defineStore('auth', () => {
     forget()
   }
 
-  /** Session expirée ou révoquée depuis un autre appareil. */
   function forget() {
     user.value = undefined
     devices.value = []

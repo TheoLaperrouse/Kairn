@@ -89,7 +89,6 @@ export interface CourseFileParser {
   parse(content: Buffer): CourseFile
 }
 
-/** Sérialise une séance structurée dans un format lisible par une montre. */
 export interface WorkoutEncoder {
   readonly extension: string
   encode(workout: WorkoutDefinition): Buffer
@@ -115,7 +114,6 @@ export interface IntegrationStore {
   get(userId: string, provider: string): IntegrationTokens | undefined
   save(userId: string, provider: string, tokens: IntegrationTokens): void
   delete(userId: string, provider: string): void
-  /** Utilisateurs ayant connecté ce fournisseur. */
   connectedUsers(provider: string): string[]
   findUserByAthleteId(provider: string, athleteId: string): string | undefined
 }

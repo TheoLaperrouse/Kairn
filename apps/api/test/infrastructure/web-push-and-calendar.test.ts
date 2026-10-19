@@ -5,7 +5,7 @@ import { WebPushSender, encryptPayload, generateVapidKeys, vapidPublicKey } from
 import { aGoal } from '../fixtures/factories'
 import { aSession } from '../fixtures/tracks'
 
-/** Côté navigateur : clés de l'abonnement et déchiffrement RFC 8291, écrits indépendamment de l'émetteur. */
+/** Browser side: subscription keys and RFC 8291 decryption, written independently of the sender. */
 function browser() {
   const ecdh = createECDH('prime256v1')
   ecdh.generateKeys()
@@ -34,16 +34,16 @@ function browser() {
 }
 
 describe('Web Push', () => {
-  it('chiffre le message de façon à ce que seul le navigateur abonné le lise', () => {
+  it('encrypts the message so that only the subscribed browser can read it', () => {
     const { subscription, decrypt } = browser()
     const body = encryptPayload(Buffer.from('Séance clé aujourd’hui 🏃'), subscription)
     expect(decrypt(body)).toEqual({ recordSize: 4096, text: 'Séance clé aujourd’hui 🏃' })
-    // Sel et clé éphémère renouvelés à chaque message.
+    // Fresh salt and ephemeral key for every message.
     expect(encryptPayload(Buffer.from('x'), subscription).equals(encryptPayload(Buffer.from('x'), subscription))).toBe(false)
     expect(() => browser().decrypt(body)).toThrow()
   })
 
-  it('signe la requête VAPID et livre le message au service de push', async () => {
+  it('signs the VAPID request and delivers the message to the push service', async () => {
     const privateKey = generateVapidKeys()
     const { subscription, decrypt } = browser()
     const requests: Array<{ url: string; init: RequestInit }> = []
@@ -82,7 +82,7 @@ describe('Web Push', () => {
     expect(verify('sha256', Buffer.from(`${header}.${payload}`), { key: verifier, dsaEncoding: 'ieee-p1363' }, Buffer.from(signature!, 'base64url'))).toBe(true)
   })
 
-  it('reconnaît un abonnement expiré et remonte les autres erreurs', async () => {
+  it('detects an expired subscription and surfaces other errors', async () => {
     const { subscription } = browser()
     const respond = (status: number) =>
       new WebPushSender({ privateKey: generateVapidKeys(), subject: 'mailto:a@b.c', http: (async () => new Response('quota', { status })) as typeof fetch })
@@ -93,8 +93,8 @@ describe('Web Push', () => {
   })
 })
 
-describe('agenda iCalendar', () => {
-  it('échappe le texte et replie les lignes sans couper un emoji', () => {
+describe('iCalendar feed', () => {
+  it('escapes text and folds lines without splitting an emoji', () => {
     expect(escape('Côtes; 6, puis\nretour \\ calme')).toBe('Côtes\; 6\\, puis\\nretour \\\\ calme')
     const line = `SUMMARY:${'🏃'.repeat(30)}`
     const folded = fold(line)
@@ -102,7 +102,7 @@ describe('agenda iCalendar', () => {
     expect(folded.split('\r\n ').join('')).toBe(line)
   })
 
-  it('publie une journée par séance, sans les séances annulées', () => {
+  it('publishes one all-day event per session, skipping cancelled ones', () => {
     const ics = new IcsCalendarEncoder().encode({
       name: 'Kairn · CCC',
       goal: aGoal(),

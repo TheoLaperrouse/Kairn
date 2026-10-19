@@ -1,8 +1,4 @@
 <script setup lang="ts">
-/**
- * Plan de course construit sur le GPX officiel : profil, temps de passage, barrières horaires,
- * ravitaillement à emporter et réglages du jour J.
- */
 import {
   Clock,
   Droplets,
@@ -220,7 +216,6 @@ function print() {
 
     <div v-if="loading" class="card skeleton" aria-busy="true">Chargement du plan de course…</div>
 
-    <!-- État vide -->
     <section
       v-else-if="!course || !plan"
       class="card topo dropzone"
@@ -480,7 +475,6 @@ function print() {
   min-height: 160px;
 }
 
-/* État vide */
 .dropzone {
   display: grid;
   justify-items: center;
@@ -554,7 +548,6 @@ function print() {
   color: var(--warning);
 }
 
-/* Temps de passage */
 .table-wrap {
   overflow-x: auto;
 }
@@ -666,7 +659,6 @@ function print() {
   font-weight: 700;
 }
 
-/* À emporter */
 .carry-section {
   display: grid;
   gap: var(--space-3);
@@ -705,7 +697,6 @@ function print() {
   gap: 4px;
 }
 
-/* Difficultés */
 .segments {
   list-style: none;
   margin: 0;
@@ -736,7 +727,6 @@ function print() {
   white-space: nowrap;
 }
 
-/* Réglages */
 .settings summary {
   display: flex;
   align-items: center;

@@ -1,10 +1,4 @@
 /**
- * Rendu anatomique du personnage de démonstration.
- *
- * À partir du squelette (kinematics.ts), produit des formes vectorielles réalistes :
- * membres galbés (quadriceps, mollets, biceps), tronc avec cambrure lombaire et cage thoracique,
- * tête de profil, tenue de trail, chaussures, et zones musculaires qui s'allument à l'effort.
- *
  * Module pur, sans DOM ni dépendance : il est aussi embarqué tel quel dans les films Claude Motion
  * (compilé en IIFE), pour que l'app et les films montrent exactement le même athlète.
  */
@@ -34,9 +28,7 @@ export interface BodyShape {
   paint: Paint
   /** Chemin SVG (repère du squelette, y vers le bas). */
   d: string
-  /** Zone musculaire représentée (pour l'allumage et les étiquettes). */
   region?: MuscleRegion
-  /** Centre de la zone, pour accrocher une étiquette. */
   anchor?: Point
 }
 
@@ -168,7 +160,6 @@ function shape(layer: Layer, paint: Paint, points: Point[], extra: Partial<BodyS
   return { layer, paint, d: smoothClosed(points), ...extra }
 }
 
-/** Chaussure de trail : semelle crantée, tige, orientée selon le pied. */
 function shoe(ankle: Point, toe: Point, far: boolean): BodyShape[] {
   const u = sub(toe, ankle)
   const length = Math.hypot(u.x, u.y) || 1e-6
@@ -221,7 +212,6 @@ function head(neck: Point, center: Point): BodyShape[] {
   ]
 }
 
-/** Point moyen d'un profil, pour accrocher l'étiquette d'un muscle. */
 function anchorOf(a: Point, b: Point, profile: Profile, anteriorSign: 1 | -1): Point {
   const pts = outline(a, b, profile, anteriorSign)
   return scale(pts.reduce((acc, p) => add(acc, p), { x: 0, y: 0 }), 1 / pts.length)
@@ -246,7 +236,6 @@ export function bodyShapes(s: Skeleton, regions: MuscleRegion[]): BodyShape[] {
     d: `M${fmt(cx - rx)},0 A${fmt(rx)},${fmt(ry)} 0 1 0 ${fmt(cx + rx)},0 A${fmt(rx)},${fmt(ry)} 0 1 0 ${fmt(cx - rx)},0Z`,
   })
 
-  // Côté éloigné (dans l'ombre).
   shapes.push(shape('far', 'skinFar', outline(shoulder, far.elbow, UPPER_ARM, 1)))
   shapes.push(shape('far', 'skinFar', outline(far.elbow, far.wrist, FOREARM, 1)))
   shapes.push(hand(far.wrist, far.elbow, 'far', 'skinFar'))
@@ -255,14 +244,12 @@ export function bodyShapes(s: Skeleton, regions: MuscleRegion[]): BodyShape[] {
   shapes.push(shape('far', 'shortsFar', outline(hip, far.knee, THIGH.map(([t, f, b]) => [t, f + 0.012, b + 0.012]), 1, -1, 0.42)))
   shapes.push(...shoe(far.ankle, far.toe, true))
 
-  // Tronc, cou, tête, tenue.
   shapes.push(shape('body', 'skin', outline(neck, add(neck, scale(sub(s.head, neck), 0.55)), NECK, 1)))
   shapes.push(shape('body', 'skin', outline(hip, neck, TORSO, -1)))
   shapes.push(shape('body', 'shorts', outline(hip, neck, TORSO.map(([t, f, b]) => [t, f + 0.012, b + 0.012]), -1, -1, 0.14)))
   shapes.push(shape('body', 'top', outline(hip, neck, TORSO.map(([t, f, b]) => [t, f + 0.01, b + 0.01]), -1, 0.12, 0.9)))
   shapes.push(...head(neck, s.head))
 
-  // Côté proche.
   shapes.push(shape('near', 'skin', outline(near.knee, near.ankle, SHIN, 1)))
   shapes.push(shape('near', 'skin', outline(hip, near.knee, THIGH, 1)))
   shapes.push(shape('near', 'shorts', outline(hip, near.knee, THIGH.map(([t, f, b]) => [t, f + 0.014, b + 0.014]), 1, -1, 0.42)))
@@ -271,7 +258,6 @@ export function bodyShapes(s: Skeleton, regions: MuscleRegion[]): BodyShape[] {
   shapes.push(shape('near', 'skin', outline(near.elbow, near.wrist, FOREARM, 1)))
   shapes.push(hand(near.wrist, near.elbow, 'near', 'skin'))
 
-  // Muscles sollicités, côté proche (et fessiers / dos sur le tronc).
   const muscle = (region: MuscleRegion, a: Point, b: Point, profile: Profile, sign: 1 | -1) =>
     shapes.push(shape('muscle', 'muscle', outline(a, b, profile, sign), { region, anchor: anchorOf(a, b, profile, sign) }))
   for (const region of regions) {

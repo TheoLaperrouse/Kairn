@@ -109,7 +109,6 @@ const countdown = computed(() => {
 
 <template>
   <div class="page">
-    <!-- Chargement -->
     <template v-if="loading">
       <div class="skeleton hero-skel" />
       <div class="grid grid-4"><div v-for="i in 4" :key="i" class="skeleton tile-skel" /></div>
@@ -126,7 +125,6 @@ const countdown = computed(() => {
     </div>
 
     <template v-else>
-      <!-- Bandeau objectif -->
       <section class="hero topo" aria-labelledby="hero-title">
         <div class="hero-main">
           <p class="eyebrow">{{ greeting }} · objectif</p>
@@ -166,7 +164,6 @@ const countdown = computed(() => {
         </div>
       </section>
 
-      <!-- Plan adapté automatiquement -->
       <div v-if="adaptation" class="adapt-banner" role="status">
         <Sparkles :size="20" class="adapt-icon" aria-hidden="true" />
         <div>
@@ -180,7 +177,6 @@ const countdown = computed(() => {
 
       <MorningCheckIn />
 
-      <!-- Aujourd'hui + prochaine séance clé -->
       <div class="grid grid-2">
         <section class="card" aria-labelledby="today-title">
           <div class="card-title">
@@ -219,7 +215,6 @@ const countdown = computed(() => {
 
       <WeeklySummaryTeaser />
 
-      <!-- Indicateurs -->
       <div class="grid grid-4">
         <StatTile
           label="Assiduité"
@@ -246,7 +241,6 @@ const countdown = computed(() => {
         <StatTile label="Durée estimée" :value="formatNumber(d.goal.estimatedDurationH, 1)" unit="h" sub="Selon ton niveau et la technicité" tone="accent" />
       </div>
 
-      <!-- Semaine -->
       <section class="card" aria-labelledby="week-title">
         <div class="card-title">
           <h2 id="week-title">Cette semaine</h2>
@@ -261,7 +255,6 @@ const countdown = computed(() => {
         </div>
       </section>
 
-      <!-- Graphiques -->
       <section class="card" aria-labelledby="load-title">
         <div class="card-title">
           <div>

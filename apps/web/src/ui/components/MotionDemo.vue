@@ -15,11 +15,6 @@ function isAvailable(src: string): Promise<boolean> {
 </script>
 
 <script setup lang="ts">
-/**
- * Démonstration d'un exercice :
- * passage du film Claude Motion en boucle si le MP4 a été exporté,
- * sinon animation anatomique calculée en direct à partir des mêmes poses-clés.
- */
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import type { Exercise } from '../../domain/models'
 import { motionClipFor } from '../../domain/motion-films'

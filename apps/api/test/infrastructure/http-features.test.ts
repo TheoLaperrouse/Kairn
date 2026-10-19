@@ -22,8 +22,8 @@ afterAll(() => app.close())
 
 const plan = async () => (await app.inject({ method: 'GET', url: '/api/plan', headers: { cookie } })).json()
 
-describe('plan de course (GPX officiel)', () => {
-  it('importe le GPX, propose d’aligner l’objectif et recalcule après modification des ravitos', async () => {
+describe('race plan (official GPX)', () => {
+  it('imports the GPX, offers to align the goal and recomputes after aid station changes', async () => {
     const upload = multipart('file', 'course.gpx', syntheticCourseGpx(), 'application/gpx+xml')
     const response = await app.inject({ method: 'POST', url: '/api/race-course', headers: { cookie, ...upload.headers }, payload: upload.payload })
     expect(response.statusCode).toBe(200)
@@ -45,15 +45,15 @@ describe('plan de course (GPX officiel)', () => {
     expect(goal.distanceKm).toBeCloseTo(30, 0)
   })
 
-  it('refuse un fichier qui n’est pas un GPX', async () => {
+  it('rejects a file that is not a GPX', async () => {
     const upload = multipart('file', 'course.txt', 'hello')
     const response = await app.inject({ method: 'POST', url: '/api/race-course', headers: { cookie, ...upload.headers }, payload: upload.payload })
     expect(response.statusCode).toBe(400)
   })
 })
 
-describe('bilan du matin et adaptation', () => {
-  it('recommande d’alléger la séance du jour puis l’applique', async () => {
+describe('morning check-in and adaptation', () => {
+  it('recommends lightening the session of the day, then applies it', async () => {
     const today = '2027-03-03'
     const checkIn = { date: today, sleepHours: 5.5, sleepQuality: 2, soreness: 3, fatigue: 3, motivation: 3, stress: 3, illnessSymptoms: false }
     const result = (await app.inject({ method: 'POST', url: '/api/wellness/check-in', headers: { cookie }, payload: checkIn })).json()
@@ -69,7 +69,7 @@ describe('bilan du matin et adaptation', () => {
     expect(overview.today.readiness.score).toBe(result.readiness.score)
   })
 
-  it('déclare une maladie et adapte le plan', async () => {
+  it('reports an illness and adapts the plan', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/plan/unavailability',
@@ -81,8 +81,8 @@ describe('bilan du matin et adaptation', () => {
   })
 })
 
-describe('séances vers la montre', () => {
-  it('télécharge une séance au format FIT et dépose la semaine dans le dossier de la montre', async () => {
+describe('sessions to the watch', () => {
+  it('downloads a session as FIT and drops the week into the watch folder', async () => {
     const run = (await plan()).sessions.find((s: { sport: string; type: string; status: string }) => s.sport === 'RUN' && s.type !== 'COURSE' && s.status === 'PLANNED')
     const fit = await app.inject({ method: 'GET', url: `/api/sessions/${run.id}/workout.fit`, headers: { cookie } })
     expect(fit.statusCode).toBe(200)

@@ -1,6 +1,6 @@
 /**
- * Parcours synthétique de 30 km vers le nord : montée de 1 000 m (km 0-10),
- * descente (km 10-20) puis portion plate (km 20-30). Deux ravitaillements en waypoints.
+ * Synthetic 30 km northbound course: 1,000 m climb (km 0-10),
+ * descent (km 10-20), then flat section (km 20-30). Two aid stations as waypoints.
  */
 export function syntheticCourseGpx(): string {
   const kmPerDegree = 111.195

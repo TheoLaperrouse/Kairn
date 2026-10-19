@@ -162,7 +162,6 @@ async function saveNotes() {
 
       <AnalysisCard v-if="done" :analysis="done.analysis" :actual="done.activity" />
 
-      <!-- Renforcement : routine et séance guidée -->
       <section v-if="session.routineId" class="card routine" aria-labelledby="routine-title">
         <div class="card-title">
           <div>
@@ -197,7 +196,6 @@ async function saveNotes() {
         <div v-else class="muted">Chargement de la routine…</div>
       </section>
 
-      <!-- Structure de la séance -->
       <section v-if="stepGroups.length" class="card" aria-labelledby="steps-title">
         <h2 id="steps-title" class="section-title">Déroulé</h2>
         <ol class="steps">

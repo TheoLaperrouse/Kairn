@@ -35,6 +35,5 @@ export interface Recipe {
   tags: string[]
   tip: string
   storage: string
-  /** Émoji de vignette. */
   emoji: string
 }

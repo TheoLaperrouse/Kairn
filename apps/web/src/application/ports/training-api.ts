@@ -31,6 +31,7 @@ import type {
   NotificationSettings,
   NotificationStatus,
   PushSubscriptionPayload,
+  VamProgress,
 } from '../../domain/models'
 
 /** Port de sortie du front : les stores ne connaissent que cette interface, jamais `fetch`. */
@@ -56,6 +57,7 @@ export interface TrainingApi {
   activity(id: string): Promise<Activity>
   activityAnalysis(id: string): Promise<WorkoutAnalysis>
   weeklySummary(weekStart?: string): Promise<WeeklySummary | null>
+  vamProgress(weeks?: number): Promise<VamProgress>
   deleteActivity(id: string): Promise<void>
   importFiles(files: File[]): Promise<ImportOutcome[]>
   integrations(): Promise<ProviderStatus[]>

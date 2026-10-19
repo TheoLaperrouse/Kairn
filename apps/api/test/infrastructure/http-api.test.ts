@@ -18,13 +18,13 @@ function cookieOf(response: { headers: Record<string, unknown> }): string {
   return String(response.headers['set-cookie']).split(';')[0]!
 }
 
-describe('API HTTP', () => {
-  it('refuse les routes protégées sans session', async () => {
+describe('HTTP API', () => {
+  it('rejects protected routes without a session', async () => {
     const response = await app.inject({ method: 'GET', url: '/api/plan' })
     expect(response.statusCode).toBe(401)
   })
 
-  it('partage un même compte entre deux appareils et permet de révoquer l’un d’eux', async () => {
+  it('shares one account across two devices and allows revoking one of them', async () => {
     const credentials = { email: 'Theo@Example.com', password: 'ultra-trail-2027' }
     const register = await app.inject({ method: 'POST', url: '/api/auth/register', headers: { 'user-agent': LAPTOP }, payload: { ...credentials, displayName: 'Théo' } })
     expect(register.statusCode).toBe(200)
@@ -34,7 +34,7 @@ describe('API HTTP', () => {
     expect(login.statusCode).toBe(200)
     const phone = cookieOf(login)
 
-    // Une donnée écrite depuis l'ordinateur est visible sur le téléphone.
+    // Data written from the laptop is visible on the phone.
     await app.inject({ method: 'PUT', url: '/api/profile', headers: { cookie: laptop }, payload: aProfile() })
     await app.inject({ method: 'PUT', url: '/api/goal', headers: { cookie: laptop }, payload: aGoal() })
     const generated = await app.inject({ method: 'POST', url: '/api/plan/generate', headers: { cookie: laptop } })
@@ -51,14 +51,14 @@ describe('API HTTP', () => {
     expect((await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie: laptop } })).statusCode).toBe(200)
   })
 
-  it('rejette un mauvais mot de passe sans révéler si le compte existe', async () => {
+  it('rejects a wrong password without revealing whether the account exists', async () => {
     const unknown = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'nobody@example.com', password: 'whatever-123' } })
     const wrong = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'theo@example.com', password: 'wrong-password' } })
     expect(unknown.statusCode).toBe(400)
     expect(wrong.json()).toEqual(unknown.json())
   })
 
-  it('importe une trace GPX, la rattache à la séance prévue et ignore les doublons', async () => {
+  it('imports a GPX track, links it to the planned session and ignores duplicates', async () => {
     const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'theo@example.com', password: 'ultra-trail-2027' } })
     const cookie = cookieOf(login)
     const plan = (await app.inject({ method: 'GET', url: '/api/plan', headers: { cookie } })).json()

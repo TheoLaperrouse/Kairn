@@ -163,7 +163,6 @@ const statusLabel = computed(() =>
   border-color: color-mix(in srgb, var(--success) 35%, var(--border));
 }
 
-/* Variante compacte (grille de la semaine) */
 .compact {
   flex-direction: column;
   gap: 6px;

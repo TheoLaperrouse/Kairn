@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/** Bilan d'une semaine : volume face au plan, séances clés, intensité, forme, et ce qui vient ensuite. */
 import { ArrowRight, CalendarRange, ChevronLeft, ChevronRight, CircleCheck, CircleDashed, CircleX, Star, Trophy } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'

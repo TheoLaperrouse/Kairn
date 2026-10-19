@@ -8,6 +8,7 @@ import type { ActivityService, ImportOutcome } from '../../application/use-cases
 import type { AnalysisService } from '../../application/use-cases/analysis-service'
 import type { CalendarService } from '../../application/use-cases/calendar-service'
 import type { NotificationService } from '../../application/use-cases/notification-service'
+import type { ProgressService } from '../../application/use-cases/progress-service'
 import type { SummaryService } from '../../application/use-cases/summary-service'
 import type { PushSubscription } from '../../application/ports'
 import { describeDevice } from '../../domain/account/account'
@@ -63,11 +64,11 @@ export interface Services {
   summaries: SummaryService
   notifications: NotificationService
   calendar: CalendarService
+  progress: ProgressService
 }
 
 export interface ServerOptions {
   secureCookies: boolean
-  /** Dossier du front compilé, servi en production. */
   webDist?: string
   logger: boolean
   /** Notifications Strava : jeton de vérification de l'abonnement (absent = webhook désactivé). */
@@ -274,7 +275,10 @@ function registerStravaWebhook(app: FastifyInstance, activities: ActivityService
   })
 }
 
-function registerInsightRoutes(api: FastifyInstance, { analyses, summaries }: Services): void {
+function registerInsightRoutes(api: FastifyInstance, { analyses, summaries, progress }: Services): void {
+  api.get<{ Querystring: { weeks?: string } }>('/api/progress/vam', async (request) =>
+    progress.vam(userId(request), request.query.weeks ? Number(request.query.weeks) || undefined : undefined),
+  )
   api.get<{ Params: { id: string } }>('/api/activities/:id/analysis', async (request) =>
     analyses.analyze(userId(request), request.params.id),
   )

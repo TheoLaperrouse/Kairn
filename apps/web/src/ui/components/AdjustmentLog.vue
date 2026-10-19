@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/** Journal des adaptations du plan : ce que Kairn a changé, quand et pourquoi. */
 import { BatteryLow, CalendarClock, CalendarX, Bandage, Thermometer } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { formatRelative } from '../../domain/format'

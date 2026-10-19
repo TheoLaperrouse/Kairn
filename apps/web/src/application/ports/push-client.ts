@@ -8,10 +8,8 @@ import type { PushSubscriptionPayload } from '../../domain/models'
  */
 export type PushSupport = 'SUPPORTED' | 'UNSUPPORTED' | 'NEEDS_INSTALL' | 'INSECURE' | 'DENIED'
 
-/** Port vers les notifications du navigateur (service worker + Push API). */
 export interface PushClient {
   support(): PushSupport
-  /** Abonnement actuel de cet appareil, s'il existe. */
   currentEndpoint(): Promise<string | undefined>
   subscribe(publicKey: string): Promise<PushSubscriptionPayload>
   /** Retourne l'endpoint désabonné. */

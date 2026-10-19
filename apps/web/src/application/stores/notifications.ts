@@ -4,7 +4,6 @@ import type { NotificationSettings, NotificationStatus } from '../../domain/mode
 import type { PushSupport } from '../ports/push-client'
 import { useApi, usePushClient } from '../api-provider'
 
-/** Notifications du téléphone et abonnement agenda. */
 export const useNotificationsStore = defineStore('notifications', () => {
   const api = useApi()
   const push = usePushClient()
@@ -13,7 +12,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
   const deviceEndpoint = ref<string>()
   const calendarUrl = ref<string>()
 
-  /** Cet appareil reçoit-il les notifications ? */
   const enabledHere = computed(() => Boolean(deviceEndpoint.value && status.value?.devices.some((d) => d.endpoint === deviceEndpoint.value)))
 
   async function load() {

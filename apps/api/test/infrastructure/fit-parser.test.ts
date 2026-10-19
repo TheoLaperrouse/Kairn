@@ -2,11 +2,11 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { FitActivityParser } from '../../src/infrastructure/parsers/fit-parser'
 
-// Fichier d'activité Garmin réel (jeu de test de python-fitparse, licence MIT).
+// Real Garmin activity file (from the python-fitparse test suite, MIT license).
 const fixture = readFileSync(new URL('../fixtures/garmin-run.fit', import.meta.url))
 
 describe('FitActivityParser', () => {
-  it('extrait les totaux et le profil altimétrique d’un .FIT Garmin', async () => {
+  it('extracts totals and elevation profile from a Garmin .FIT file', async () => {
     const activity = await new FitActivityParser().parse(fixture, 'garmin-run.fit')
     expect(activity).toMatchObject({
       source: 'FIT',
@@ -21,7 +21,7 @@ describe('FitActivityParser', () => {
     expect(activity.externalId).toMatch(/^fit:[0-9a-f]{40}$/)
   })
 
-  it('ne prend en charge que les fichiers .fit', () => {
+  it('only supports .fit files', () => {
     const parser = new FitActivityParser()
     expect(parser.supports('Morning_Run.FIT')).toBe(true)
     expect(parser.supports('trace.gpx')).toBe(false)

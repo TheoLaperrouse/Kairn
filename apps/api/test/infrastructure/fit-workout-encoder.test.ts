@@ -25,22 +25,22 @@ const hills: PlannedSession = {
   ],
 }
 
-describe('export des séances vers la montre (FIT workout)', () => {
-  it('regroupe effort + récup répétés dans un bloc de répétition', () => {
+describe('session export to the watch (FIT workout)', () => {
+  it('groups repeated effort + recovery into a repeat block', () => {
     const workout = toWorkoutDefinition(hills)
     expect(workout.items.map((i) => i.kind)).toEqual(['STEP', 'REPEAT', 'STEP'])
     const repeat = workout.items[1]!
     expect(repeat.kind === 'REPEAT' && repeat.times).toBe(10)
   })
 
-  it('produit un fichier FIT valide, relu par un parseur indépendant', async () => {
+  it('produces a valid FIT file, read back by an independent parser', async () => {
     const buffer = new FitWorkoutEncoder(() => new Date('2027-03-01T08:00:00Z')).encode(toWorkoutDefinition(hills))
     expect(buffer.subarray(8, 12).toString('ascii')).toBe('.FIT')
-    // Le CRC calculé sur l'ensemble du fichier (CRC final inclus) doit valoir zéro.
+    // The CRC over the whole file (trailing CRC included) must be zero.
     expect(fitCrc(buffer)).toBe(0)
 
     const parsed = (await new FitParser({ force: false, mode: "list" }).parseAsync(buffer as Buffer<ArrayBuffer>)) as unknown as Record<string, unknown>
-    // Ce parseur conserve la liste des file_id mais seulement le dernier message workout_step lu.
+    // This parser keeps the list of file_id messages but only the last workout_step read.
     expect((parsed.file_ids as Array<Record<string, unknown>>)[0]).toMatchObject({ type: 'workout' })
     expect(parsed.workout).toMatchObject({ wkt_name: 'Côtes courtes (VMA en montée)', sport: 'running', num_valid_steps: 5 })
     expect(parsed.workout_step).toMatchObject({
@@ -53,7 +53,7 @@ describe('export des séances vers la montre (FIT workout)', () => {
     })
   })
 
-  it('refuse le jour de course et le renforcement', () => {
+  it('rejects race day and strength sessions', () => {
     expect(() => toWorkoutDefinition({ ...hills, type: 'COURSE' })).toThrow()
     expect(() => toWorkoutDefinition({ ...hills, sport: 'STRENGTH', type: 'RENFORCEMENT' })).toThrow()
   })

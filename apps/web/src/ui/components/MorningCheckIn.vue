@@ -148,7 +148,6 @@ async function lighten(mode: LightenMode) {
       </button>
     </div>
 
-    <!-- Formulaire -->
     <form v-if="showForm" class="form" @submit.prevent="submit">
       <div class="sleep">
         <span class="q-label"><Moon :size="16" aria-hidden="true" /> Sommeil</span>
@@ -211,7 +210,6 @@ async function lighten(mode: LightenMode) {
       </div>
     </form>
 
-    <!-- Résultat -->
     <div v-else-if="result" class="result">
       <div class="score" :style="{ '--level': LEVEL[result.readiness.level].color }">
         <svg viewBox="0 0 100 100" class="ring" aria-hidden="true">

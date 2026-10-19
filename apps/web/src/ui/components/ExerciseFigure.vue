@@ -1,9 +1,4 @@
 <script setup lang="ts">
-/**
- * Démonstration animée « planche anatomique » : un athlète en tenue de trail exécute le mouvement
- * en boucle et les muscles sollicités s'allument à chaque répétition.
- * Même moteur (kinematics + body-shapes) que les films Claude Motion.
- */
 import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { REGION_LABELS, regionsFor } from '../../domain/anatomy'
 import { BODY_PALETTE, bodyShapes, type Paint } from '../../domain/body-shapes'

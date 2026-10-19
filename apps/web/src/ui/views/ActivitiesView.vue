@@ -20,6 +20,7 @@ import { useActivitiesStore } from '../../application/stores/activities'
 import { useTrainingStore } from '../../application/stores/training'
 import { SPORT_LABELS, formatDate, formatNumber, formatRelative, formatSeconds } from '../../domain/format'
 import type { ImportOutcome, Sport } from '../../domain/models'
+import VamProgressCard from '../components/VamProgressCard.vue'
 
 const store = useActivitiesStore()
 const training = useTrainingStore()
@@ -198,6 +199,8 @@ const totals = computed(() => {
         </aside>
       </section>
     </div>
+
+    <VamProgressCard />
 
     <section class="card" aria-labelledby="list-title">
       <div class="card-title">

@@ -1,16 +1,16 @@
 import type { Activity, ActivitySample } from '../../src/domain/activity/activity'
 import type { PlannedSession } from '../../src/domain/plan/training-plan'
 
-/** Portion de sortie à allure, pente et FC constantes. */
+/** Run segment at constant pace, grade and HR. */
 export interface Leg {
   minutes: number
   km?: number
-  /** Dénivelé de la portion (négatif en descente). */
+  /** Elevation change of the segment (negative when descending). */
   climbM?: number
   hr?: number
 }
 
-/** Trace échantillonnée toutes les 10 s, portion par portion. */
+/** Track sampled every 10 s, segment by segment. */
 export function track(legs: Leg[], startAltitude = 500): ActivitySample[] {
   const samples: ActivitySample[] = [{ t: 0, d: 0, alt: startAltitude, hr: legs[0]?.hr }]
   let t = 0

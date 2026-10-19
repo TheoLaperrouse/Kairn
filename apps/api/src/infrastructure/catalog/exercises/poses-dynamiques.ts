@@ -20,7 +20,6 @@ export const swapSides = (p: Pose): Pose => ({
 export const hipForAnkle = (ankleX: number, thigh: number, shin: number): number =>
   ankleX - Math.sin((thigh * Math.PI) / 180) - Math.sin((shin * Math.PI) / 180)
 
-/** Pose avec la cheville proche ancrée à `ankleX`. */
 export const anchored = (ankleX: number, overrides: Partial<Pose>): Pose => {
   const base = pose(overrides)
   return { ...base, hipX: hipForAnkle(ankleX, base.nearThigh, base.nearShin) }

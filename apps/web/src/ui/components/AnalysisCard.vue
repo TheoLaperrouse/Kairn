@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/** Analyse d'une sortie : verdict, comparaison au plan, constats et conseil pour la suite. */
 import { ArrowRight, CircleAlert, CircleCheck, Compass, Feather } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useTrainingStore } from '../../application/stores/training'

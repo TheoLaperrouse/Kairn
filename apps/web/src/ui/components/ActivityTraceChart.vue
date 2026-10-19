@@ -191,7 +191,6 @@ const summary = computed(() => {
         </linearGradient>
       </defs>
 
-      <!-- Profil altimétrique -->
       <g v-if="layout.alt && altScale">
         <text class="panel-title" :x="PAD.left" :y="layout.alt.top - 8">Altitude (m)</text>
         <g class="grid">
@@ -209,7 +208,6 @@ const summary = computed(() => {
         </g>
       </g>
 
-      <!-- Fréquence cardiaque -->
       <g v-if="layout.hr && hrScale">
         <text class="panel-title" :x="PAD.left" :y="layout.hr.top - 6">Fréquence cardiaque (bpm)</text>
         <g v-for="band in zoneBands" :key="`z${band.zone}`">

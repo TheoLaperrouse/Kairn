@@ -16,7 +16,6 @@ import {
 import type { Component } from 'vue'
 import type { SessionType } from '../../domain/models'
 
-/** Icône représentative de chaque type de séance. */
 export const SESSION_ICONS: Record<SessionType, Component> = {
   ENDURANCE: Footprints,
   RECUPERATION: Waves,

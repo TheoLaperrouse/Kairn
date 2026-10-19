@@ -118,7 +118,6 @@ function migrate(db: DatabaseSync): void {
   }
 }
 
-/** Exécute `work` dans une transaction. */
 export function transaction<T>(db: DatabaseSync, work: () => T): T {
   db.exec('BEGIN')
   try {

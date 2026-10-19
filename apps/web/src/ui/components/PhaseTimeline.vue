@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/** Frise de la préparation : une case par semaine, colorée par phase. */
 import { computed } from 'vue'
 import { PHASE_LABELS, formatShortDate } from '../../domain/format'
 import type { PlanWeek, TrainingPhase } from '../../domain/models'

@@ -6,7 +6,7 @@ import type { ImportedActivity } from '../../src/domain/activity/activity'
 import type { SqliteIntegrationStore } from '../../src/infrastructure/persistence/sqlite-repositories'
 import { buildTestApp } from '../fixtures/test-app'
 
-/** Faux Strava : chaque athlète (identifié par son jeton d'accès) a ses propres activités. */
+/** Fake Strava: each athlete (identified by their access token) has their own activities. */
 class FakeStrava implements ActivityProvider {
   readonly name = 'strava'
   readonly feed = new Map<string, ImportedActivity[]>()
@@ -20,7 +20,7 @@ class FakeStrava implements ActivityProvider {
     return 'https://strava.test/authorize'
   }
   async exchangeCode(): Promise<IntegrationTokens> {
-    throw new Error('non utilisé')
+    throw new Error('not used')
   }
   async refresh(tokens: IntegrationTokens) {
     return tokens
@@ -77,7 +77,7 @@ beforeEach(() => {
   strava.failFor = undefined
   integrations.save(users[0]!.id, 'strava', tokens('A', '111'))
   integrations.save(users[1]!.id, 'strava', tokens('B', '222'))
-  // Connexion antérieure à l'enregistrement de l'identifiant d'athlète.
+  // Connection made before athlete ids were stored.
   integrations.save(users[2]!.id, 'strava', tokens('C'))
 })
 
@@ -85,8 +85,8 @@ const activityCount = async (cookie: string) => (await app.inject({ method: 'GET
 const notify = (payload: object) => app.inject({ method: 'POST', url: '/api/webhooks/strava', payload })
 const settle = () => new Promise((resolve) => setTimeout(resolve, 20))
 
-describe('webhook Strava', () => {
-  it('valide l’abonnement uniquement avec le bon jeton', async () => {
+describe('Strava webhook', () => {
+  it('validates the subscription only with the right token', async () => {
     const ok = await app.inject({
       method: 'GET',
       url: `/api/webhooks/strava?hub.mode=subscribe&hub.challenge=abc&hub.verify_token=${VERIFY_TOKEN}`,
@@ -96,7 +96,7 @@ describe('webhook Strava', () => {
     expect(forged.statusCode).toBe(403)
   })
 
-  it('importe la nouvelle activité du seul athlète concerné, sans session', async () => {
+  it('imports the new activity for the matching athlete only, without a session', async () => {
     strava.feed.set('A', [run(1)])
     strava.feed.set('B', [run(2)])
     const response = await notify({ object_type: 'activity', aspect_type: 'create', object_id: 1, owner_id: 111, subscription_id: 9 })
@@ -107,7 +107,7 @@ describe('webhook Strava', () => {
     expect(strava.calls).toBe(1)
   })
 
-  it('athlète inconnu : synchronise les connexions dont l’identifiant n’est pas encore connu', async () => {
+  it('unknown athlete: syncs connections whose athlete id is not yet known', async () => {
     strava.feed.set('C', [run(3)])
     await notify({ object_type: 'activity', aspect_type: 'create', object_id: 3, owner_id: 333, subscription_id: 9 })
     await settle()
@@ -115,15 +115,15 @@ describe('webhook Strava', () => {
     expect(strava.calls).toBe(1)
   })
 
-  it('déconnecte l’athlète qui retire l’accès depuis Strava', async () => {
+  it('disconnects an athlete who revokes access from Strava', async () => {
     await notify({ object_type: 'athlete', aspect_type: 'update', object_id: 222, owner_id: 222, subscription_id: 9, updates: { authorized: 'false' } })
     const statuses = (await app.inject({ method: 'GET', url: '/api/integrations', headers: { cookie: users[1]!.cookie } })).json()
     expect(statuses[0].connected).toBe(false)
   })
 })
 
-describe('synchronisation périodique', () => {
-  it('synchronise tous les comptes sans doublon et isole les erreurs', async () => {
+describe('periodic sync', () => {
+  it('syncs all accounts without duplicates and isolates errors', async () => {
     strava.feed.set('A', [run(10), run(11, '2027-03-02T06:00:00Z')])
     strava.feed.set('C', [run(12)])
     strava.failFor = 'B'
@@ -137,7 +137,7 @@ describe('synchronisation périodique', () => {
     expect(await activityCount(users[0]!.cookie)).toBe(before + 2)
   })
 
-  it('ne lance pas deux synchronisations simultanées pour le même compte', async () => {
+  it('does not run two concurrent syncs for the same account', async () => {
     strava.feed.set('A', [run(20)])
     const [first, second] = await Promise.all([activityService.sync(users[0]!.id, 'strava'), activityService.sync(users[0]!.id, 'strava')])
     expect(first).toBe(second)

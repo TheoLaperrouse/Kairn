@@ -79,7 +79,6 @@ textarea {
   color: var(--muted);
 }
 
-/* Page */
 .page {
   max-width: 1200px;
   margin: 0 auto;
@@ -100,7 +99,6 @@ textarea {
   max-width: 62ch;
 }
 
-/* Cartes */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -139,7 +137,6 @@ textarea {
   gap: var(--space-3);
 }
 
-/* Boutons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -198,7 +195,6 @@ textarea {
   padding: 0;
 }
 
-/* Puces et badges */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -233,7 +229,6 @@ textarea {
   border-color: var(--text);
 }
 
-/* Formulaires */
 .field {
   display: grid;
   gap: 6px;
@@ -323,7 +318,6 @@ textarea {
   color: var(--danger);
 }
 
-/* Fond topographique pour les bandeaux */
 .topo {
   position: relative;
   overflow: hidden;

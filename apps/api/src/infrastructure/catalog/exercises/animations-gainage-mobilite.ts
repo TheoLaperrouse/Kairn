@@ -39,7 +39,7 @@ const ARMS_ON_FOREARMS = { nearUpperArm: 0, nearForearm: 90, farUpperArm: 0, far
 const FOREARM_CONTACT = 0.045
 const KNEE_CONTACT = 0.09
 
-// ——— Planche : ligne droite chevilles (orteils repliés) → épaules à 0,65 au-dessus des coudes.
+// Planche : ligne droite chevilles (orteils repliés) → épaules à 0,65 au-dessus des coudes.
 const PLANK: Pose = pose({
   torso: 83,
   head: 6,
@@ -65,7 +65,7 @@ export const PLANCHE_ANIMATION: ExerciseAnimation = {
   timing: [0, 0.12, 0.24, 0.36, 0.5, 0.62, 0.74, 0.86],
 }
 
-// ——— Planche latérale, vue de face : avant-bras d'appui sous l'épaule, pieds empilés sur la tranche.
+// Planche latérale, vue de face : avant-bras d'appui sous l'épaule, pieds empilés sur la tranche.
 const side = (torso: number, legs: number): Pose =>
   pose({
     torso,
@@ -95,7 +95,7 @@ export const PLANCHE_LATERALE_ANIMATION: ExerciseAnimation = {
   timing: [0, 0.25, 0.6, 0.78],
 }
 
-// ——— Dead bug : dos à plat (tête à gauche), hanches et genoux à 90°, bras vers le plafond.
+// Dead bug : dos à plat (tête à gauche), hanches et genoux à 90°, bras vers le plafond.
 const TABLETOP: Pose = pose({
   torso: -90,
   head: 0,
@@ -123,7 +123,7 @@ export const DEAD_BUG_ANIMATION: ExerciseAnimation = {
   timing: [0, 0.3, 0.4, 0.5, 0.8, 0.9],
 }
 
-// ——— Bird dog : mains sous les épaules, genoux sous les hanches, dos plat, regard au sol.
+// Bird dog : mains sous les épaules, genoux sous les hanches, dos plat, regard au sol.
 const QUADRUPED: Pose = pose({
   torso: 78,
   head: 12,
@@ -152,7 +152,7 @@ export const BIRD_DOG_ANIMATION: ExerciseAnimation = {
   timing: [0, 0.25, 0.4, 0.5, 0.75, 0.9],
 }
 
-// ——— Pont fessier unipodal. Épaules et pied d'appui fixes au sol ; en haut, épaules-hanche-genou alignés.
+// Pont fessier unipodal. Épaules et pied d'appui fixes au sol ; en haut, épaules-hanche-genou alignés.
 // Angles obtenus par intersection de cercles (épaule → genou = 2,3 ; genou → cheville = 1).
 const BRIDGE_DOWN: Pose = pose({
   torso: -90,
@@ -187,7 +187,7 @@ export const PONT_FESSIER_ANIMATION: ExerciseAnimation = {
   timing: [0, 0.4, 0.62],
 }
 
-// ——— Fente basse psoas. Jambe proche = jambe arrière (genou au sol, cou-de-pied à plat) : c'est elle
+// Fente basse psoas. Jambe proche = jambe arrière (genou au sol, cou-de-pied à plat) : c'est elle
 // qu'on étire, donc ses fléchisseurs de hanche s'allument. Pied avant fixe, bassin qui avance.
 const halfKneel = (backThigh: number, frontShin: number, hipX: number, torso: number, arm: number): Pose => {
   // Main libre posée sur la cuisse avant (horizontale, dessus à ~0,19 au-dessus de la hanche).
@@ -221,7 +221,7 @@ export const FENTE_PSOAS_ANIMATION: ExerciseAnimation = {
   timing: [0, 0.3, 0.55, 0.78],
 }
 
-// ——— Mobilité de cheville genou au mur. Jambe proche = jambe avant (talon collé au sol).
+// Mobilité de cheville genou au mur. Jambe proche = jambe avant (talon collé au sol).
 // Genou arrière fixe ; à l'avancée, cuisse avant horizontale, tibias avant et cuisse arrière à −35°.
 /** Mains à plat sur le mur (x = 1,72, hauteur 1,95) : les coudes se plient quand le corps avance. */
 const WALL_X = 1.78

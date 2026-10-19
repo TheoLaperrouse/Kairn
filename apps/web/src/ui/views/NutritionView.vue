@@ -12,7 +12,6 @@ const training = useTrainingStore()
 const tab = ref<'recettes' | 'course'>('recettes')
 const CATEGORIES = Object.keys(RECIPE_CATEGORY_LABELS) as RecipeCategory[]
 
-// --- Recettes -------------------------------------------------------------
 const category = ref<RecipeCategory | 'TOUTES'>('TOUTES')
 const activeTags = ref<string[]>([])
 const query = ref('')
@@ -72,7 +71,6 @@ function scaled(quantity: number): string {
   return formatNumber(value, value < 10 ? 1 : 0)
 }
 
-// --- Stratégie de course ------------------------------------------------
 const fueling = ref<FuelingInput>({ durationH: 12, temperatureC: 18, weightKg: 70, sweat: 'MOYEN', gut: 'PARTIEL' })
 const plan = ref<FuelingPlan>()
 const computing = ref(false)
@@ -122,7 +120,6 @@ function print() {
       </div>
     </header>
 
-    <!-- RECETTES -->
     <section v-if="tab === 'recettes'" class="stack-lg" aria-label="Recettes">
       <div class="filters">
         <div class="cats" role="group" aria-label="Moment">
@@ -166,7 +163,6 @@ function print() {
       </ul>
     </section>
 
-    <!-- STRATÉGIE DE COURSE -->
     <section v-else class="stack-lg" aria-label="Stratégie de course">
       <form class="card calc no-print" @submit.prevent="compute">
         <div class="card-title">
@@ -606,7 +602,6 @@ tbody th {
   display: none;
 }
 
-/* Fiche recette */
 .recipe-dialog {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);

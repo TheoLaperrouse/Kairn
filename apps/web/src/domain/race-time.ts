@@ -1,5 +1,3 @@
-/** Outils d'affichage du plan de course : durées, heures d'horloge et nuit. */
-
 const NIGHT_START_MIN = 21 * 60
 const NIGHT_END_MIN = 6 * 60 + 30
 
@@ -51,7 +49,6 @@ export function clockToElapsed(startTime: string, clock: string, day = 0): numbe
   return Math.round((delta / 60) * 100) / 100
 }
 
-/** Interpolation linéaire d'une série triée sur x. */
 export function interpolate<T>(rows: T[], x: number, getX: (row: T) => number, getY: (row: T) => number): number {
   if (rows.length === 0) return 0
   if (x <= getX(rows[0]!)) return getY(rows[0]!)

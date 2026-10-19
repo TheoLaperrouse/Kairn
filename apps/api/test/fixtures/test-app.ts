@@ -8,6 +8,7 @@ import { AnalysisService } from '../../src/application/use-cases/analysis-servic
 import { CalendarService } from '../../src/application/use-cases/calendar-service'
 import { ContentService } from '../../src/application/use-cases/content-service'
 import { NotificationService } from '../../src/application/use-cases/notification-service'
+import { ProgressService } from '../../src/application/use-cases/progress-service'
 import { SummaryService } from '../../src/application/use-cases/summary-service'
 import type { PushMessage } from '../../src/domain/notifications/notification'
 import { IcsCalendarEncoder } from '../../src/infrastructure/calendar/ics-calendar-encoder'
@@ -26,7 +27,7 @@ import { openDatabase } from '../../src/infrastructure/persistence/database'
 import * as repos from '../../src/infrastructure/persistence/sqlite-repositories'
 import { RandomTokenService, ScryptPasswordHasher, UuidGenerator } from '../../src/infrastructure/system/system-adapters'
 
-/** Service de push factice : garde les messages envoyés ; les endpoints contenant « gone » sont expirés. */
+/** Fake push service: records sent messages; endpoints containing "gone" are expired. */
 export class RecordingPushSender implements PushSender {
   readonly sent: Array<{ endpoint: string; message: PushMessage }> = []
 
@@ -41,7 +42,7 @@ export class RecordingPushSender implements PushSender {
   }
 }
 
-/** Application complète sur une base SQLite en mémoire, avec une horloge pilotable. */
+/** Full application on an in-memory SQLite database, with a controllable clock. */
 export async function buildTestApp(now: Date, options: { providers?: ActivityProvider[]; stravaVerifyToken?: string } = {}) {
   const clock: Clock & { set(date: Date): void } = {
     current: now,
@@ -107,6 +108,7 @@ export async function buildTestApp(now: Date, options: { providers?: ActivityPro
         clock,
         'https://kairn.test',
       ),
+      progress: new ProgressService(activities, clock),
     },
     {
       secureCookies: false,

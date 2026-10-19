@@ -1,9 +1,4 @@
 <script setup lang="ts">
-/**
- * Lecteur de séance guidée : on fait les exercices en même temps que l'écran.
- * La démo boucle pendant l'effort, le minuteur / compteur de répétitions rythme la série,
- * la voix et les bips annoncent les transitions.
- */
 import {
   ArrowLeft,
   Check,
@@ -129,8 +124,6 @@ onBeforeUnmount(() => {
   void audio?.close().catch(() => {})
 })
 
-/* ---------- Horloge ---------- */
-
 let timer: number | undefined
 let lastTick = 0
 let lastBeep = -1
@@ -174,8 +167,6 @@ function resetStageClock() {
   elapsed.value = 0
   lastBeep = -1
 }
-
-/* ---------- Navigation dans la file ---------- */
 
 function begin() {
   unlockAudio()
@@ -305,8 +296,6 @@ function onKey(event: KeyboardEvent) {
   else if (event.key === 'ArrowLeft') previous()
 }
 
-/* ---------- Voix, bips, écran allumé ---------- */
-
 function readSoundPreference(): boolean {
   try {
     return localStorage.getItem('kairn-sound') !== 'off'
@@ -404,7 +393,6 @@ const RING = 2 * Math.PI * 54
   <div class="player">
     <p class="visually-hidden" aria-live="assertive">{{ announcement }}</p>
 
-    <!-- Barre supérieure -->
     <header class="bar">
       <button class="icon-btn" type="button" aria-label="Quitter la séance" @click="askQuit"><X :size="22" /></button>
       <div class="bar-title">
@@ -428,7 +416,6 @@ const RING = 2 * Math.PI * 54
 
     <p v-if="loadError" class="state-msg">{{ loadError }}</p>
 
-    <!-- Écran d'accueil -->
     <section v-else-if="routine && stage === 'INTRO'" class="intro">
       <div class="intro-head">
         <span class="eyebrow">{{ formatDuration(estimatedTotal / 60) }} · {{ totalEfforts }} séries</span>
@@ -450,7 +437,6 @@ const RING = 2 * Math.PI * 54
       </div>
     </section>
 
-    <!-- Séance en cours -->
     <section v-else-if="routine && step && stage !== 'DONE'" class="stage" :class="{ resting: step.kind === 'REPOS' }">
       <div class="demo-wrap">
         <MotionDemo
@@ -485,7 +471,6 @@ const RING = 2 * Math.PI * 54
           </div>
         </div>
 
-        <!-- Minuteur circulaire (durée, repos, préparation) -->
         <div v-if="stageDuration !== undefined" class="ring-wrap">
           <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
             <circle cx="60" cy="60" r="54" class="ring-track" />
@@ -505,7 +490,6 @@ const RING = 2 * Math.PI * 54
           </div>
         </div>
 
-        <!-- Compteur de répétitions -->
         <div v-else-if="effort?.reps" class="reps">
           <div class="reps-count">
             <span class="big num">{{ repsFinished ? effort.reps : repsDone + 1 }}</span>
@@ -556,7 +540,6 @@ const RING = 2 * Math.PI * 54
       </div>
     </section>
 
-    <!-- Fin -->
     <section v-else-if="routine && stage === 'DONE'" class="done">
       <div class="done-badge"><Check :size="44" /></div>
       <h1>Séance terminée</h1>
@@ -576,7 +559,6 @@ const RING = 2 * Math.PI * 54
 
     <p v-else class="state-msg">Chargement de la séance…</p>
 
-    <!-- Confirmation de sortie -->
     <div v-if="quitting" class="modal-backdrop" @click.self="quitting = false">
       <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="quit-title" aria-describedby="quit-desc">
         <h2 id="quit-title">Quitter la séance ?</h2>
@@ -739,7 +721,6 @@ const RING = 2 * Math.PI * 54
   color: var(--text-2);
 }
 
-/* Accueil */
 .intro {
   flex: 1;
   overflow-y: auto;
@@ -797,7 +778,6 @@ const RING = 2 * Math.PI * 54
   text-align: center;
 }
 
-/* Séance */
 .stage {
   position: relative;
   flex: 1;
@@ -1087,7 +1067,6 @@ const RING = 2 * Math.PI * 54
   cursor: pointer;
 }
 
-/* Fin */
 .done {
   flex: 1;
   overflow-y: auto;
@@ -1141,7 +1120,6 @@ const RING = 2 * Math.PI * 54
   justify-content: center;
 }
 
-/* Modale */
 .modal-backdrop {
   position: absolute;
   inset: 0;

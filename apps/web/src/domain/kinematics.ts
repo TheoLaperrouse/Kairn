@@ -186,7 +186,6 @@ export function poseAt(keyframes: Pose[], phase: number, timing?: number[]): Pos
   return pose
 }
 
-/** Intensité de l'effort dans le cycle (0 → 1), simple pulsation sinusoïdale. */
 export function effortAt(phase: number): number {
   return 0.5 - 0.5 * Math.cos(2 * Math.PI * phase)
 }
@@ -231,7 +230,6 @@ export interface ViewBox {
   height: number
 }
 
-/** Cadre englobant toutes les poses et les accessoires, avec une marge. */
 export function frameFor(keyframes: Pose[], props: SceneProp[] = []): ViewBox {
   const xs: number[] = []
   const ys: number[] = [0]

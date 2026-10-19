@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/** Aperçu du dernier bilan hebdomadaire sur le tableau de bord. */
 import { ArrowRight, CalendarCheck, CircleAlert, CircleCheck, Info } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useApi } from '../../application/api-provider'

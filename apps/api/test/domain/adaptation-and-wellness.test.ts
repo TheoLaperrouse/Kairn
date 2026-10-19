@@ -17,8 +17,8 @@ const ctx = (today: string): AdaptationContext => ({
   newId: () => `adj-${++counter}`,
 })
 
-describe('adaptation du plan', () => {
-  it('déplace une séance clé manquée sur un créneau sûr, une seule fois', () => {
+describe('plan adaptation', () => {
+  it('moves a missed key session to a safe slot, only once', () => {
     const plan = basePlan()
     const missed = plan.sessions.find((s) => s.keySession && s.sport === 'RUN' && s.date >= '2027-03-08' && s.type !== 'SORTIE_LONGUE')!
     const today = addDays(missed.date, 1)
@@ -27,11 +27,11 @@ describe('adaptation du plan', () => {
     expect(adjustment?.reason).toBe('SEANCE_MANQUEE')
     expect(moved.originalDate).toBe(missed.date)
     expect(moved.date > missed.date || moved.status === 'SKIPPED').toBe(true)
-    // Idempotence : un deuxième passage ne change rien.
+    // Idempotent: a second pass changes nothing.
     expect(rescheduleMissedSessions(adapted, ctx(today)).adjustment).toBeUndefined()
   })
 
-  it('n’enchaîne jamais deux séances dures en rattrapant', () => {
+  it('never schedules two hard sessions back to back when catching up', () => {
     const plan = basePlan()
     for (const missed of plan.sessions.filter((s) => s.keySession && s.date < '2027-03-20' && s.date >= '2027-03-15')) {
       const { plan: adapted } = rescheduleMissedSessions(plan, ctx(addDays(missed.date, 1)))
@@ -40,7 +40,7 @@ describe('adaptation du plan', () => {
     }
   })
 
-  it('annule les séances pendant une maladie puis organise une reprise progressive sans intensité', () => {
+  it('cancels sessions during illness, then plans a gradual return without intensity', () => {
     const plan = basePlan()
     const { plan: adapted, adjustment } = applyUnavailability(
       plan,
@@ -56,14 +56,14 @@ describe('adaptation du plan', () => {
     expect(adapted.adjustments?.[0]?.reason).toBe('MALADIE')
   })
 
-  it('remplace la course par du sans-impact en cas de blessure si possible', () => {
+  it('replaces running with low-impact training during an injury when possible', () => {
     const { plan } = applyUnavailability(basePlan(), { from: '2027-04-05', to: '2027-04-11', reason: 'BLESSURE', crossTrainingOk: true }, ctx('2027-04-05'))
     const during = plan.sessions.filter((s) => s.date >= '2027-04-05' && s.date <= '2027-04-11' && s.type !== 'RENFORCEMENT')
     expect(during.some((s) => s.title === 'Entretien sans impact')).toBe(true)
     expect(during.filter((s) => s.status === 'PLANNED').every((s) => s.sport !== 'RUN')).toBe(true)
   })
 
-  it('allège ou annule une séance suite au bilan du matin, jamais le jour de course', () => {
+  it('lightens or cancels a session after the morning check-in, never on race day', () => {
     const plan = basePlan()
     const hard = plan.sessions.find((s) => s.type === 'SEUIL_MONTEE')!
     const eased = lightenSession(hard, 'ALLEGER')
@@ -76,12 +76,12 @@ describe('adaptation du plan', () => {
 
 const good: CheckIn = { date: '2027-03-10', sleepHours: 8, sleepQuality: 5, soreness: 1, fatigue: 1, motivation: 5, stress: 1, restingHr: 48, hrv: 80, illnessSymptoms: false }
 
-describe('bilan du matin', () => {
-  it('donne le feu vert quand tout va bien', () => {
+describe('morning check-in', () => {
+  it('gives the green light when everything is fine', () => {
     expect(computeReadiness(good, [])).toMatchObject({ level: 'VERT', action: 'AUCUNE', score: 100 })
   })
 
-  it('détecte une FC de repos anormalement haute par rapport à la moyenne personnelle', () => {
+  it('detects a resting HR abnormally high compared with the personal average', () => {
     const history = [1, 2, 3, 4, 5].map((d) => ({ ...good, date: addDays(good.date, -d) }))
     const readiness = computeReadiness({ ...good, restingHr: 57, sleepQuality: 3, fatigue: 3 }, history)
     expect(readiness.level).not.toBe('VERT')
@@ -89,12 +89,12 @@ describe('bilan du matin', () => {
     expect(readiness.factors[0]!.label).toMatch(/FC de repos/)
   })
 
-  it('conseille le repos en cas de symptômes et de grosse fatigue', () => {
+  it('recommends rest with symptoms and heavy fatigue', () => {
     const readiness = computeReadiness({ ...good, illnessSymptoms: true, fatigue: 4, sleepHours: 5 }, [])
     expect(readiness).toMatchObject({ level: 'ROUGE', action: 'REPOS' })
   })
 
-  it('alerte après trois jours d’affilée sans feu vert', () => {
+  it('warns after three days in a row without a green light', () => {
     const tired = { ...good, fatigue: 4 as const, soreness: 4 as const, sleepQuality: 2 as const }
     const history = [1, 2].map((d) => ({ ...tired, date: addDays(good.date, -d) }))
     expect(computeReadiness({ ...tired, date: good.date }, history).alerts.join(' ')).toMatch(/Trois jours/)

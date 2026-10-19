@@ -19,8 +19,8 @@ function course(): RaceCourse {
 
 const goal = aGoal({ technicity: 3, targetTimeH: undefined })
 
-describe('plan de course depuis le GPX officiel', () => {
-  it('lit le tracé et place les ravitaillements sur le parcours', () => {
+describe('race plan from the official GPX', () => {
+  it('reads the track and places aid stations on the course', () => {
     const c = course()
     expect(c.name).toBe('Trail test 30K')
     expect(c.totalDistanceKm).toBeCloseTo(30, 0)
@@ -29,13 +29,13 @@ describe('plan de course depuis le GPX officiel', () => {
     expect(c.aidStations.map((a) => Math.round(a.km))).toEqual([10, 20])
   })
 
-  it('découpe le profil en montée, descente et portion roulante', () => {
+  it('splits the profile into climb, descent and runnable section', () => {
     const plan = planRace(course(), goal, 'INTERMEDIAIRE')
     expect(plan.segments.map((s) => s.kind)).toEqual(['MONTEE', 'DESCENTE', 'ROULANT'])
     expect(plan.segments[0]!.avgGradePct).toBeCloseTo(10, 0)
   })
 
-  it('calcule des temps de passage croissants, plus lents en montée qu’à plat', () => {
+  it('computes increasing split times, slower uphill than on the flat', () => {
     const plan = planRace(course(), goal, 'INTERMEDIAIRE')
     expect(plan.splits.map((s) => s.name)).toEqual(['Ravito du sommet', 'Base de vie', 'Arrivée'])
     const [climb, , flat] = plan.splits
@@ -45,7 +45,7 @@ describe('plan de course depuis le GPX officiel', () => {
     expect(plan.totalH).toBeCloseTo(plan.splits.at(-1)!.elapsedH, 2)
   })
 
-  it('prévoit le ravitaillement à emporter sur chaque section', () => {
+  it('plans the food to carry on each section', () => {
     const plan = planRace(course(), goal, 'INTERMEDIAIRE')
     for (const split of plan.splits) {
       expect(split.nutrition.carbsG).toBeGreaterThan(0)
@@ -53,7 +53,7 @@ describe('plan de course depuis le GPX officiel', () => {
     }
   })
 
-  it('alerte quand une barrière horaire est menacée', () => {
+  it('warns when a cutoff time is at risk', () => {
     const c = course()
     c.aidStations[0]!.cutoffH = 0.5
     const plan = planRace(c, goal, 'INTERMEDIAIRE')

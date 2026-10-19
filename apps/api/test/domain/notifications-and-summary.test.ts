@@ -14,25 +14,25 @@ import { buildWeeklySummary } from '../../src/domain/summary/weekly-summary'
 import { aGoal, aProfile, routineSummaries } from '../fixtures/factories'
 import { aSession, anActivity, track } from '../fixtures/tracks'
 
-describe('heure locale', () => {
-  it('suit le fuseau de l’utilisateur, heure d’été comprise', () => {
+describe('local time', () => {
+  it('follows the user time zone, including daylight saving time', () => {
     expect(localTime(new Date('2027-01-15T06:00:00Z'), 'Europe/Paris')).toEqual({ date: '2027-01-15', minutes: 7 * 60 })
     expect(localTime(new Date('2027-07-15T05:00:00Z'), 'Europe/Paris')).toEqual({ date: '2027-07-15', minutes: 7 * 60 })
     expect(localTime(new Date('2027-07-15T23:30:00Z'), 'Europe/Paris')).toEqual({ date: '2027-07-16', minutes: 90 })
     expect(localTime(new Date('2027-07-15T12:00:00Z'), 'Indian/Reunion').minutes).toBe(16 * 60)
   })
 
-  it('refuse une heure ou un fuseau invalides', () => {
+  it('rejects an invalid time or time zone', () => {
     expect(() => validateNotificationSettings({ ...settings, morning: { enabled: true, time: '25:00' } })).toThrow()
     expect(() => validateNotificationSettings({ ...settings, timeZone: 'Mars/Olympus' })).toThrow()
     expect(() => validateNotificationSettings(settings)).not.toThrow()
   })
 })
 
-describe('rappel du matin', () => {
+describe('morning reminder', () => {
   const at = (date: string, hh: number, mm = 0) => ({ date, minutes: hh * 60 + mm })
 
-  it('part une seule fois, à l’heure choisie, et se rattrape dans les 4 h', () => {
+  it('fires once, at the chosen time, and catches up within 4 h', () => {
     expect(isMorningDue(settings, {}, at('2027-03-03', 6, 59))).toBe(false)
     expect(isMorningDue(settings, {}, at('2027-03-03', 7))).toBe(true)
     expect(isMorningDue(settings, {}, at('2027-03-03', 10, 30))).toBe(true)
@@ -41,7 +41,7 @@ describe('rappel du matin', () => {
     expect(isMorningDue({ ...settings, morning: { enabled: false, time: '07:00' } }, {}, at('2027-03-03', 8))).toBe(false)
   })
 
-  it('décrit la séance du jour et rappelle le bilan du matin', () => {
+  it('describes the session of the day and reminds about the morning check-in', () => {
     const sessions = [
       aSession({ id: 'a', date: '2027-03-03', status: 'PLANNED', title: 'Sortie longue', durationMin: 150, distanceKm: 22, elevationGainM: 900, keySession: true, objective: 'Habituer le corps à la durée.' }),
       aSession({ id: 'b', date: '2027-03-04', status: 'PLANNED' }),
@@ -52,19 +52,19 @@ describe('rappel du matin', () => {
     expect(message.url).toBe('/seance/a')
   })
 
-  it('se tait les jours sans séance ou quand la séance est déjà faite', () => {
+  it('stays silent on rest days or when the session is already done', () => {
     expect(morningMessage([aSession({ date: '2027-03-03', status: 'DONE' })], { date: '2027-03-03', checkInDone: true })).toBeUndefined()
     expect(morningMessage([], { date: '2027-03-03', checkInDone: true })).toBeUndefined()
   })
 
-  it('souhaite une bonne course le jour J', () => {
+  it('wishes a good race on race day', () => {
     const race = aSession({ type: 'COURSE', title: 'CCC', date: '2027-08-27', status: 'PLANNED' })
     expect(morningMessage([race], { date: '2027-08-27', checkInDone: true })!.title).toBe('Jour de course 🏔️')
   })
 })
 
-describe('bilan hebdomadaire', () => {
-  it('part le dimanche soir, ou le lundi matin s’il a été manqué', () => {
+describe('weekly summary', () => {
+  it('is sent on Sunday evening, or Monday morning if missed', () => {
     const sunday = { date: '2027-03-07', minutes: 19 * 60 }
     expect(dueWeeklySummary(settings, {}, sunday)).toBe('2027-03-01')
     expect(dueWeeklySummary(settings, {}, { ...sunday, minutes: 18 * 60 })).toBeUndefined()
@@ -79,8 +79,8 @@ describe('bilan hebdomadaire', () => {
   const week = plan.weeks[0]!
   const weekSessions = plan.sessions.filter((s) => s.weekIndex === 0)
 
-  it('compare la semaine au plan, met en avant les points clés et annonce la suivante', () => {
-    // Les séances faciles sont faites comme prévu, en endurance ; les séances clés sont oubliées.
+  it('compares the week with the plan, highlights key points and previews the next week', () => {
+    // Easy sessions are done as planned, in endurance; key sessions are skipped.
     const keys = weekSessions.filter((s) => s.keySession)
     const done = weekSessions.filter((s) => s.sport !== 'STRENGTH' && s.zone <= 2 && !s.keySession)
     const activities = done.map((s, i) =>
@@ -114,7 +114,7 @@ describe('bilan hebdomadaire', () => {
     expect(summary.keySessions.map((k) => k.status)).toEqual(keys.map(() => 'PLANNED'))
     expect(summary.insights.map((i) => i.title)).toContain(keys.length > 1 ? 'Séances clés manquées' : 'Séance clé manquée')
     expect(summary.insights.map((i) => i.title)).toContain('Bonne répartition')
-    // Compte tout neuf : pas d'avis sur la fatigue, le modèle part de zéro.
+    // Brand-new account: no fatigue verdict, the model starts from zero.
     expect(summary.form.reliable).toBe(false)
     expect(summary.insights.map((i) => i.title)).not.toEqual(expect.arrayContaining(['Fatigue élevée']))
     expect(summary.insights.map((i) => i.title)).not.toEqual(expect.arrayContaining(['Forme en hausse']))
@@ -125,7 +125,7 @@ describe('bilan hebdomadaire', () => {
     expect(message.body.split('\n').at(-1)).toMatch(/^Semaine prochaine : foncier/)
   })
 
-  it('signale deux semaines de suite bien en dessous du volume prévu', () => {
+  it('flags two weeks in a row well below the planned volume', () => {
     const second = plan.weeks[1]!
     const tiny = (date: string, id: string) => anActivity(track([{ minutes: 20, km: 3, hr: 140 }]), { id, startTime: `${date}T07:00:00.000Z` })
     const summary = buildWeeklySummary({

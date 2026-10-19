@@ -32,6 +32,7 @@ import type {
   NotificationSettings,
   NotificationStatus,
   PushSubscriptionPayload,
+  VamProgress,
 } from '../../domain/models'
 
 /** Adaptateur HTTP : la session voyage dans un cookie httpOnly posé par le serveur. */
@@ -115,6 +116,9 @@ export class HttpTrainingApi implements TrainingApi {
   }
   activityAnalysis(id: string) {
     return this.request<WorkoutAnalysis>('GET', `/api/activities/${encodeURIComponent(id)}/analysis`)
+  }
+  vamProgress(weeks?: number) {
+    return this.request<VamProgress>('GET', `/api/progress/vam${weeks ? `?weeks=${weeks}` : ''}`)
   }
   weeklySummary(weekStart?: string) {
     return this.request<WeeklySummary | null>('GET', `/api/summaries/weekly${weekStart ? `?week=${encodeURIComponent(weekStart)}` : ''}`)

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/** Abonnement du plan dans l'agenda du téléphone (Google, Apple, Outlook). */
 import { CalendarPlus, Check, Copy, RefreshCw } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useNotificationsStore } from '../../application/stores/notifications'

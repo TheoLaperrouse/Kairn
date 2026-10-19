@@ -1,12 +1,10 @@
 <script setup lang="ts">
-/** Temps passé dans chaque zone cardiaque : barre empilée à 100 % et légende chiffrée. */
 import { computed, ref } from 'vue'
 import { ZONE_LABELS, formatSeconds } from '../../domain/format'
 import type { TimeInZones, Zone } from '../../domain/models'
 
 const props = defineProps<{
   seconds: TimeInZones
-  /** Zone visée par la séance, signalée dans la légende. */
   target?: Zone
 }>()
 

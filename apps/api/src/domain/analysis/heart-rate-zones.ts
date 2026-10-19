@@ -57,7 +57,6 @@ export function totalSeconds(time: TimeInZones): number {
   return time[1] + time[2] + time[3] + time[4] + time[5]
 }
 
-/** Part du temps passée en `zone` ou au-dessus. */
 export function shareAtOrAbove(time: TimeInZones, zone: number): number {
   const total = totalSeconds(time)
   if (total === 0) return 0

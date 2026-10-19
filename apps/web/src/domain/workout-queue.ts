@@ -32,7 +32,6 @@ export interface RestStep {
   kind: 'REPOS'
   blockIndex: number
   durationSec: number
-  /** Exercice de l'effort suivant, pour l'aperçu. */
   nextExerciseId: string
 }
 

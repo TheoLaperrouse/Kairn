@@ -9,6 +9,7 @@ import { ActivityService } from './application/use-cases/activity-service'
 import { AnalysisService } from './application/use-cases/analysis-service'
 import { CalendarService } from './application/use-cases/calendar-service'
 import { NotificationService } from './application/use-cases/notification-service'
+import { ProgressService } from './application/use-cases/progress-service'
 import { SummaryService } from './application/use-cases/summary-service'
 import { ContentService } from './application/use-cases/content-service'
 import { DashboardService } from './application/use-cases/dashboard-service'
@@ -117,6 +118,7 @@ const services = {
   summaries,
   notifications,
   calendar: new CalendarService(new SqliteCalendarFeedRepository(db), plans, goals, tokens, new IcsCalendarEncoder(), clock, publicUrl),
+  progress: new ProgressService(activityRepository, clock),
 }
 
 const app = await buildServer(services, {

@@ -201,6 +201,8 @@ export interface WorkoutAnalysis {
   bestClimb?: Climb
   descentSpeed?: number
   vamBaseline?: number
+  vamCurve: Partial<Record<VamDuration, VamEffort>>
+  vamRecords: Array<{ minutes: VamDuration; vam: number; previous: number }>
   decouplingPct?: number
   load: number
   plannedLoad?: number
@@ -222,6 +224,30 @@ export interface WorkoutAnalysis {
   headline: string
   insights: Insight[]
   nextStep?: { text: string; sessionId?: string; suggestLighten: boolean }
+}
+
+export type VamDuration = 5 | 10 | 20 | 30
+
+export interface VamEffort {
+  minutes: VamDuration
+  vam: number
+  elevationM: number
+  startKm: number
+  endKm: number
+}
+
+export interface VamMark {
+  vam: number
+  activityId: string
+  activityName: string
+  date: IsoDate
+}
+
+export interface VamProgress {
+  durations: VamDuration[]
+  weeks: Array<{ weekStart: IsoDate; best: Partial<Record<VamDuration, VamMark>> }>
+  records: Partial<Record<VamDuration, VamMark>>
+  trend: Partial<Record<VamDuration, { recent?: number; previous?: number; deltaPct?: number }>>
 }
 
 export interface WeekInfo {
@@ -463,8 +489,6 @@ export interface FuelingPlan {
   advice: string[]
 }
 
-// ——— Adaptation du plan ———
-
 export type AdjustmentReason = 'SEANCE_MANQUEE' | 'MALADIE' | 'BLESSURE' | 'INDISPONIBLE' | 'FATIGUE'
 
 export interface PlanAdjustment {
@@ -483,8 +507,6 @@ export interface Unavailability {
 }
 
 export type LightenMode = 'ALLEGER' | 'REPOS'
-
-// ——— Bilan du matin ———
 
 export type Scale = 1 | 2 | 3 | 4 | 5
 
@@ -523,8 +545,6 @@ export interface WellnessOverview {
   today?: CheckInResult
   history: Array<{ date: IsoDate; score: number; level: ReadinessLevel; restingHr?: number; hrv?: number }>
 }
-
-// ——— Plan de course (GPX officiel) ———
 
 export interface CoursePoint {
   distanceKm: number

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/** Activation des notifications sur cet appareil et choix des rappels. */
 import { Bell, BellOff, BellRing, CalendarCheck, LoaderCircle, Send, Share, Smartphone, Sparkles, Trash2 } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useNotificationsStore } from '../../application/stores/notifications'
@@ -47,7 +46,6 @@ const test = () => run(async () => {
       <h2 id="notif-title"><Bell :size="20" aria-hidden="true" /> Notifications</h2>
     </div>
 
-    <!-- Appareil : activation selon ce que permet le navigateur -->
     <div class="device">
       <template v-if="store.support === 'NEEDS_INSTALL'">
         <Share :size="20" aria-hidden="true" />

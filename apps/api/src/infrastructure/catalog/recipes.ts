@@ -7,7 +7,6 @@ import type { Recipe } from '../../domain/nutrition/recipe'
  * 500-700 mg de sodium par litre de boisson (ISSN), davantage par forte chaleur.
  */
 export const RECIPES: Recipe[] = [
-  // ───────────────────────────── VEILLE ─────────────────────────────
   {
     id: 'pates-parmesan-veille',
     name: 'Pâtes blanches parmesan & huile d’olive',
@@ -90,7 +89,6 @@ export const RECIPES: Recipe[] = [
     emoji: '🍮',
   },
 
-  // ───────────────────────────── AVANT ─────────────────────────────
   {
     id: 'porridge-banane-miel',
     name: 'Porridge banane, miel & pincée de sel',
@@ -202,7 +200,6 @@ export const RECIPES: Recipe[] = [
     emoji: '🍚',
   },
 
-  // ───────────────────────────── PENDANT ─────────────────────────────
   {
     id: 'rice-cakes-oeuf-bacon',
     name: 'Rice cakes œuf-bacon (façon Feed Zone)',
@@ -468,7 +465,6 @@ export const RECIPES: Recipe[] = [
     emoji: '🥔',
   },
 
-  // ───────────────────────────── BOISSON ─────────────────────────────
   {
     id: 'boisson-isotonique-maison',
     name: 'Boisson isotonique maison 2:1',
@@ -544,7 +540,6 @@ export const RECIPES: Recipe[] = [
     emoji: '🍋',
   },
 
-  // ───────────────────────────── APRÈS ─────────────────────────────
   {
     id: 'bowl-recup-poulet',
     name: 'Bowl récup poulet, riz & avocat',

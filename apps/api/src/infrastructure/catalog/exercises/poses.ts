@@ -28,7 +28,6 @@ export const mirror = (p: Pose): Pose => ({
   farForearm: p.nearForearm,
 })
 
-// Poses partagées
 export const SQUAT_BOTTOM = pose({
   torso: 40,
   nearThigh: 80,

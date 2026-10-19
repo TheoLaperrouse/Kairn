@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ArrowLeft, CalendarCheck, Clock, Heart, MoveUpRight, Route, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, CalendarCheck, Clock, Heart, MoveUpRight, Route, Trash2, Trophy } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../application/api-provider'
 import { useActivitiesStore } from '../../application/stores/activities'
 import { useTrainingStore } from '../../application/stores/training'
 import { SPORT_LABELS, formatDate, formatDuration, formatNumber, formatSeconds } from '../../domain/format'
-import type { Activity, WorkoutAnalysis } from '../../domain/models'
+import type { Activity, VamDuration, WorkoutAnalysis } from '../../domain/models'
 import ActivityTraceChart from '../components/ActivityTraceChart.vue'
 import AnalysisCard from '../components/AnalysisCard.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
@@ -33,6 +33,13 @@ onMounted(async () => {
     error.value = e instanceof Error ? e.message : 'Activité introuvable'
   }
 })
+
+const vamEfforts = computed(() =>
+  ([5, 10, 20, 30] as VamDuration[]).flatMap((minutes) => {
+    const effort = analysis.value?.vamCurve[minutes]
+    return effort ? [{ ...effort, record: analysis.value!.vamRecords.some((r) => r.minutes === minutes) }] : []
+  }),
+)
 
 const hasTrace = computed(() => (activity.value?.samples?.length ?? 0) >= 2)
 
@@ -142,6 +149,15 @@ async function remove() {
 
         <section v-if="analysis.climbs.length" class="card" aria-labelledby="climbs-title">
           <div class="card-title"><h2 id="climbs-title">Montées</h2></div>
+          <dl v-if="vamEfforts.length" class="vam-curve" aria-label="Meilleures VAM tenues">
+            <div v-for="e in vamEfforts" :key="e.minutes" :class="{ record: e.record }">
+              <dt>{{ e.minutes }} min</dt>
+              <dd>
+                <strong class="num">{{ formatNumber(e.vam) }}</strong> m/h
+                <span v-if="e.record" class="record-tag"><Trophy :size="12" aria-hidden="true" /> record</span>
+              </dd>
+            </div>
+          </dl>
           <div class="table-scroll">
             <table class="climbs">
               <thead>
@@ -220,6 +236,45 @@ async function remove() {
 /* Une cellule de grille ne rétrécit pas sous son contenu : sans cela, le tableau des montées élargit la page sur mobile. */
 .grid > .card {
   min-width: 0;
+}
+.vam-curve {
+  margin: 0 0 var(--space-3);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--space-2);
+}
+.vam-curve div {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.vam-curve div.record {
+  outline: 1px solid var(--warning);
+}
+.vam-curve dt {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.vam-curve dd {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+.vam-curve strong {
+  font-size: 1.05rem;
+  color: var(--text);
+}
+.record-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.record-tag svg {
+  color: var(--warning);
 }
 .table-scroll {
   overflow-x: auto;

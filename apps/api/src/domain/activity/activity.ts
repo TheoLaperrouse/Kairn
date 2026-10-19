@@ -123,7 +123,6 @@ export function resampleTrack(points: RawTrackPoint[]): ActivitySample[] {
   return samples
 }
 
-/** Profil altimétrique d'affichage déduit de la trace détaillée. */
 export function profileFromSamples(samples: ActivitySample[]): ProfilePoint[] {
   return downsampleProfile(
     samples.filter((s) => s.alt !== undefined).map((s) => ({ distanceKm: Math.round(s.d * 100) / 100, altitudeM: Math.round(s.alt!) })),
