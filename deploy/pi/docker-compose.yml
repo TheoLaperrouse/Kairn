@@ -1,0 +1,55 @@
+# Déploiement sur une Raspberry Pi (Ubuntu 64 bits) : Kairn + Cloudflare Tunnel + sauvegardes.
+# Lancé par deploy/pi/deploy.sh ; variables lues dans .env (PUBLIC_URL, TUNNEL_TOKEN, STRAVA_*…).
+# Le tunnel ne démarre que si .env contient COMPOSE_PROFILES=tunnel (écrit avec le jeton par deploy.sh).
+# L'image kairn:latest est construite sur le PC (ARM64) et chargée sur la Pi : rien n'est compilé ici.
+name: kairn
+
+services:
+  kairn:
+    image: kairn:latest
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_PATH: /data/kairn.db
+    volumes:
+      - kairn-data:/data
+    # Accès direct sur le réseau local (http://<ip-de-la-pi>:3100) ; Internet passe par le tunnel.
+    ports:
+      - '${KAIRN_PORT:-3100}:3000'
+    restart: unless-stopped
+
+  # Connexion sortante vers Cloudflare, qui sert https://<domaine> et termine le HTTPS.
+  # Dans le tableau de bord du tunnel, le « Public hostname » pointe vers http://kairn:3000.
+  cloudflared:
+    image: cloudflare/cloudflared:2025.8.1
+    command: tunnel --no-autoupdate run
+    profiles:
+      - tunnel
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    depends_on:
+      - kairn
+    restart: unless-stopped
+
+  # Sauvegarde quotidienne cohérente de la base SQLite, 14 jours conservés.
+  backup:
+    image: alpine:3.22
+    volumes:
+      - kairn-data:/data:ro
+      - ./backups:/backups
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        apk add --no-cache sqlite >/dev/null
+        while true; do
+          if [ -f /data/kairn.db ]; then
+            sqlite3 /data/kairn.db ".backup /backups/kairn-$$(date +%Y-%m-%d).db"
+            find /backups -name 'kairn-*.db' -mtime +14 -delete
+          fi
+          sleep 86400
+        done
+    restart: unless-stopped
+
+volumes:
+  kairn-data:

@@ -1,0 +1,81 @@
+<script setup lang="ts">
+/**
+ * Logo Kairn : un cairn (pierres empilées qui balisent le sentier) devant une ligne de crête,
+ * éclairé par l'aube.
+ */
+import { useId } from 'vue'
+
+withDefaults(defineProps<{ size?: number }>(), { size: 32 })
+const id = useId()
+</script>
+
+<template>
+  <svg :width="size" :height="size" viewBox="0 0 64 64" aria-hidden="true" class="kairn-logo">
+    <defs>
+      <linearGradient :id="`${id}-bg`" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#1a2d4a" />
+        <stop offset="1" stop-color="#0b1424" />
+      </linearGradient>
+      <radialGradient :id="`${id}-dawn`" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#f28c38" stop-opacity="0.35" />
+        <stop offset="1" stop-color="#f28c38" stop-opacity="0" />
+      </radialGradient>
+      <linearGradient :id="`${id}-s1`" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f7a25a" />
+        <stop offset="1" stop-color="#d9661a" />
+      </linearGradient>
+      <linearGradient :id="`${id}-s2`" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffb46f" />
+        <stop offset="1" stop-color="#ea7a2a" />
+      </linearGradient>
+      <linearGradient :id="`${id}-s3`" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffc58a" />
+        <stop offset="1" stop-color="#f28c38" />
+      </linearGradient>
+      <linearGradient :id="`${id}-top`" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#8ff0e1" />
+        <stop offset="1" stop-color="#3fb8a9" />
+      </linearGradient>
+    </defs>
+    <rect width="64" height="64" rx="15" :fill="`url(#${id}-bg)`" />
+    <circle cx="32" cy="27" r="21" :fill="`url(#${id}-dawn)`" />
+    <path
+      d="M3 47 L15 33.5 L20.5 38.5 L31 26 L42 38 L47.5 33 L61 46"
+      fill="none"
+      stroke="#5fd1c1"
+      stroke-opacity="0.28"
+      stroke-width="1.6"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+    />
+    <path
+      d="M14.8 50.3C14.1 46.3 20.4 43.3 29.6 42.9C39.8 42.5 48.3 44.2 49.4 48.4C50.4 52.4 43.9 54.9 33.4 55.2C23.6 55.5 15.5 54.2 14.8 50.3Z"
+      :fill="`url(#${id}-s1)`"
+    />
+    <path
+      d="M20.4 39.6C19.4 36 23.7 32.8 30.4 32.2C37.6 31.6 43.3 33.1 43.9 36.6C44.5 40.1 39.9 42.3 32.8 42.7C26.3 43.1 21.3 42.9 20.4 39.6Z"
+      :fill="`url(#${id}-s2)`"
+    />
+    <path
+      d="M24.6 28.9C24 26 27.6 23.4 32.4 23.2C37.5 23 41.3 24.5 41.5 27.2C41.7 30 38.3 31.6 33.4 31.9C28.8 32.2 25.2 31.6 24.6 28.9Z"
+      :fill="`url(#${id}-s3)`"
+    />
+    <path
+      d="M28.6 18.9C28.4 16.4 30.4 14.6 33 14.7C35.7 14.8 37.4 16.4 37.2 18.6C37 20.9 35 22.1 32.6 22C30.3 21.9 28.8 21.1 28.6 18.9Z"
+      :fill="`url(#${id}-top)`"
+    />
+    <g fill="none" stroke="#fff" stroke-linecap="round" stroke-opacity="0.28">
+      <path d="M18 46.2C22 44.6 27.5 44 33 44.1" stroke-width="1.2" />
+      <path d="M23.4 35.3C26.2 34 29.6 33.6 33 33.7" stroke-width="1.1" />
+      <path d="M27.3 25.9C29 25 31 24.7 33.2 24.8" stroke-width="1" />
+    </g>
+  </svg>
+</template>
+
+<style scoped>
+.kairn-logo {
+  flex: none;
+  border-radius: 23%;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+}
+</style>

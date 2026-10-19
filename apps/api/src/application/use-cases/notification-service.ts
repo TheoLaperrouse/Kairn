@@ -1,0 +1,157 @@
+import type { Activity } from '../../domain/activity/activity'
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  analysisMessage,
+  dueWeeklySummary,
+  isMorningDue,
+  isValidTimeZone,
+  localTime,
+  morningMessage,
+  validateNotificationSettings,
+  weeklyMessage,
+  type NotificationSettings,
+  type NotificationState,
+  type PushMessage,
+} from '../../domain/notifications/notification'
+import { DomainError } from '../../domain/shared/errors'
+import type {
+  ActivityImportListener,
+  CheckInRepository,
+  Clock,
+  NotificationSettingsRepository,
+  PlanRepository,
+  PushSender,
+  PushSubscription,
+  PushSubscriptionRepository,
+} from '../ports'
+import type { AnalysisService } from './analysis-service'
+import type { SummaryService } from './summary-service'
+
+export interface NotificationStatus {
+  publicKey: string
+  settings: NotificationSettings
+  devices: Array<{ endpoint: string; deviceLabel: string; createdAt: string }>
+}
+
+/** Au-delà, une activité synchronisée est de l'historique : pas de notification. */
+const ANALYSIS_MAX_AGE_MS = 36 * 3600_000
+
+/**
+ * Notifications sur le téléphone : rappel du matin les jours de séance, bilan du dimanche soir,
+ * analyse d'une sortie dès sa synchronisation. `tick()` est appelé chaque minute.
+ */
+export class NotificationService implements ActivityImportListener {
+  constructor(
+    private readonly subscriptions: PushSubscriptionRepository,
+    private readonly settingsStore: NotificationSettingsRepository,
+    private readonly sender: PushSender,
+    private readonly plans: PlanRepository,
+    private readonly checkIns: CheckInRepository,
+    private readonly analyses: AnalysisService,
+    private readonly summaries: SummaryService,
+    private readonly clock: Clock,
+    private readonly log: (message: string) => void = () => {},
+  ) {}
+
+  status(userId: string): NotificationStatus {
+    return {
+      publicKey: this.sender.publicKey(),
+      settings: this.load(userId).settings,
+      devices: this.subscriptions.listByUser(userId).map(({ endpoint, deviceLabel, createdAt }) => ({ endpoint, deviceLabel, createdAt })),
+    }
+  }
+
+  subscribe(userId: string, subscription: PushSubscription, deviceLabel: string, timeZone?: string): NotificationStatus {
+    if (!/^https:\/\//.test(subscription.endpoint)) throw new DomainError('Abonnement de notification invalide')
+    this.subscriptions.save({ ...subscription, userId, deviceLabel, createdAt: this.clock.now().toISOString() })
+    const current = this.settingsStore.get(userId)
+    // Premier appareil : le fuseau du téléphone devient celui des rappels.
+    if (!current && timeZone && isValidTimeZone(timeZone)) {
+      this.settingsStore.save(userId, { ...DEFAULT_NOTIFICATION_SETTINGS, timeZone }, {})
+    }
+    return this.status(userId)
+  }
+
+  unsubscribe(userId: string, endpoint: string): NotificationStatus {
+    if (this.subscriptions.listByUser(userId).some((s) => s.endpoint === endpoint)) this.subscriptions.delete(endpoint)
+    return this.status(userId)
+  }
+
+  updateSettings(userId: string, settings: NotificationSettings): NotificationStatus {
+    validateNotificationSettings(settings)
+    this.settingsStore.save(userId, settings, this.load(userId).state)
+    return this.status(userId)
+  }
+
+  async sendTest(userId: string): Promise<number> {
+    const sent = await this.deliver(userId, {
+      title: 'Kairn est prêt',
+      body: 'Les notifications fonctionnent sur cet appareil. À demain matin pour la séance du jour !',
+      url: '/reglages',
+      tag: 'test',
+    })
+    if (sent === 0) throw new DomainError('Aucun appareil n’a pu être joint : réactive les notifications sur ce téléphone')
+    return sent
+  }
+
+  /** Tâche minute : envoie ce qui est dû à chaque utilisateur, dans son fuseau. */
+  async tick(): Promise<void> {
+    const now = this.clock.now()
+    for (const userId of this.subscriptions.usersWithSubscriptions()) {
+      try {
+        await this.tickUser(userId, now)
+      } catch (error) {
+        this.log(`Notifications de ${userId} : ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+  }
+
+  activityImported(userId: string, activity: Activity, automatic: boolean): void {
+    if (!automatic || this.clock.now().getTime() - Date.parse(activity.startTime) - activity.durationSec * 1000 > ANALYSIS_MAX_AGE_MS) return
+    if (!this.load(userId).settings.analysis.enabled || this.subscriptions.listByUser(userId).length === 0) return
+    const analysis = this.analyses.analyzeActivity(userId, activity)
+    void this.deliver(userId, analysisMessage(activity, analysis)).catch((error: Error) => this.log(`Notification d’analyse : ${error.message}`))
+  }
+
+  private async tickUser(userId: string, now: Date): Promise<void> {
+    const { settings, state } = this.load(userId)
+    const local = localTime(now, settings.timeZone)
+    const next: NotificationState = { ...state }
+
+    if (isMorningDue(settings, state, local)) {
+      next.lastMorning = local.date
+      this.settingsStore.save(userId, settings, next)
+      const message = morningMessage(this.plans.get(userId)?.sessions ?? [], {
+        date: local.date,
+        checkInDone: this.checkIns.listSince(userId, local.date).some((c) => c.date === local.date),
+      })
+      if (message) await this.deliver(userId, message)
+    }
+
+    const weekStart = dueWeeklySummary(settings, state, local)
+    if (weekStart) {
+      next.lastWeekly = weekStart
+      this.settingsStore.save(userId, settings, next)
+      const summary = this.summaries.weekly(userId, weekStart)
+      if (summary && (summary.totals.activities > 0 || summary.sessions.planned > 0)) await this.deliver(userId, weeklyMessage(summary))
+    }
+  }
+
+  /** Envoie à tous les appareils de l'utilisateur ; oublie ceux que le navigateur a désabonnés. */
+  private async deliver(userId: string, message: PushMessage): Promise<number> {
+    let sent = 0
+    for (const subscription of this.subscriptions.listByUser(userId)) {
+      try {
+        if ((await this.sender.send(subscription, message)) === 'GONE') this.subscriptions.delete(subscription.endpoint)
+        else sent++
+      } catch (error) {
+        this.log(`Notification vers ${subscription.deviceLabel} : ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+    return sent
+  }
+
+  private load(userId: string): { settings: NotificationSettings; state: NotificationState } {
+    return this.settingsStore.get(userId) ?? { settings: DEFAULT_NOTIFICATION_SETTINGS, state: {} }
+  }
+}

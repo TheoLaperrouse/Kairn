@@ -1,0 +1,20 @@
+services:
+  kairn:
+    build: .
+    ports:
+      - '3000:3000'
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+    volumes:
+      - kairn-data:/data
+      # Décommente pour l'import automatique depuis une montre Garmin montée en USB :
+      # - /media/${USER}/GARMIN/GARMIN/Activity:/garmin:ro
+      # Et pour envoyer les séances sur la montre (GARMIN_NEWFILES_DIR=/garmin-newfiles) :
+      # - /media/${USER}/GARMIN/GARMIN/NewFiles:/garmin-newfiles
+    restart: unless-stopped
+
+volumes:
+  kairn-data:

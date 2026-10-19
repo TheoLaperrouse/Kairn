@@ -1,0 +1,7 @@
+node_modules/
+dist/
+data/
+*.db
+*.db-*
+.env
+apps/web/public/motion/*.mp4

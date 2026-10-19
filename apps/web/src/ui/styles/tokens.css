@@ -1,0 +1,122 @@
+/*
+ * Thème « Aube alpine » : bleu nuit, orange lever de soleil, turquoise glacier.
+ * Le thème sombre est le thème par défaut, le clair suit la préférence système ou le choix manuel.
+ */
+:root {
+  --font-display: 'Bricolage Grotesque Variable', 'Inter Variable', system-ui, sans-serif;
+  --font-body: 'Inter Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 22px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.25), 0 8px 24px -12px rgb(0 0 0 / 0.45);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  color-scheme: dark;
+  --bg: #0b1424;
+  --bg-glow: #142542;
+  --surface: #131f33;
+  --surface-2: #19283f;
+  --surface-3: #22344f;
+  --border: #22324b;
+  --border-strong: #34496a;
+  --text: #eaf2f8;
+  --text-2: #b4c2d4;
+  --muted: #7a8ca5;
+  --accent: #f28c38;
+  --accent-strong: #ff9d4d;
+  --accent-ink: #1d1004;
+  --accent-soft: rgb(242 140 56 / 0.14);
+  --teal: #5fd1c1;
+  --teal-soft: rgb(95 209 193 / 0.13);
+  --success: #4cc38a;
+  --warning: #f2c14e;
+  --danger: #f06a6a;
+  --figure: #eaf2f8;
+  --figure-far: #4d6283;
+  --topo: rgb(234 242 248 / 0.05);
+
+  /* Séries de graphiques (validées daltonisme / contraste sur --surface) */
+  --series-fitness: #2fa596;
+  --series-fatigue: #d46f1f;
+  --series-form: #9775f0;
+  --series-planned: #34496a;
+
+  --zone-1: #6f8fb3;
+  --zone-2: #3fb8a9;
+  --zone-3: #e2c14b;
+  --zone-4: #f28c38;
+  --zone-5: #f06a6a;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+    --bg: #f5f2ec;
+    --bg-glow: #fde9d6;
+    --surface: #ffffff;
+    --surface-2: #f4f0ea;
+    --surface-3: #e9e3d9;
+    --border: #e4ddd2;
+    --border-strong: #cfc5b6;
+    --text: #14202f;
+    --text-2: #445468;
+    --muted: #6f7c8e;
+    --accent: #d9661a;
+    --accent-strong: #c25510;
+    --accent-ink: #ffffff;
+    --accent-soft: rgb(217 102 26 / 0.1);
+    --teal: #00897b;
+    --teal-soft: rgb(0 137 123 / 0.1);
+    --success: #1f8f5a;
+    --warning: #b7860b;
+    --danger: #c93c3c;
+    --figure: #14202f;
+    --figure-far: #a9b4c2;
+    --topo: rgb(20 32 47 / 0.06);
+    --shadow: 0 1px 2px rgb(20 32 47 / 0.06), 0 8px 24px -14px rgb(20 32 47 / 0.25);
+    --series-fitness: #00897b;
+    --series-fatigue: #d9661a;
+    --series-form: #7c5ce0;
+    --series-planned: #d8cfc2;
+  }
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f5f2ec;
+  --bg-glow: #fde9d6;
+  --surface: #ffffff;
+  --surface-2: #f4f0ea;
+  --surface-3: #e9e3d9;
+  --border: #e4ddd2;
+  --border-strong: #cfc5b6;
+  --text: #14202f;
+  --text-2: #445468;
+  --muted: #6f7c8e;
+  --accent: #d9661a;
+  --accent-strong: #c25510;
+  --accent-ink: #ffffff;
+  --accent-soft: rgb(217 102 26 / 0.1);
+  --teal: #00897b;
+  --teal-soft: rgb(0 137 123 / 0.1);
+  --success: #1f8f5a;
+  --warning: #b7860b;
+  --danger: #c93c3c;
+  --figure: #14202f;
+  --figure-far: #a9b4c2;
+  --topo: rgb(20 32 47 / 0.06);
+  --shadow: 0 1px 2px rgb(20 32 47 / 0.06), 0 8px 24px -14px rgb(20 32 47 / 0.25);
+  --series-fitness: #00897b;
+  --series-fatigue: #d9661a;
+  --series-form: #7c5ce0;
+  --series-planned: #d8cfc2;
+}
