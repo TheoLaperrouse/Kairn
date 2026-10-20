@@ -2,11 +2,10 @@
 import { CalendarCheck, ChevronDown, CircleCheck, Send } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useApi } from '../../../application/api-provider'
-import { PHASE_LABELS, formatDuration, formatNumber, formatShortDate, todayIso } from '../../../domain/format'
+import { errorMessage, formatDuration, formatNumber, formatShortDate, PHASE_LABELS, todayIso } from '../../../domain/format'
 import type { PlannedSession, PlanWeek, Sport } from '../../../domain/models'
 import SessionCard from '../../components/SessionCard.vue'
 import { PHASE_COLORS } from '../../components/phase-colors'
-import { errorMessage } from '../../composables/error-message'
 
 const props = defineProps<{
   week: PlanWeek

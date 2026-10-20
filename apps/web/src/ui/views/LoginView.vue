@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../application/stores/auth'
 import KairnLogo from '../components/KairnLogo.vue'
-import { errorMessage } from '../composables/error-message'
+import { errorMessage } from '../../domain/format'
 
 const auth = useAuthStore()
 const route = useRoute()

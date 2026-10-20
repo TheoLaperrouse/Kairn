@@ -2,10 +2,9 @@
 import { Clock, Play, Search } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useContentStore } from '../../application/stores/content'
-import { CATEGORY_LABELS, PHASE_LABELS } from '../../domain/format'
+import { CATEGORY_LABELS, errorMessage, PHASE_LABELS } from '../../domain/format'
 import type { ExerciseCategory } from '../../domain/models'
 import ExerciseFigure from '../components/ExerciseFigure.vue'
-import { errorMessage } from '../composables/error-message'
 
 const content = useContentStore()
 const loading = ref(true)

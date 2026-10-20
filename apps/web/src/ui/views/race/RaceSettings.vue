@@ -4,7 +4,7 @@ import { reactive, ref, watch } from 'vue'
 import { useRaceCourseStore } from '../../../application/stores/race-course'
 import type { AidStation, RaceCourse, RaceCourseSettings } from '../../../domain/models'
 import AidStationEditor from '../../components/AidStationEditor.vue'
-import { errorMessage } from '../../composables/error-message'
+import { errorMessage } from '../../../domain/format'
 
 const props = defineProps<{ course: RaceCourse }>()
 const emit = defineEmits<{ error: [message: string] }>()

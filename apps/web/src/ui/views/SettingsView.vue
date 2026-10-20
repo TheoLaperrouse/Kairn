@@ -4,14 +4,13 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../application/stores/auth'
 import { useTrainingStore } from '../../application/stores/training'
-import { formatLongDate, formatRelative } from '../../domain/format'
+import { errorMessage, formatLongDate, formatRelative } from '../../domain/format'
 import type { AthleteProfile, RaceGoal } from '../../domain/models'
 import CalendarFeedCard from '../components/CalendarFeedCard.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import GoalForm from '../components/GoalForm.vue'
 import NotificationSettingsCard from '../components/NotificationSettingsCard.vue'
 import ProfileForm from '../components/ProfileForm.vue'
-import { errorMessage } from '../composables/error-message'
 
 const auth = useAuthStore()
 const training = useTrainingStore()

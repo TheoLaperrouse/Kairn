@@ -3,7 +3,7 @@ import { CheckCircle2, Copy, LoaderCircle, UploadCloud, XCircle } from 'lucide-v
 import { ref } from 'vue'
 import { useActivitiesStore } from '../../../application/stores/activities'
 import type { ImportOutcome } from '../../../domain/models'
-import { errorMessage } from '../../composables/error-message'
+import { errorMessage } from '../../../domain/format'
 
 const emit = defineEmits<{ error: [message: string] }>()
 

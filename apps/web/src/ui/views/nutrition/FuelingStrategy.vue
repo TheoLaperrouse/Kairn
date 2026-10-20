@@ -3,9 +3,8 @@ import { Coffee, Droplets, Printer, Snowflake, Sparkles, Wheat } from 'lucide-vu
 import { computed, onMounted, ref } from 'vue'
 import { useContentStore } from '../../../application/stores/content'
 import { useTrainingStore } from '../../../application/stores/training'
-import { formatNumber } from '../../../domain/format'
+import { errorMessage, formatNumber } from '../../../domain/format'
 import type { FuelingInput, FuelingPlan } from '../../../domain/models'
-import { errorMessage } from '../../composables/error-message'
 
 const content = useContentStore()
 const training = useTrainingStore()

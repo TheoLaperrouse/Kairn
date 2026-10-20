@@ -16,10 +16,9 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useActivitiesStore } from '../../application/stores/activities'
 import { useTrainingStore } from '../../application/stores/training'
-import { SPORT_LABELS, VERDICT_LABELS, VERDICT_TONES, formatDate, formatNumber, formatRelative, formatSeconds } from '../../domain/format'
+import { errorMessage, formatDate, formatNumber, formatRelative, formatSeconds, SPORT_LABELS, VERDICT_LABELS, VERDICT_TONES } from '../../domain/format'
 import { activityDay, type Sport } from '../../domain/models'
 import VamProgressCard from '../components/VamProgressCard.vue'
-import { errorMessage } from '../composables/error-message'
 import ActivityImportCard from './activities/ActivityImportCard.vue'
 
 const store = useActivitiesStore()

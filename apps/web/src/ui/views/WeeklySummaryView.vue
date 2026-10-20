@@ -3,24 +3,10 @@ import { ArrowRight, CalendarRange, ChevronLeft, ChevronRight, CircleCheck, Circ
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../application/api-provider'
-import {
-  SPORT_LABELS,
-  VERDICT_LABELS,
-  VERDICT_TONES,
-  addDaysIso,
-  formatDate,
-  formatDuration,
-  formatNumber,
-  formatSeconds,
-  formatShortDate,
-  formatWeekRange,
-  startOfWeekIso,
-  todayIso,
-} from '../../domain/format'
+import { addDaysIso, errorMessage, formatDate, formatDuration, formatNumber, formatSeconds, formatShortDate, formatWeekRange, SPORT_LABELS, startOfWeekIso, todayIso, VERDICT_LABELS, VERDICT_TONES } from '../../domain/format'
 import type { WeeklySummary } from '../../domain/models'
 import InsightList from '../components/InsightList.vue'
 import ZoneBar from '../components/ZoneBar.vue'
-import { errorMessage } from '../composables/error-message'
 
 const props = defineProps<{ week?: string }>()
 const api = useApi()

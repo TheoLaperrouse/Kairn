@@ -2,9 +2,8 @@
 import { TriangleAlert, ArrowLeft, CircleCheck, Mountain, TrendingDown, TrendingUp } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useContentStore } from '../../application/stores/content'
-import { CATEGORY_LABELS } from '../../domain/format'
+import { CATEGORY_LABELS, errorMessage } from '../../domain/format'
 import MotionDemo from '../components/MotionDemo.vue'
-import { errorMessage } from '../composables/error-message'
 
 const props = defineProps<{ id: string }>()
 const content = useContentStore()
