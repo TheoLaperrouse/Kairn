@@ -4,7 +4,7 @@ import type { Pose, SceneProp } from './models'
  * Cinématique du personnage de démonstration (vue de profil, regard vers +x, y vers le bas).
  * Même modèle que les films Claude Motion : angles absolus, mise au sol automatique.
  */
-export const SEGMENT = {
+const SEGMENT = {
   thigh: 1,
   shin: 1,
   torso: 1.3,

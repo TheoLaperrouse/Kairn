@@ -13,7 +13,7 @@ export const useWellnessStore = defineStore('wellness', () => {
 
   async function submit(checkIn: CheckIn): Promise<CheckInResult> {
     const result = await api.submitCheckIn(checkIn)
-    overview.value = await api.wellness()
+    await load()
     return result
   }
 

@@ -2,8 +2,9 @@
 import { Check, MapPin, Moon, Mountain } from 'lucide-vue-next'
 import { computed, onMounted } from 'vue'
 import { useTrainingStore } from '../../application/stores/training'
-import { formatNumber, todayIso } from '../../domain/format'
+import { addDaysIso, formatNumber, todayIso, weekdayOf } from '../../domain/format'
 import type { RaceGoal, RacePreset, TrailCategory } from '../../domain/models'
+import { inputChecked, inputNumber, inputValue, optionalNumber } from './input-event'
 
 const goal = defineModel<RaceGoal>({ required: true })
 const training = useTrainingStore()
@@ -41,17 +42,13 @@ const ratio = computed(() => (goal.value.distanceKm > 0 ? Math.round(goal.value.
 
 /** Prochaine occurrence du mois habituel de l'épreuve, au moins 8 semaines plus tard. */
 function nextDateFor(month: number): string {
-  const today = new Date(`${todayIso()}T00:00:00Z`)
-  const minDate = new Date(today.getTime() + 56 * 86_400_000)
-  let year = today.getUTCFullYear()
-  let candidate = new Date(Date.UTC(year, month - 1, 15))
-  while (candidate < minDate) {
-    year++
-    candidate = new Date(Date.UTC(year, month - 1, 15))
-  }
-  // Samedi le plus proche du 15 : la plupart des épreuves ont lieu le week-end.
-  const shift = (6 - candidate.getUTCDay() + 7) % 7
-  return new Date(candidate.getTime() + shift * 86_400_000).toISOString().slice(0, 10)
+  const today = todayIso()
+  const minDate = addDaysIso(today, 56)
+  let year = Number(today.slice(0, 4))
+  const fifteenth = () => `${year}-${String(month).padStart(2, '0')}-15`
+  while (fifteenth() < minDate) year++
+  // Samedi suivant le 15 : la plupart des épreuves ont lieu le week-end.
+  return addDaysIso(fifteenth(), (12 - weekdayOf(fifteenth())) % 7)
 }
 
 function choosePreset(preset: RacePreset) {
@@ -75,11 +72,6 @@ function chooseCustom() {
 
 function update<K extends keyof RaceGoal>(key: K, value: RaceGoal[K]) {
   goal.value = { ...goal.value, [key]: value }
-}
-
-function numberOrUndefined(event: Event): number | undefined {
-  const raw = (event.target as HTMLInputElement).value
-  return raw === '' ? undefined : Number(raw)
 }
 </script>
 
@@ -130,27 +122,27 @@ function numberOrUndefined(event: Event): number | undefined {
       <div class="fields">
         <label class="field span-2">
           <span>Nom de la course</span>
-          <input class="input" :value="goal.name" required maxlength="80" @input="update('name', ($event.target as HTMLInputElement).value)" />
+          <input class="input" :value="goal.name" required maxlength="80" @input="update('name', inputValue($event))" />
         </label>
         <label class="field">
           <span>Date</span>
-          <input class="input" type="date" :min="todayIso()" :value="goal.raceDate" required @input="update('raceDate', ($event.target as HTMLInputElement).value)" />
+          <input class="input" type="date" :min="todayIso()" :value="goal.raceDate" required @input="update('raceDate', inputValue($event))" />
         </label>
         <label class="field">
           <span>Distance (km)</span>
-          <input class="input num" type="number" min="1" max="500" step="0.1" :value="goal.distanceKm" required @input="update('distanceKm', Number(($event.target as HTMLInputElement).value))" />
+          <input class="input num" type="number" min="1" max="500" step="0.1" :value="goal.distanceKm" required @input="update('distanceKm', inputNumber($event))" />
         </label>
         <label class="field">
           <span>Dénivelé positif (m)</span>
-          <input class="input num" type="number" min="0" max="40000" step="10" :value="goal.elevationGainM" required @input="update('elevationGainM', Number(($event.target as HTMLInputElement).value))" />
+          <input class="input num" type="number" min="0" max="40000" step="10" :value="goal.elevationGainM" required @input="update('elevationGainM', inputNumber($event))" />
         </label>
         <label class="field">
           <span>Altitude max (m) <small>facultatif</small></span>
-          <input class="input num" type="number" min="0" max="9000" :value="goal.maxAltitudeM ?? ''" @input="update('maxAltitudeM', numberOrUndefined($event))" />
+          <input class="input num" type="number" min="0" max="9000" :value="goal.maxAltitudeM ?? ''" @input="update('maxAltitudeM', optionalNumber($event))" />
         </label>
         <label class="field">
           <span>Objectif chrono (h) <small>facultatif</small></span>
-          <input class="input num" type="number" min="0.5" max="200" step="0.5" :value="goal.targetTimeH ?? ''" placeholder="Estimé automatiquement" @input="update('targetTimeH', numberOrUndefined($event))" />
+          <input class="input num" type="number" min="0.5" max="200" step="0.5" :value="goal.targetTimeH ?? ''" placeholder="Estimé automatiquement" @input="update('targetTimeH', optionalNumber($event))" />
         </label>
       </div>
 
@@ -171,11 +163,11 @@ function numberOrUndefined(event: Event): number | undefined {
       <div class="toggles">
         <label class="switch">
           <span><Mountain :size="16" aria-hidden="true" /> Bâtons autorisés</span>
-          <input type="checkbox" :checked="goal.polesAllowed" @change="update('polesAllowed', ($event.target as HTMLInputElement).checked)" />
+          <input type="checkbox" :checked="goal.polesAllowed" @change="update('polesAllowed', inputChecked($event))" />
         </label>
         <label class="switch">
           <span><Moon :size="16" aria-hidden="true" /> Sections de nuit</span>
-          <input type="checkbox" :checked="goal.nightSections" @change="update('nightSections', ($event.target as HTMLInputElement).checked)" />
+          <input type="checkbox" :checked="goal.nightSections" @change="update('nightSections', inputChecked($event))" />
         </label>
       </div>
     </section>

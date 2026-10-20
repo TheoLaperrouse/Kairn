@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Bell, BellOff, BellRing, CalendarCheck, ClipboardCheck, LoaderCircle, Send, Share, Smartphone, Sparkles, Trash2 } from 'lucide-vue-next'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, type Component } from 'vue'
+import type { PushSupport } from '../../application/ports/push-client'
 import { useNotificationsStore } from '../../application/stores/notifications'
-import { formatRelative } from '../../domain/format'
+import { errorMessage, formatRelative } from '../../domain/format'
 import type { NotificationSettings } from '../../domain/models'
+import { inputChecked, inputValue } from './input-event'
 
 const store = useNotificationsStore()
 const busy = ref(false)
@@ -20,7 +22,7 @@ async function run(action: () => Promise<unknown>, success?: string) {
     await action()
     if (success) message.value = { kind: 'ok', text: success }
   } catch (e) {
-    message.value = { kind: 'error', text: e instanceof Error ? e.message : 'Action impossible' }
+    message.value = { kind: 'error', text: errorMessage(e, 'Action impossible') }
   } finally {
     busy.value = false
   }
@@ -30,6 +32,34 @@ function update(change: (s: NotificationSettings) => NotificationSettings) {
   if (!settings.value) return
   // Copie simple : les objets réactifs (proxys) ne passent pas par structuredClone.
   void run(() => store.save(change(JSON.parse(JSON.stringify(settings.value)) as NotificationSettings)))
+}
+
+type PrefKey = Exclude<keyof NotificationSettings, 'timeZone'>
+
+/** Préférences communes à tous les appareils du compte ; `timeLabel` quand l'heure se règle. */
+const PREFS: Array<{ key: PrefKey; icon: Component; label: string; timeLabel?: string; hint?: string }> = [
+  { key: 'morning', icon: Smartphone, label: 'Séance du jour, le matin', timeLabel: 'Heure du rappel du matin', hint: 'Uniquement les jours où une séance est prévue.' },
+  {
+    key: 'checkIn',
+    icon: ClipboardCheck,
+    label: 'Rappel du bilan du matin',
+    timeLabel: 'Heure du rappel du bilan du matin',
+    hint: 'S’il n’est pas encore rempli, les jours de séance.',
+  },
+  { key: 'analysis', icon: Sparkles, label: 'Analyse après chaque sortie', hint: 'Dès que la sortie arrive de Strava ou de la montre.' },
+  { key: 'weekly', icon: CalendarCheck, label: 'Bilan de la semaine, le dimanche', timeLabel: 'Heure du bilan du dimanche' },
+]
+
+function setPref(key: PrefKey, change: { enabled: boolean } | { time: string }) {
+  update((s) => ({ ...s, [key]: { ...s[key], ...change } }))
+}
+
+const timeOf = (key: PrefKey) => (settings.value?.[key] as { time?: string } | undefined)?.time
+
+const UNAVAILABLE: Partial<Record<PushSupport, string>> = {
+  INSECURE: 'Les notifications ne fonctionnent qu’en HTTPS : ouvre Kairn depuis son adresse sécurisée.',
+  UNSUPPORTED: 'Ce navigateur ne gère pas les notifications web. Essaie Chrome, Firefox, Edge ou Safari à jour.',
+  DENIED: 'Les notifications sont bloquées pour Kairn : autorise-les dans les réglages du site (icône à gauche de l’adresse), puis recharge la page.',
 }
 
 const enable = () => run(() => store.enable(), 'Notifications activées sur cet appareil.')
@@ -54,17 +84,9 @@ const test = () => run(async () => {
           ouvre Kairn depuis l’icône et reviens ici. Apple n’autorise les notifications que pour les applications installées (iOS 16.4 ou plus).
         </p>
       </template>
-      <template v-else-if="store.support === 'INSECURE'">
+      <template v-else-if="UNAVAILABLE[store.support]">
         <BellOff :size="20" aria-hidden="true" />
-        <p class="small">Les notifications ne fonctionnent qu’en HTTPS : ouvre Kairn depuis son adresse sécurisée.</p>
-      </template>
-      <template v-else-if="store.support === 'UNSUPPORTED'">
-        <BellOff :size="20" aria-hidden="true" />
-        <p class="small">Ce navigateur ne gère pas les notifications web. Essaie Chrome, Firefox, Edge ou Safari à jour.</p>
-      </template>
-      <template v-else-if="store.support === 'DENIED'">
-        <BellOff :size="20" aria-hidden="true" />
-        <p class="small">Les notifications sont bloquées pour Kairn : autorise-les dans les réglages du site (icône à gauche de l’adresse), puis recharge la page.</p>
+        <p class="small">{{ UNAVAILABLE[store.support] }}</p>
       </template>
       <template v-else-if="store.enabledHere">
         <BellRing :size="20" class="on" aria-hidden="true" />
@@ -89,65 +111,16 @@ const test = () => run(async () => {
 
     <!-- Préférences, communes à tous les appareils du compte -->
     <div v-if="settings" class="prefs" :class="{ dimmed: !store.status?.devices.length }">
-      <div class="pref">
+      <div v-for="pref in PREFS" :key="pref.key" class="pref">
         <label class="switch">
-          <span><Smartphone :size="18" aria-hidden="true" /> Séance du jour, le matin</span>
-          <input type="checkbox" :checked="settings.morning.enabled" @change="update((s) => ({ ...s, morning: { ...s.morning, enabled: ($event.target as HTMLInputElement).checked } }))" />
+          <span><component :is="pref.icon" :size="18" aria-hidden="true" /> {{ pref.label }}</span>
+          <input type="checkbox" :checked="settings[pref.key].enabled" @change="setPref(pref.key, { enabled: inputChecked($event) })" />
         </label>
-        <label v-if="settings.morning.enabled" class="time">
+        <label v-if="pref.timeLabel && settings[pref.key].enabled" class="time">
           <span class="small text-2">à</span>
-          <input
-            type="time"
-            class="input"
-            :value="settings.morning.time"
-            aria-label="Heure du rappel du matin"
-            @change="update((s) => ({ ...s, morning: { ...s.morning, time: ($event.target as HTMLInputElement).value } }))"
-          />
+          <input type="time" class="input" :value="timeOf(pref.key)" :aria-label="pref.timeLabel" @change="setPref(pref.key, { time: inputValue($event) })" />
         </label>
-        <p class="small muted">Uniquement les jours où une séance est prévue.</p>
-      </div>
-
-      <div class="pref">
-        <label class="switch">
-          <span><ClipboardCheck :size="18" aria-hidden="true" /> Rappel du bilan du matin</span>
-          <input type="checkbox" :checked="settings.checkIn.enabled" @change="update((s) => ({ ...s, checkIn: { ...s.checkIn, enabled: ($event.target as HTMLInputElement).checked } }))" />
-        </label>
-        <label v-if="settings.checkIn.enabled" class="time">
-          <span class="small text-2">à</span>
-          <input
-            type="time"
-            class="input"
-            :value="settings.checkIn.time"
-            aria-label="Heure du rappel du bilan du matin"
-            @change="update((s) => ({ ...s, checkIn: { ...s.checkIn, time: ($event.target as HTMLInputElement).value } }))"
-          />
-        </label>
-        <p class="small muted">S’il n’est pas encore rempli, les jours de séance.</p>
-      </div>
-
-      <div class="pref">
-        <label class="switch">
-          <span><Sparkles :size="18" aria-hidden="true" /> Analyse après chaque sortie</span>
-          <input type="checkbox" :checked="settings.analysis.enabled" @change="update((s) => ({ ...s, analysis: { enabled: ($event.target as HTMLInputElement).checked } }))" />
-        </label>
-        <p class="small muted">Dès que la sortie arrive de Strava ou de la montre.</p>
-      </div>
-
-      <div class="pref">
-        <label class="switch">
-          <span><CalendarCheck :size="18" aria-hidden="true" /> Bilan de la semaine, le dimanche</span>
-          <input type="checkbox" :checked="settings.weekly.enabled" @change="update((s) => ({ ...s, weekly: { ...s.weekly, enabled: ($event.target as HTMLInputElement).checked } }))" />
-        </label>
-        <label v-if="settings.weekly.enabled" class="time">
-          <span class="small text-2">à</span>
-          <input
-            type="time"
-            class="input"
-            :value="settings.weekly.time"
-            aria-label="Heure du bilan du dimanche"
-            @change="update((s) => ({ ...s, weekly: { ...s.weekly, time: ($event.target as HTMLInputElement).value } }))"
-          />
-        </label>
+        <p v-if="pref.hint" class="small muted">{{ pref.hint }}</p>
       </div>
       <p class="small muted">Heures de ton fuseau : {{ settings.timeZone }}.</p>
     </div>

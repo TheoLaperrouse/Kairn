@@ -9,7 +9,7 @@ import { createApp } from 'vue'
 import { provideApi, providePushClient } from './application/api-provider'
 import { useAuthStore } from './application/stores/auth'
 import { useTrainingStore } from './application/stores/training'
-import { HttpTrainingApi } from './infrastructure/http/http-training-api'
+import { createHttpTrainingApi } from './infrastructure/http/http-training-api'
 import { BrowserPushClient, registerServiceWorker } from './infrastructure/push/browser-push-client'
 import App from './ui/App.vue'
 import { router } from './ui/router'
@@ -18,7 +18,7 @@ const pinia = createPinia()
 
 // Session révoquée depuis un autre appareil ou expirée : retour à l'écran de connexion.
 provideApi(
-  new HttpTrainingApi('', () => {
+  createHttpTrainingApi(() => {
     useAuthStore(pinia).forget()
     useTrainingStore(pinia).reset()
     if (router.currentRoute.value.path !== '/connexion') void router.push('/connexion')

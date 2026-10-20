@@ -78,7 +78,7 @@ export const useTrainingStore = defineStore('training', () => {
     const adjustment = await api.adaptPlan()
     if (adjustment) {
       plan.value = await api.getPlan()
-      dashboard.value = await api.dashboard()
+      await loadDashboard()
     }
     return adjustment
   }

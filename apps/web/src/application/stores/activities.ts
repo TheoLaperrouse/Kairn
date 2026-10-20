@@ -28,23 +28,17 @@ export const useActivitiesStore = defineStore('activities', () => {
     return outcomes
   }
 
-  async function importFiles(files: File[]) {
+  async function importing(outcomes: () => Promise<ImportOutcome[]>) {
     busy.value = true
     try {
-      return await afterImport(await api.importFiles(files))
+      return await afterImport(await outcomes())
     } finally {
       busy.value = false
     }
   }
 
-  async function sync(provider: string) {
-    busy.value = true
-    try {
-      return await afterImport(await api.syncProvider(provider))
-    } finally {
-      busy.value = false
-    }
-  }
+  const importFiles = (files: File[]) => importing(() => api.importFiles(files))
+  const sync = (provider: string) => importing(() => api.syncProvider(provider))
 
   async function connect(provider: string) {
     window.location.href = await api.connectUrl(provider)

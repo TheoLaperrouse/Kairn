@@ -334,6 +334,22 @@ textarea {
   mask-image: linear-gradient(to bottom, black, transparent);
 }
 
+/* Infobulle des graphiques, positionnée par le composant. */
+.chart-tooltip {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

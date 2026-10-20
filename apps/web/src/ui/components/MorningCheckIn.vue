@@ -7,9 +7,10 @@ import { CircleCheck, HeartPulse, Moon, Pencil, Sun, TriangleAlert } from 'lucid
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useTrainingStore } from '../../application/stores/training'
 import { useWellnessStore } from '../../application/stores/wellness'
-import { formatDuration, todayIso } from '../../domain/format'
-import type { CheckIn, CheckInResult, LightenMode, ReadinessLevel, Scale } from '../../domain/models'
+import { errorMessage, formatDuration, todayIso } from '../../domain/format'
+import type { CheckIn, CheckInResult, LightenMode, Scale } from '../../domain/models'
 import ReadinessTrend from './ReadinessTrend.vue'
+import { READINESS_LEVELS } from './readiness-levels'
 
 const wellness = useWellnessStore()
 const training = useTrainingStore()
@@ -79,31 +80,20 @@ async function submit() {
   submitting.value = true
   error.value = undefined
   try {
+    const { restingHr, hrv, ...answers } = form
     const checkIn: CheckIn = {
       date: today,
-      sleepHours: form.sleepHours,
-      sleepQuality: form.sleepQuality,
-      soreness: form.soreness,
-      fatigue: form.fatigue,
-      motivation: form.motivation,
-      stress: form.stress,
-      illnessSymptoms: form.illnessSymptoms,
-      ...(form.restingHr ? { restingHr: Number(form.restingHr) } : {}),
-      ...(form.hrv ? { hrv: Number(form.hrv) } : {}),
+      ...answers,
+      ...(restingHr ? { restingHr: Number(restingHr) } : {}),
+      ...(hrv ? { hrv: Number(hrv) } : {}),
     }
     lastResult.value = await wellness.submit(checkIn)
     editing.value = false
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Impossible d’enregistrer le bilan'
+    error.value = errorMessage(e, 'Impossible d’enregistrer le bilan')
   } finally {
     submitting.value = false
   }
-}
-
-const LEVEL: Record<ReadinessLevel, { label: string; color: string }> = {
-  VERT: { label: 'Feu vert', color: 'var(--success)' },
-  ORANGE: { label: 'Feu orange', color: 'var(--warning)' },
-  ROUGE: { label: 'Feu rouge', color: 'var(--danger)' },
 }
 
 const RING = 2 * Math.PI * 42
@@ -129,7 +119,7 @@ async function lighten(mode: LightenMode) {
     applied.value = titles.join(' · ')
     lastResult.value = result.value ? { ...result.value, affectedSessions: [] } : undefined
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Impossible d’adapter la séance'
+    error.value = errorMessage(e, 'Impossible d’adapter la séance')
   } finally {
     acting.value = false
   }
@@ -210,8 +200,8 @@ async function lighten(mode: LightenMode) {
       </div>
     </form>
 
-    <div v-else-if="result" class="result">
-      <div class="score" :style="{ '--level': LEVEL[result.readiness.level].color }">
+    <div v-else-if="result" class="result" :style="{ '--level': READINESS_LEVELS[result.readiness.level].color }">
+      <div class="score">
         <svg viewBox="0 0 100 100" class="ring" aria-hidden="true">
           <circle cx="50" cy="50" r="42" class="ring-bg" />
           <circle cx="50" cy="50" r="42" class="ring-fg" :stroke-dasharray="RING" :stroke-dashoffset="ringOffset" />
@@ -223,9 +213,9 @@ async function lighten(mode: LightenMode) {
       </div>
 
       <div class="verdict">
-        <p class="level" :style="{ color: LEVEL[result.readiness.level].color }">
-          <span class="level-dot" :style="{ background: LEVEL[result.readiness.level].color }" aria-hidden="true" />
-          {{ LEVEL[result.readiness.level].label }}
+        <p class="level">
+          <span class="level-dot" aria-hidden="true" />
+          {{ READINESS_LEVELS[result.readiness.level].label }}
         </p>
         <p class="message">{{ result.readiness.message }}</p>
         <ul v-if="result.readiness.factors.length" class="factors" aria-label="Ce qui pèse aujourd’hui">
@@ -456,11 +446,13 @@ async function lighten(mode: LightenMode) {
   font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 650;
+  color: var(--level);
 }
 .level-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
+  background: var(--level);
 }
 .message {
   color: var(--text);

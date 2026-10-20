@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { PHASE_LABELS, formatNumber, formatShortDate } from '../../domain/format'
 import type { TrainingPhase, WeekVolume } from '../../domain/models'
 import { PHASE_COLORS } from './phase-colors'
+import { pointerX } from './chart'
 import { useElementWidth } from './use-element-width'
 
 const props = defineProps<{ volumes: WeekVolume[]; currentWeekIndex?: number }>()
@@ -60,8 +61,7 @@ const phaseBands = computed(() => {
 
 const hover = ref<number>()
 function onPointer(event: PointerEvent) {
-  const rect = (event.currentTarget as SVGElement).getBoundingClientRect()
-  const i = Math.floor((event.clientX - rect.left - margin.left) / slot.value)
+  const i = Math.floor((pointerX(event, width.value) - margin.left) / slot.value)
   hover.value = i >= 0 && i < props.volumes.length ? i : undefined
 }
 const hovered = computed(() => (hover.value === undefined ? undefined : props.volumes[hover.value]))

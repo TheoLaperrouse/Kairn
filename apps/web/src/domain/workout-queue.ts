@@ -37,7 +37,7 @@ export interface RestStep {
 
 export type QueueStep = EffortStep | RestStep
 
-export const DEFAULT_REP_SEC = 2.5
+const DEFAULT_REP_SEC = 2.5
 export const PREP_SEC = 3
 
 /** Durée d'une répétition depuis un tempo « 3-1-1 » (secondes par phase), sinon 2,5 s. */

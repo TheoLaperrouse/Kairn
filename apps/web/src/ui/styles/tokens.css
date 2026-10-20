@@ -40,9 +40,6 @@
   --success: #4cc38a;
   --warning: #f2c14e;
   --danger: #f06a6a;
-  --figure: #eaf2f8;
-  --figure-far: #4d6283;
-  --topo: rgb(234 242 248 / 0.05);
 
   /* Séries de graphiques (validées daltonisme / contraste sur --surface) */
   --series-fitness: #2fa596;
@@ -79,9 +76,6 @@
     --success: #1f8f5a;
     --warning: #b7860b;
     --danger: #c93c3c;
-    --figure: #14202f;
-    --figure-far: #a9b4c2;
-    --topo: rgb(20 32 47 / 0.06);
     --shadow: 0 1px 2px rgb(20 32 47 / 0.06), 0 8px 24px -14px rgb(20 32 47 / 0.25);
     --series-fitness: #00897b;
     --series-fatigue: #d9661a;
@@ -111,9 +105,6 @@
   --success: #1f8f5a;
   --warning: #b7860b;
   --danger: #c93c3c;
-  --figure: #14202f;
-  --figure-far: #a9b4c2;
-  --topo: rgb(20 32 47 / 0.06);
   --shadow: 0 1px 2px rgb(20 32 47 / 0.06), 0 8px 24px -14px rgb(20 32 47 / 0.25);
   --series-fitness: #00897b;
   --series-fatigue: #d9661a;
