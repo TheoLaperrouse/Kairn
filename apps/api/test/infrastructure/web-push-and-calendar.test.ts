@@ -95,7 +95,7 @@ describe('Web Push', () => {
 
 describe('iCalendar feed', () => {
   it('escapes text and folds lines without splitting an emoji', () => {
-    expect(escape('Côtes; 6, puis\nretour \\ calme')).toBe('Côtes\; 6\\, puis\\nretour \\\\ calme')
+    expect(escape('Côtes; 6, puis\nretour \\ calme')).toBe('Côtes\\; 6\\, puis\\nretour \\\\ calme')
     const line = `SUMMARY:${'🏃'.repeat(30)}`
     const folded = fold(line)
     for (const part of folded.split('\r\n')) expect(Buffer.byteLength(part)).toBeLessThanOrEqual(75)

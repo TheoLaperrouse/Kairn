@@ -81,7 +81,7 @@ function utcStamp(date: Date): string {
 
 /** Échappement des valeurs texte (RFC 5545 §3.3.11). */
 export function escape(text: string): string {
-  return text.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
+  return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
 }
 
 /** Repli des lignes à 75 octets sans couper un caractère UTF-8 (RFC 5545 §3.1). */
