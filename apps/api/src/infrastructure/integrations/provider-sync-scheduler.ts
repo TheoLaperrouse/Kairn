@@ -23,8 +23,8 @@ export class ProviderSyncScheduler {
 
   private async run(): Promise<void> {
     for (const result of await this.activities.syncAll(this.options.provider)) {
-      if (result.error) this.options.log(`${this.options.provider} sync failed: ${result.error}`)
-      else if (result.imported > 0) this.options.log(`${this.options.provider} sync: ${result.imported} activity(ies) imported`)
+      if (result.error) this.options.log(`Synchro ${this.options.provider} en échec : ${result.error}`)
+      else if (result.imported > 0) this.options.log(`Synchro ${this.options.provider} : ${result.imported} activité(s) importée(s)`)
     }
   }
 }

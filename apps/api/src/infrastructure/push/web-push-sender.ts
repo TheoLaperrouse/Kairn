@@ -91,7 +91,7 @@ export class WebPushSender implements PushSender {
       body: new Uint8Array(encryptPayload(payload, subscription)),
     })
     if (response.status === 404 || response.status === 410) return 'GONE'
-    if (!response.ok) throw new Error(`Push service: ${response.status} ${await response.text().catch(() => '')}`.trim())
+    if (!response.ok) throw new Error(`Service de push : ${response.status} ${await response.text().catch(() => '')}`.trim())
     return 'SENT'
   }
 

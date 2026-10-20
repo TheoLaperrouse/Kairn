@@ -51,6 +51,20 @@ describe('HTTP API', () => {
     expect((await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie: laptop } })).statusCode).toBe(200)
   })
 
+  it('explains invalid input in French', async () => {
+    const register = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email: 'valid@example.com', password: 'ultra-trail-2027' } })
+    const cookie = cookieOf(register)
+    const put = (payload: object) => app.inject({ method: 'PUT', url: '/api/profile', headers: { cookie }, payload })
+
+    const badEnum = await put(aProfile({ level: 'ELITE' as never }))
+    expect(badEnum.statusCode).toBe(400)
+    expect(badEnum.json().error).toBe('« level » : valeur non autorisée')
+
+    const { name: _name, ...missing } = aProfile()
+    expect((await put(missing)).json().error).toBe('Champ obligatoire manquant : « name »')
+    expect((await put(aProfile({ weightKg: 500 }))).json().error).toMatch(/^« weightKg » : doit valoir au plus \d+$/)
+  })
+
   it('rejects a wrong password without revealing whether the account exists', async () => {
     const unknown = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'nobody@example.com', password: 'whatever-123' } })
     const wrong = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'theo@example.com', password: 'wrong-password' } })

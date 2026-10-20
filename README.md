@@ -13,6 +13,8 @@ Ouvre <http://localhost:5173>, crée un compte et laisse-toi guider : objectif (
 
 **Depuis ton téléphone** : sur le même réseau Wi-Fi, ouvre `http://<ip-de-l-ordinateur>:5173` (ou `:3000` en production) et connecte-toi avec le même compte. Les sessions sont rattachées au compte : tout est synchronisé, et la page *Réglages → Appareils connectés* liste les appareils et permet d'en révoquer un.
 
+**Installer l'application** : une fois Kairn déployé en HTTPS (VPS ou Pi ci-dessous), ouvre son adresse sur le téléphone puis *Réglages → Kairn sur ton téléphone* : bouton *Installer* sur Android, *Partager → Sur l'écran d'accueil* sur iPhone. L'app s'ouvre en plein écran, garde la dernière version de ton plan et la séance guidée consultables sans réseau, et peut envoyer des rappels. Sur l'IP locale en `http://`, le navigateur n'autorise ni l'installation ni le mode hors ligne.
+
 ### Déployer sur un VPS (une commande)
 
 Il te faut un VPS Debian ou Ubuntu (OVH, Scaleway, Hetzner… quelques euros par mois) accessible en SSH avec ta clé.

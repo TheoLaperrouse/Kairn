@@ -142,7 +142,7 @@ if (env.GARMIN_WATCH_DIR && env.GARMIN_WATCH_EMAIL) {
       log: (message) => app.log.info(message),
     }).start()
   } else {
-    app.log.warn(`GARMIN_WATCH_EMAIL: no account ${env.GARMIN_WATCH_EMAIL}, folder watching disabled`)
+    app.log.warn(`GARMIN_WATCH_EMAIL : aucun compte ${env.GARMIN_WATCH_EMAIL}, surveillance désactivée`)
   }
 }
 
@@ -164,6 +164,6 @@ if (stravaWebhook) {
   const callbackUrl = `${publicUrl}/api/webhooks/strava`
   strava
     .ensureWebhookSubscription(callbackUrl, stravaWebhook.verifyToken)
-    .then((id) => app.log.info(`Strava notifications active (subscription ${id}) → ${callbackUrl}`))
-    .catch((error: Error) => app.log.warn(`Strava notifications unavailable, periodic sync only: ${error.message}`))
+    .then((id) => app.log.info(`Notifications Strava actives (abonnement ${id}) → ${callbackUrl}`))
+    .catch((error: Error) => app.log.warn(`Notifications Strava indisponibles, synchro périodique seule : ${error.message}`))
 }

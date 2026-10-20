@@ -107,7 +107,7 @@ export class NotificationService implements ActivityImportListener {
       try {
         await this.tickUser(userId, now)
       } catch (error) {
-        this.log(`Notifications for ${userId}: ${error instanceof Error ? error.message : String(error)}`)
+        this.log(`Notifications de ${userId} : ${error instanceof Error ? error.message : String(error)}`)
       }
     }
   }
@@ -116,7 +116,7 @@ export class NotificationService implements ActivityImportListener {
     if (!automatic || this.clock.now().getTime() - Date.parse(activity.startTime) - activity.durationSec * 1000 > ANALYSIS_MAX_AGE_MS) return
     if (!this.load(userId).settings.analysis.enabled || this.subscriptions.listByUser(userId).length === 0) return
     const analysis = this.analyses.analyzeActivity(userId, activity)
-    void this.deliver(userId, analysisMessage(activity, analysis)).catch((error: Error) => this.log(`Analysis notification: ${error.message}`))
+    void this.deliver(userId, analysisMessage(activity, analysis)).catch((error: Error) => this.log(`Notification d’analyse : ${error.message}`))
   }
 
   private async tickUser(userId: string, now: Date): Promise<void> {
@@ -159,7 +159,7 @@ export class NotificationService implements ActivityImportListener {
         if ((await this.sender.send(subscription, message)) === 'GONE') this.subscriptions.delete(subscription.endpoint)
         else sent++
       } catch (error) {
-        this.log(`Notification to ${subscription.deviceLabel}: ${error instanceof Error ? error.message : String(error)}`)
+        this.log(`Notification vers ${subscription.deviceLabel} : ${error instanceof Error ? error.message : String(error)}`)
       }
     }
     return sent

@@ -102,7 +102,7 @@ export class StravaActivityProvider implements ActivityProvider {
   async ensureWebhookSubscription(callbackUrl: string, verifyToken: string): Promise<number> {
     const credentials = new URLSearchParams({ client_id: this.config.clientId!, client_secret: this.config.clientSecret! })
     const listing = await this.http(`${API}/api/v3/push_subscriptions?${credentials}`)
-    if (!listing.ok) throw new Error(`Strava answered ${listing.status} when listing subscriptions`)
+    if (!listing.ok) throw new Error(`Strava a répondu ${listing.status} à la lecture des abonnements`)
     const existing = (await listing.json()) as StravaSubscription[]
     const current = existing.find((s) => s.callback_url === callbackUrl)
     if (current) return current.id
@@ -113,7 +113,7 @@ export class StravaActivityProvider implements ActivityProvider {
       method: 'POST',
       body: new URLSearchParams({ ...Object.fromEntries(credentials), callback_url: callbackUrl, verify_token: verifyToken }),
     })
-    if (!created.ok) throw new Error(`Strava subscription rejected (${created.status}): ${await created.text()}`)
+    if (!created.ok) throw new Error(`Abonnement Strava refusé (${created.status}) : ${await created.text()}`)
     return ((await created.json()) as { id: number }).id
   }
 

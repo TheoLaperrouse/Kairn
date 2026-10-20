@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { Activity, CalendarDays, Dumbbell, Flag, Gauge, Moon, Settings, Sun, UtensilsCrossed } from 'lucide-vue-next'
+import { Activity, CalendarDays, CloudOff, Dumbbell, Flag, Gauge, Moon, Settings, Sun, UtensilsCrossed } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { useAuthStore } from '../../application/stores/auth'
+import { useConnectivityStore } from '../../application/stores/connectivity'
 import KairnLogo from '../components/KairnLogo.vue'
+import { applyTheme } from '../theme'
 
 const auth = useAuthStore()
+const connectivity = useConnectivityStore()
 
 const links = [
   { to: '/', label: 'Tableau de bord', short: 'Accueil', icon: Gauge },
@@ -24,7 +27,7 @@ const dark = ref(
 function toggleTheme() {
   dark.value = !dark.value
   const theme = dark.value ? 'dark' : 'light'
-  document.documentElement.dataset.theme = theme
+  applyTheme(theme)
   try {
     localStorage.setItem('kairn-theme', theme)
   } catch {
@@ -69,6 +72,10 @@ function toggleTheme() {
     </header>
 
     <main class="content">
+      <p v-if="connectivity.offline" class="offline" role="status">
+        <CloudOff :size="17" aria-hidden="true" />
+        Hors ligne : tu vois les données de ta dernière connexion. Pour enregistrer une modification, il faudra du réseau.
+      </p>
       <slot />
     </main>
 
@@ -174,6 +181,18 @@ nav .nav-link.router-link-active:not([href='/']) {
 }
 .content {
   min-width: 0;
+}
+
+.offline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  font-size: 0.88rem;
 }
 
 @media (max-width: 900px) {

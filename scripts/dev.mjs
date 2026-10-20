@@ -11,7 +11,7 @@ const processes = [
     stream.on('data', (chunk) => process.stdout.write(chunk.toString().replace(/^(?=.)/gm, prefix)))
   }
   child.on('exit', (code) => {
-    console.log(`${prefix}stopped (code ${code})`)
+    console.log(`${prefix}arrêté (code ${code})`)
     shutdown()
   })
   return child

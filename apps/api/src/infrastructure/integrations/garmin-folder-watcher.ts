@@ -28,7 +28,7 @@ export class GarminFolderWatcher {
   ) {}
 
   start(): void {
-    this.options.log(`Watching Garmin folder: ${this.options.directory}`)
+    this.options.log(`Surveillance du dossier Garmin : ${this.options.directory}`)
     void this.scan()
     setInterval(() => void this.scan(), this.options.intervalMs)
   }
@@ -44,8 +44,8 @@ export class GarminFolderWatcher {
         if (this.seen.get(path) === mtimeMs) continue
         this.seen.set(path, mtimeMs)
         const outcome = await this.activities.importFile(this.options.userId, name, await readFile(path), true)
-        if (outcome.status === 'IMPORTED') this.options.log(`Activity imported from ${name}`)
-        if (outcome.status === 'FAILED') this.options.log(`Could not import ${name}: ${outcome.reason}`)
+        if (outcome.status === 'IMPORTED') this.options.log(`Activité importée depuis ${name}`)
+        if (outcome.status === 'FAILED') this.options.log(`Import impossible de ${name} : ${outcome.reason}`)
       }
     } finally {
       this.running = false

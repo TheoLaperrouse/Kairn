@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CheckCircle2, LoaderCircle, LogOut, MonitorSmartphone, RefreshCw, Smartphone, Wifi } from 'lucide-vue-next'
+import { CheckCircle2, LoaderCircle, LogOut, MonitorSmartphone, RefreshCw, Smartphone } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../application/stores/auth'
@@ -7,6 +7,7 @@ import { useTrainingStore } from '../../application/stores/training'
 import { errorMessage, formatLongDate, formatRelative } from '../../domain/format'
 import type { AthleteProfile, RaceGoal } from '../../domain/models'
 import CalendarFeedCard from '../components/CalendarFeedCard.vue'
+import InstallAppCard from '../components/InstallAppCard.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import GoalForm from '../components/GoalForm.vue'
 import NotificationSettingsCard from '../components/NotificationSettingsCard.vue'
@@ -22,7 +23,6 @@ const saving = ref(false)
 const saved = ref(false)
 const error = ref('')
 const revoking = ref<string>()
-const host = window.location.host
 
 onMounted(async () => {
   await Promise.all([training.load(), auth.loadDevices()])
@@ -107,6 +107,8 @@ async function logout() {
       <CalendarFeedCard />
     </div>
 
+    <InstallAppCard />
+
     <section class="card" aria-labelledby="devices-title">
       <div class="card-title">
         <h2 id="devices-title">Appareils connectés</h2>
@@ -124,17 +126,6 @@ async function logout() {
           <button type="button" class="btn btn-sm btn-ghost btn-danger" @click="revoking = d.id">{{ d.current ? 'Déconnecter' : 'Révoquer' }}</button>
         </li>
       </ul>
-
-      <div class="phone">
-        <Wifi :size="20" aria-hidden="true" />
-        <div class="small">
-          <strong>Ouvrir Kairn sur ton téléphone</strong>
-          <p class="text-2">
-            Ouvre <strong>{{ host }}</strong> sur ton téléphone et connecte-toi avec le même compte, puis ajoute la page à l’écran d’accueil : elle s’ouvre
-            comme une application.
-          </p>
-        </div>
-      </div>
     </section>
 
     <section class="card logout-card">
@@ -232,21 +223,6 @@ async function logout() {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-}
-.phone {
-  display: flex;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-  padding: var(--space-4);
-  border-radius: var(--radius);
-  background: var(--teal-soft);
-}
-.phone > svg {
-  color: var(--teal);
-  flex: none;
-}
-.phone p {
-  margin-top: 4px;
 }
 .logout-card {
   display: flex;

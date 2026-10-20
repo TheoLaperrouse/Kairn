@@ -68,7 +68,7 @@ export class FakeStrava implements ActivityProvider {
 }
 
 /** Full application on an in-memory SQLite database, with a controllable clock. */
-export async function buildTestApp(now: Date, options: { providers?: ActivityProvider[]; stravaVerifyToken?: string } = {}) {
+export async function buildTestApp(now: Date, options: { providers?: ActivityProvider[]; stravaVerifyToken?: string; webDist?: string } = {}) {
   const clock: Clock & { set(date: Date): void } = {
     current: now,
     now() {
@@ -139,6 +139,7 @@ export async function buildTestApp(now: Date, options: { providers?: ActivityPro
       secureCookies: false,
       logger: false,
       stravaWebhook: options.stravaVerifyToken ? { verifyToken: options.stravaVerifyToken } : undefined,
+      webDist: options.webDist,
     },
   )
   return { app, clock, watchDir, integrations, activityService, notifications, push }

@@ -3,16 +3,25 @@ import type { PlanAdjustment, User } from '../../domain/models'
 
 const enc = encodeURIComponent
 
-/** HTTP adapter: the session travels in an httpOnly cookie set by the server. */
-export function createHttpTrainingApi(onUnauthorized: () => void = () => {}): TrainingApi {
+/**
+ * HTTP adapter: the session travels in an httpOnly cookie set by the server.
+ * `onFreshness` tells, for each read, whether the service worker answered from its offline copy.
+ */
+export function createHttpTrainingApi(onUnauthorized: () => void = () => {}, onFreshness: (fromCache: boolean) => void = () => {}): TrainingApi {
   async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const isForm = body instanceof FormData
-    const response = await fetch(path, {
-      method,
-      credentials: 'same-origin',
-      headers: body !== undefined && !isForm ? { 'Content-Type': 'application/json' } : undefined,
-      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
-    })
+    let response: Response
+    try {
+      response = await fetch(path, {
+        method,
+        credentials: 'same-origin',
+        headers: body !== undefined && !isForm ? { 'Content-Type': 'application/json' } : undefined,
+        body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
+      })
+    } catch {
+      throw new ApiError('Pas de connexion : réessaie quand tu auras du réseau.', 0)
+    }
+    if (method === 'GET') onFreshness(response.headers.has('X-Kairn-Offline'))
     if (response.status === 401 && !path.startsWith('/api/auth/')) onUnauthorized()
     const payload = response.headers.get('content-type')?.includes('json') ? await response.json() : undefined
     if (!response.ok) throw new ApiError(payload?.error ?? `Erreur ${response.status}`, response.status)

@@ -53,6 +53,13 @@ router.beforeEach(async (to) => {
   return true
 })
 
+// A page loaded before an update asks for code from the previous build: reload it on the new version.
+router.onError((error, to) => {
+  if (/dynamically imported module|Importing a module script failed|error loading dynamically/i.test(String(error))) {
+    window.location.assign(to.fullPath)
+  }
+})
+
 router.afterEach((to) => {
   document.title = to.meta.title ? `${to.meta.title} · Kairn` : 'Kairn'
 })

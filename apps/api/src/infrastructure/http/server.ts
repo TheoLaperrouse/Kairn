@@ -29,6 +29,7 @@ import { DomainError, NotFoundError } from '../../domain/shared/errors'
 import type { CheckIn } from '../../domain/wellness/check-in'
 import type { StravaWebhookEvent } from '../integrations/strava-provider'
 import { AttemptLimiter, UnauthorizedError, clearSessionCookie, requireAuth, setSessionCookie, userId } from './auth'
+import { validationMessage } from './validation-messages'
 import {
   checkInSchema,
   credentialsSchema,
@@ -76,7 +77,12 @@ type IdParams = { Params: { id: string } }
 export async function buildServer(services: Services, options: ServerOptions): Promise<FastifyInstance> {
   // Only the proxy directly in front of the API (Caddy, cloudflared) is trusted: the client IP is the last
   // X-Forwarded-For entry, the ones before it can be forged by the client.
-  const app = Fastify({ logger: options.logger, trustProxy: (_address, hop) => hop === 0, bodyLimit: 1024 * 1024 })
+  const app = Fastify({
+    logger: options.logger,
+    trustProxy: (_address, hop) => hop === 0,
+    bodyLimit: 1024 * 1024,
+    schemaErrorFormatter: (errors, dataVar) => new Error(validationMessage(errors, dataVar)),
+  })
   await app.register(multipart, { limits: { fileSize: MAX_UPLOAD_BYTES, files: 50 } })
 
   app.setErrorHandler((error, request, reply) => {
@@ -108,11 +114,22 @@ export async function buildServer(services: Services, options: ServerOptions): P
   })
 
   if (options.webDist && existsSync(options.webDist)) {
-    await app.register(fastifyStatic, { root: options.webDist, wildcard: false })
-    // Single-page app: any unknown route outside /api serves index.html.
-    app.setNotFoundHandler((request, reply) =>
-      request.url.startsWith('/api/') ? reply.status(404).send({ error: 'Route inconnue' }) : reply.sendFile('index.html'),
-    )
+    await app.register(fastifyStatic, {
+      root: options.webDist,
+      wildcard: false,
+      // Hashed build files never change; everything else (index.html, sw.js, manifest) is revalidated.
+      setHeaders: (reply, path) => {
+        reply.header('Cache-Control', path.includes('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache')
+      },
+    })
+    // Single-page app: any unknown route outside /api serves index.html, but a missing file stays a 404
+    // (an old page asking for a chunk of the previous build must not receive HTML instead of JavaScript).
+    app.setNotFoundHandler((request, reply) => {
+      const path = request.url.split('?')[0]!
+      if (path.startsWith('/api/')) return reply.status(404).send({ error: 'Route inconnue' })
+      if (/\.[a-z0-9]+$/i.test(path)) return reply.status(404).send({ error: 'Fichier introuvable' })
+      return reply.sendFile('index.html')
+    })
   }
   return app
 }
@@ -268,8 +285,8 @@ function registerStravaWebhook(app: FastifyInstance, activities: ActivityService
     } else if (event.object_type === 'activity' && event.aspect_type === 'create') {
       void activities.syncAthlete('strava', athleteId).then((results) => {
         for (const result of results) {
-          if (result.error) request.log.warn(`Strava sync (webhook) failed: ${result.error}`)
-          else request.log.info(`Strava sync (webhook): ${result.imported} activity(ies) imported`)
+          if (result.error) request.log.warn(`Synchro Strava (webhook) en échec : ${result.error}`)
+          else request.log.info(`Synchro Strava (webhook) : ${result.imported} activité(s) importée(s)`)
         }
       })
     }
