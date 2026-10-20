@@ -4,9 +4,11 @@
  * qui partagent l'axe des distances (jamais deux échelles sur un même graphique).
  * Les montées détectées sont numérotées sur le profil, les zones cardiaques en bandes sous la FC.
  */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ZONE_LABELS, formatNumber, formatSeconds } from '../../domain/format'
 import type { ActivitySample, Climb, Zone } from '../../domain/models'
+import { niceStep, pointerX, ticksBetween } from './chart'
+import { useElementWidth } from './use-element-width'
 
 const props = defineProps<{
   samples: ActivitySample[]
@@ -16,35 +18,18 @@ const props = defineProps<{
 }>()
 
 const container = ref<HTMLDivElement>()
-const width = ref(640)
-let observer: ResizeObserver | undefined
-onMounted(() => {
-  observer = new ResizeObserver(([entry]) => {
-    if (entry) width.value = Math.max(entry.contentRect.width, 260)
-  })
-  if (container.value) observer.observe(container.value)
-})
-onBeforeUnmount(() => observer?.disconnect())
+const width = useElementWidth(container, 640, 260)
 
 const PAD = { top: 22, right: 34, left: 46, bottom: 26 }
 const ALT_H = 170
 const HR_H = 150
 const GAP = 18
 
-function niceStep(range: number, target: number): number {
-  const raw = range / target
-  const magnitude = 10 ** Math.floor(Math.log10(raw))
-  const normalized = raw / magnitude
-  return (normalized >= 5 ? 10 : normalized >= 2 ? 5 : normalized >= 1 ? 2 : 1) * magnitude
-}
-
 function ticks(min: number, max: number, target: number) {
   const step = niceStep(Math.max(max - min, 1), target)
   const lo = Math.floor(min / step) * step
   const hi = Math.ceil(max / step) * step
-  const list: number[] = []
-  for (let v = lo; v <= hi + step / 1000; v += step) list.push(Math.round(v * 100) / 100)
-  return { lo, hi: hi === lo ? lo + step : hi, list }
+  return { lo, hi: hi === lo ? lo + step : hi, list: ticksBetween(lo, hi, step) }
 }
 
 /** Sur tapis ou sans GPS la distance manque : l'axe passe alors au temps. */
@@ -66,9 +51,7 @@ const layout = computed(() => {
 const xScale = computed(() => {
   const max = Math.max(xOf(props.samples.at(-1) ?? { t: 60, d: 0.1 }), 0.1)
   const step = niceStep(max, Math.max(Math.floor(layout.value.innerW / 80), 2))
-  const list: number[] = []
-  for (let v = 0; v <= max + step / 1000; v += step) list.push(Math.round(v * 10) / 10)
-  return { max, list, x: (v: number) => PAD.left + (v / max) * layout.value.innerW }
+  return { max, list: ticksBetween(0, max, step, 1), x: (v: number) => PAD.left + (v / max) * layout.value.innerW }
 })
 
 const altScale = computed(() => {
@@ -110,7 +93,7 @@ const altArea = computed(() => {
   if (!altScale.value || !layout.value.alt) return ''
   const withAlt = props.samples.filter((s) => s.alt !== undefined)
   const base = layout.value.alt.top + layout.value.alt.height
-  return `${path((s) => s.alt, altScale.value.y)} L${xScale.value.x(xOf(withAlt.at(-1)!)).toFixed(1)},${base} L${xScale.value.x(xOf(withAlt[0]!)).toFixed(1)},${base} Z`
+  return `${altLine.value} L${xScale.value.x(xOf(withAlt.at(-1)!)).toFixed(1)},${base} L${xScale.value.x(xOf(withAlt[0]!)).toFixed(1)},${base} Z`
 })
 const hrLine = computed(() => (hrScale.value ? path((s) => s.hr, hrScale.value.y) : ''))
 
@@ -147,10 +130,7 @@ function zoneOf(hr: number): Zone {
 
 const hover = ref<ActivitySample>()
 function onMove(event: PointerEvent) {
-  const svg = event.currentTarget as SVGSVGElement
-  const rect = svg.getBoundingClientRect()
-  const px = ((event.clientX - rect.left) / rect.width) * width.value
-  const target = ((px - PAD.left) / layout.value.innerW) * xScale.value.max
+  const target = ((pointerX(event, width.value) - PAD.left) / layout.value.innerW) * xScale.value.max
   let best = props.samples[0]
   for (const s of props.samples) if (Math.abs(xOf(s) - target) < Math.abs(xOf(best!) - target)) best = s
   hover.value = best
@@ -234,7 +214,7 @@ const summary = computed(() => {
       </g>
     </svg>
 
-    <div v-if="hover" class="tooltip" :style="tooltipStyle" role="presentation">
+    <div v-if="hover" class="chart-tooltip" :style="tooltipStyle" role="presentation">
       <span class="muted num">{{ formatSeconds(hover.t) }} · km {{ formatNumber(hover.d, 2) }}</span>
       <span v-if="hover.alt !== undefined"><i class="key alt" aria-hidden="true" /><strong class="num">{{ formatNumber(hover.alt) }} m</strong></span>
       <span v-if="hover.hr !== undefined">
@@ -316,19 +296,8 @@ svg {
 .marker.hr {
   fill: var(--series-form);
 }
-.tooltip {
-  position: absolute;
-  pointer-events: none;
-  display: grid;
+.chart-tooltip {
   gap: 3px;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-3);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow);
-  font-size: 0.8rem;
-  white-space: nowrap;
-  z-index: 2;
 }
 .key {
   display: inline-block;

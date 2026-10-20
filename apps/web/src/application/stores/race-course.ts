@@ -7,11 +7,9 @@ import { useTrainingStore } from './training'
 export const useRaceCourseStore = defineStore('race-course', () => {
   const api = useApi()
   const view = ref<RaceCourseView | null>(null)
-  const loaded = ref(false)
 
   async function load() {
     view.value = await api.raceCourse()
-    loaded.value = true
   }
 
   async function upload(file: File) {
@@ -36,5 +34,5 @@ export const useRaceCourseStore = defineStore('race-course', () => {
     view.value = null
   }
 
-  return { view, loaded, load, upload, update, applyToGoal, remove }
+  return { view, load, upload, update, applyToGoal, remove }
 })

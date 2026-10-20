@@ -6,7 +6,7 @@
 import { Bandage, CalendarX, CircleCheck, Thermometer, TriangleAlert, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useTrainingStore } from '../../application/stores/training'
-import { todayIso } from '../../domain/format'
+import { errorMessage, todayIso } from '../../domain/format'
 import type { PlanAdjustment, Unavailability } from '../../domain/models'
 
 const props = defineProps<{ open: boolean }>()
@@ -49,13 +49,15 @@ const days = computed(() => {
 
 const explanation = computed(() => {
   const n = Math.max(days.value, 0)
+  const period = `ces ${n} jour${n > 1 ? 's' : ''}`
   if (reason.value === 'BLESSURE') {
+    const recovery = `${Math.min(Math.round(n * 1.5), 21)} jours de reprise progressive, sans intensité.`
     return crossTrainingOk.value
-      ? `Pendant ces ${n} jour${n > 1 ? 's' : ''}, tes sorties deviennent des séances sans impact (vélo, natation, elliptique). Ensuite, ${Math.min(Math.round(n * 1.5), 21)} jours de reprise progressive, sans intensité.`
-      : `Les séances de ces ${n} jour${n > 1 ? 's' : ''} sont annulées, puis ${Math.min(Math.round(n * 1.5), 21)} jours de reprise progressive, sans intensité.`
+      ? `Pendant ${period}, tes sorties deviennent des séances sans impact (vélo, natation, elliptique). Ensuite, ${recovery}`
+      : `Les séances de ${period} sont annulées, puis ${recovery}`
   }
-  if (reason.value === 'INDISPONIBLE' && n < 5) return `Les séances de ces ${n} jour${n > 1 ? 's' : ''} sont annulées, le reste du plan est inchangé.`
-  return `Les séances de ces ${n} jour${n > 1 ? 's' : ''} sont annulées, puis ${Math.min(n, 21)} jours de reprise : volume de 50 % à 90 %, sans intensité.`
+  if (reason.value === 'INDISPONIBLE' && n < 5) return `Les séances de ${period} sont annulées, le reste du plan est inchangé.`
+  return `Les séances de ${period} sont annulées, puis ${Math.min(n, 21)} jours de reprise : volume de 50 % à 90 %, sans intensité.`
 })
 
 async function submit() {
@@ -73,7 +75,7 @@ async function submit() {
       crossTrainingOk: reason.value === 'BLESSURE' && crossTrainingOk.value,
     })
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Impossible d’adapter le plan'
+    error.value = errorMessage(e, 'Impossible d’adapter le plan')
   } finally {
     busy.value = false
   }

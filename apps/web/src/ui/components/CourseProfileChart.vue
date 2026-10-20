@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { formatNumber } from '../../domain/format'
 import type { AidStation, CoursePoint, CourseSegment, RacePlan } from '../../domain/models'
 import { clockAt, dayLabel, formatHours, interpolate } from '../../domain/race-time'
+import { pointerX, profilePaths, profileScale } from './chart'
 import { useElementWidth } from './use-element-width'
 
 const props = withDefaults(
@@ -22,41 +23,10 @@ const width = useElementWidth(container, 900)
 const compact = computed(() => width.value < 620)
 const PAD = computed(() => ({ top: compact.value ? 30 : 46, right: 14, bottom: 40, left: compact.value ? 40 : 52 }))
 
-function niceStep(range: number, target: number): number {
-  const raw = range / Math.max(target, 1)
-  const magnitude = 10 ** Math.floor(Math.log10(raw))
-  const normalized = raw / magnitude
-  return (normalized >= 5 ? 10 : normalized >= 2 ? 5 : normalized >= 1 ? 2 : 1) * magnitude
-}
-
-const scale = computed(() => {
-  const pad = PAD.value
-  const maxD = Math.max(props.points.at(-1)?.distanceKm ?? 1, 0.1)
-  const alts = props.points.map((p) => p.altitudeM)
-  const rawMin = Math.min(...alts)
-  const rawMax = Math.max(...alts)
-  const stepY = niceStep(Math.max(rawMax - rawMin, 50), 4)
-  const minA = Math.floor(rawMin / stepY) * stepY
-  const maxA = Math.ceil(rawMax / stepY) * stepY || minA + stepY
-  const innerW = width.value - pad.left - pad.right
-  const innerH = props.height - pad.top - pad.bottom
-  const x = (d: number) => pad.left + (d / maxD) * innerW
-  const y = (a: number) => pad.top + innerH - ((a - minA) / (maxA - minA)) * innerH
-  const yTicks: number[] = []
-  for (let a = minA; a <= maxA + 0.001; a += stepY) yTicks.push(a)
-  const stepX = niceStep(maxD, Math.max(Math.floor(innerW / 80), 2))
-  const xTicks: number[] = []
-  for (let d = 0; d <= maxD + 0.001; d += stepX) xTicks.push(Math.round(d * 10) / 10)
-  return { x, y, maxD, innerW, innerH, yTicks, xTicks, base: pad.top + innerH }
-})
-
-const line = computed(() =>
-  props.points.map((p, i) => `${i ? 'L' : 'M'}${scale.value.x(p.distanceKm).toFixed(1)},${scale.value.y(p.altitudeM).toFixed(1)}`).join(' '),
+const scale = computed(() =>
+  profileScale(props.points, { width: width.value, height: props.height, pad: PAD.value }, { minAltitudeRange: 50, pxPerXTick: 80 }),
 )
-const area = computed(() => {
-  if (props.points.length < 2) return ''
-  return `${line.value} L${scale.value.x(props.points.at(-1)!.distanceKm).toFixed(1)},${scale.value.base} L${scale.value.x(0)},${scale.value.base} Z`
-})
+const paths = computed(() => profilePaths(props.points, scale.value))
 
 /** Portions de nuit déduites de l'heure de passage prévue en chaque point de la chronologie. */
 const nightBands = computed(() => {
@@ -82,7 +52,8 @@ const stationMarks = computed(() =>
     index: i + 1,
     x: scale.value.x(station.km),
     label: compact.value ? String(i + 1) : station.name.length > 16 ? `${station.name.slice(0, 15)}…` : station.name,
-    row: compact.value ? 0 : i % 2,
+    // Étiquettes en quinconce sur deux rangées quand la place le permet.
+    y: PAD.value.top - (!compact.value && i % 2 ? 4 : 18),
   })),
 )
 
@@ -94,10 +65,7 @@ interface Hover {
 const hover = ref<Hover>()
 
 function onMove(event: PointerEvent) {
-  const svg = event.currentTarget as SVGSVGElement
-  const rect = svg.getBoundingClientRect()
-  const px = ((event.clientX - rect.left) / rect.width) * width.value
-  const km = Math.min(Math.max(((px - PAD.value.left) / scale.value.innerW) * scale.value.maxD, 0), scale.value.maxD)
+  const km = Math.min(Math.max(((pointerX(event, width.value) - PAD.value.left) / scale.value.innerW) * scale.value.maxD, 0), scale.value.maxD)
   hover.value = {
     km,
     altitude: interpolate(props.points, km, (p) => p.distanceKm, (p) => p.altitudeM),
@@ -159,8 +127,8 @@ const tooltipStyle = computed(() => {
         <text v-for="t in scale.xTicks" :key="`x${t}`" :x="scale.x(t)" :y="height - 8" text-anchor="middle">{{ formatNumber(t) }} km</text>
       </g>
 
-      <path :d="area" fill="url(#course-fill)" />
-      <path :d="line" class="line" />
+      <path :d="paths.area" fill="url(#course-fill)" />
+      <path :d="paths.line" class="line" />
 
       <rect
         v-for="(segment, i) in segments"
@@ -174,9 +142,9 @@ const tooltipStyle = computed(() => {
       />
 
       <g v-for="mark in stationMarks" :key="`a${mark.index}`" class="station" :class="{ major: mark.station.major }">
-        <line :x1="mark.x" :x2="mark.x" :y1="PAD.top - (mark.row ? 4 : 18) + 6" :y2="scale.base" />
-        <circle :cx="mark.x" :cy="PAD.top - (mark.row ? 4 : 18)" r="3.5" />
-        <text :x="mark.x" :y="PAD.top - (mark.row ? 4 : 18) - 7" text-anchor="middle">{{ mark.label }}</text>
+        <line :x1="mark.x" :x2="mark.x" :y1="mark.y + 6" :y2="scale.base" />
+        <circle :cx="mark.x" :cy="mark.y" r="3.5" />
+        <text :x="mark.x" :y="mark.y - 7" text-anchor="middle">{{ mark.label }}</text>
       </g>
 
       <g v-if="hover">
@@ -184,7 +152,7 @@ const tooltipStyle = computed(() => {
         <circle class="marker" :cx="scale.x(hover.km)" :cy="scale.y(hover.altitude)" r="5" />
       </g>
     </svg>
-    <div v-if="hover && hoverClock" class="tooltip" :style="tooltipStyle" role="presentation">
+    <div v-if="hover && hoverClock" class="chart-tooltip" :style="tooltipStyle" role="presentation">
       <strong class="num">km {{ formatNumber(hover.km, 1) }} · {{ formatNumber(Math.round(hover.altitude)) }} m</strong>
       <span class="num">{{ formatHours(hover.elapsedH) }} de course</span>
       <span class="num">{{ hoverClock.clock }} · {{ dayLabel(hoverClock.day) }}<template v-if="hoverClock.night"> · nuit</template></span>
@@ -297,22 +265,11 @@ svg {
   stroke: var(--surface);
   stroke-width: 2;
 }
-.tooltip {
-  position: absolute;
+.chart-tooltip {
   transform: translate(-50%, -100%);
-  pointer-events: none;
-  display: grid;
-  gap: 2px;
   padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-3);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow);
-  font-size: 0.8rem;
-  white-space: nowrap;
-  z-index: 2;
 }
-.tooltip span {
+.chart-tooltip span {
   color: var(--text-2);
 }
 </style>

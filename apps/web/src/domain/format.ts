@@ -127,6 +127,10 @@ export function formatNumber(value: number, digits = 0): string {
   return value.toLocaleString('fr-FR', { maximumFractionDigits: digits, minimumFractionDigits: 0 })
 }
 
+export function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback
+}
+
 export function todayIso(): string {
   const now = new Date()
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10)

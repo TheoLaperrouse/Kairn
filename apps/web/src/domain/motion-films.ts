@@ -10,7 +10,7 @@ import type { ExerciseCategory } from './models'
  * `apps/web/public/motion/<fichier>`. Tant qu'un MP4 est absent, l'app retombe sur
  * l'animation anatomique calculée en direct à partir des mêmes poses-clés.
  */
-export interface MotionFilm {
+interface MotionFilm {
   category: ExerciseCategory
   title: string
   url: string
@@ -19,7 +19,7 @@ export interface MotionFilm {
   segments: Record<string, [number, number, number]>
 }
 
-export const MOTION_FILMS: MotionFilm[] = [
+const MOTION_FILMS: MotionFilm[] = [
   {
     category: 'GAINAGE',
     title: 'Kairn — Gainage',
@@ -96,7 +96,6 @@ export const MOTION_FILMS: MotionFilm[] = [
 ]
 
 export interface MotionClip {
-  film: MotionFilm
   src: string
   start: number
   end: number
@@ -109,7 +108,7 @@ export function motionClipFor(exerciseId: string): MotionClip | undefined {
     const segment = film.segments[exerciseId]
     if (segment) {
       const [start, end, cycles] = segment
-      return { film, src: `/motion/${film.file}`, start, end, cycleSec: (end - start) / cycles }
+      return { src: `/motion/${film.file}`, start, end, cycleSec: (end - start) / cycles }
     }
   }
   return undefined

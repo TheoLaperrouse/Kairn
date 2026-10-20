@@ -5,11 +5,13 @@
  * et la tendance des 4 dernières semaines face aux 8 précédentes.
  */
 import { Mountain, TrendingDown, TrendingUp, Trophy } from 'lucide-vue-next'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../application/api-provider'
 import { formatLongDate, formatNumber, formatShortDate, formatWeekRange } from '../../domain/format'
 import type { VamDuration, VamMark, VamProgress } from '../../domain/models'
+import { niceStep, pointerX, ticksBetween } from './chart'
+import { useElementWidth } from './use-element-width'
 
 const api = useApi()
 const router = useRouter()
@@ -25,18 +27,7 @@ onMounted(async () => {
 })
 
 const container = ref<HTMLDivElement>()
-const width = ref(640)
-let observer: ResizeObserver | undefined
-// Le graphique n'existe qu'une fois les données chargées : on le mesure dès qu'il apparaît.
-watch(container, (element) => {
-  observer?.disconnect()
-  if (!element) return
-  observer = new ResizeObserver(([entry]) => {
-    if (entry) width.value = Math.max(entry.contentRect.width, 260)
-  })
-  observer.observe(element)
-})
-onBeforeUnmount(() => observer?.disconnect())
+const width = useElementWidth(container, 640, 260)
 
 const HEIGHT = 220
 const PAD = { top: 18, right: 14, bottom: 28, left: 46 }
@@ -48,29 +39,21 @@ const trend = computed(() => progress.value?.trend[duration.value])
 const points = computed(() =>
   (progress.value?.weeks ?? []).map((w, i) => ({ i, weekStart: w.weekStart, mark: w.best[duration.value] as VamMark | undefined })),
 )
-
-function niceStep(range: number, target: number): number {
-  const raw = range / target
-  const magnitude = 10 ** Math.floor(Math.log10(raw))
-  const normalized = raw / magnitude
-  return (normalized >= 5 ? 10 : normalized >= 2 ? 5 : normalized >= 1 ? 2 : 1) * magnitude
-}
+const marked = computed(() => points.value.filter((p): p is (typeof p & { mark: VamMark }) => Boolean(p.mark)))
 
 const scale = computed(() => {
-  const values = points.value.flatMap((p) => (p.mark ? [p.mark.vam] : []))
+  const values = marked.value.map((p) => p.mark.vam)
   if (record.value) values.push(record.value.vam)
   const lo = Math.min(...values, 600)
   const hi = Math.max(...values, 700)
   const step = niceStep(hi - lo + 100, 4)
   const min = Math.max(0, Math.floor((lo - 50) / step) * step)
   const max = Math.ceil((hi + 30) / step) * step
-  const ticks: number[] = []
-  for (let v = min; v <= max; v += step) ticks.push(v)
   const innerW = width.value - PAD.left - PAD.right
   const innerH = HEIGHT - PAD.top - PAD.bottom
   const slot = innerW / Math.max(points.value.length, 1)
   return {
-    ticks,
+    ticks: ticksBetween(min, max, step),
     slot,
     x: (i: number) => PAD.left + slot * (i + 0.5),
     y: (v: number) => PAD.top + innerH - ((v - min) / (max - min)) * innerH,
@@ -103,10 +86,7 @@ const recentBand = computed(() => {
 
 const hover = ref<(typeof points.value)[number]>()
 function onMove(event: PointerEvent) {
-  const svg = event.currentTarget as SVGSVGElement
-  const rect = svg.getBoundingClientRect()
-  const px = ((event.clientX - rect.left) / rect.width) * width.value
-  const index = Math.floor((px - PAD.left) / scale.value.slot)
+  const index = Math.floor((pointerX(event, width.value) - PAD.left) / scale.value.slot)
   hover.value = points.value[index]?.mark ? points.value[index] : undefined
 }
 function open() {
@@ -121,8 +101,7 @@ const tooltipStyle = computed(() => {
 })
 
 const ariaLabel = computed(() => {
-  const marked = points.value.filter((p) => p.mark)
-  return `Meilleure VAM sur ${duration.value} min, semaine par semaine : ${marked.length} semaines avec une montée${record.value ? `, record ${record.value.vam} m/h` : ''}.`
+  return `Meilleure VAM sur ${duration.value} min, semaine par semaine : ${marked.value.length} semaines avec une montée${record.value ? `, record ${record.value.vam} m/h` : ''}.`
 })
 </script>
 
@@ -202,16 +181,16 @@ const ariaLabel = computed(() => {
           </g>
           <path :d="segments" class="line" />
           <circle
-            v-for="p in points.filter((q) => q.mark)"
+            v-for="p in marked"
             :key="p.weekStart"
             class="dot"
-            :class="{ best: p.mark!.activityId === record?.activityId && p.mark!.vam === record?.vam, active: hover?.weekStart === p.weekStart }"
+            :class="{ best: p.mark.activityId === record?.activityId && p.mark.vam === record?.vam, active: hover?.weekStart === p.weekStart }"
             :cx="scale.x(p.i)"
-            :cy="scale.y(p.mark!.vam)"
+            :cy="scale.y(p.mark.vam)"
             :r="hover?.weekStart === p.weekStart ? 6 : 4.5"
           />
         </svg>
-        <div v-if="hover?.mark" class="tooltip" :style="tooltipStyle" role="presentation">
+        <div v-if="hover?.mark" class="chart-tooltip" :style="tooltipStyle" role="presentation">
           <span class="muted">Semaine du {{ formatWeekRange(hover.weekStart) }}</span>
           <strong class="num">{{ formatNumber(hover.mark.vam) }} m/h</strong>
           <span>{{ hover.mark.activityName }}</span>
@@ -223,8 +202,8 @@ const ariaLabel = computed(() => {
           <caption>Meilleure VAM sur {{ duration }} min par semaine</caption>
           <thead><tr><th>Semaine</th><th>VAM (m/h)</th><th>Sortie</th></tr></thead>
           <tbody>
-            <tr v-for="p in points.filter((q) => q.mark)" :key="p.weekStart">
-              <td>{{ p.weekStart }}</td><td>{{ p.mark!.vam }}</td><td>{{ p.mark!.activityName }}</td>
+            <tr v-for="p in marked" :key="p.weekStart">
+              <td>{{ p.weekStart }}</td><td>{{ p.mark.vam }}</td><td>{{ p.mark.activityName }}</td>
             </tr>
           </tbody>
         </table>
@@ -346,20 +325,6 @@ a.figure:hover {
 }
 .dot.best {
   fill: var(--warning);
-}
-.tooltip {
-  position: absolute;
-  pointer-events: none;
-  display: grid;
-  gap: 2px;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-3);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow);
-  font-size: 0.8rem;
-  white-space: nowrap;
-  z-index: 2;
 }
 .empty {
   display: grid;

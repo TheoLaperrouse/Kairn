@@ -6,6 +6,7 @@
 import { computed, ref } from 'vue'
 import { formatLongDate, formatShortDate, formatNumber } from '../../domain/format'
 import type { LoadPoint } from '../../domain/models'
+import { linePath, pointerX, ticksBetween } from './chart'
 import { useElementWidth } from './use-element-width'
 
 const props = defineProps<{ points: LoadPoint[]; raceDate?: string }>()
@@ -42,19 +43,13 @@ const todayIndex = computed(() => {
 const raceIndex = computed(() => (props.raceDate ? props.points.findIndex((p) => p.date === props.raceDate) : -1))
 
 function path(key: Key, from: number, to: number): string {
-  let d = ''
-  for (let i = from; i <= to && i < props.points.length; i++) {
-    d += `${i === from ? 'M' : 'L'}${x(i).toFixed(1)},${y(props.points[i]![key]).toFixed(1)}`
-  }
-  return d
+  return linePath(props.points.slice(from, to + 1).map((p, k) => [x(from + k), y(p[key])]))
 }
 
 const yTicks = computed(() => {
   const { min, max } = domain.value
   const step = Math.max(10, Math.ceil((max - min) / 5 / 10) * 10)
-  const ticks: number[] = []
-  for (let v = Math.ceil(min / step) * step; v <= max; v += step) ticks.push(v)
-  return ticks
+  return ticksBetween(Math.ceil(min / step) * step, max, step)
 })
 
 const xTicks = computed(() => {
@@ -75,9 +70,7 @@ const endLabels = computed(() => {
 
 const hover = ref<number>()
 function onPointer(event: PointerEvent) {
-  const rect = (event.currentTarget as SVGElement).getBoundingClientRect()
-  const px = event.clientX - rect.left
-  const ratio = (px - margin.value.left) / innerW.value
+  const ratio = (pointerX(event, width.value) - margin.value.left) / innerW.value
   hover.value = Math.min(Math.max(Math.round(ratio * (props.points.length - 1)), 0), props.points.length - 1)
 }
 const hovered = computed(() => (hover.value === undefined ? undefined : props.points[hover.value]))

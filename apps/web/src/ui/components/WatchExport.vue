@@ -3,6 +3,7 @@
 import { CircleCheck, Download, Send, TriangleAlert, Watch } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useApi } from '../../application/api-provider'
+import { errorMessage } from '../../domain/format'
 import type { PlannedSession } from '../../domain/models'
 
 const props = defineProps<{ session: PlannedSession }>()
@@ -14,11 +15,7 @@ const sent = ref(false)
 const error = ref<string>()
 
 onMounted(async () => {
-  try {
-    configured.value = (await api.watchStatus()).configured
-  } catch {
-    configured.value = false
-  }
+  configured.value = await api.watchStatus().then((s) => s.configured, () => false)
 })
 
 async function send() {
@@ -28,7 +25,7 @@ async function send() {
     await api.sendSessionToWatch(props.session.id)
     sent.value = true
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Envoi impossible'
+    error.value = errorMessage(e, 'Envoi impossible')
   } finally {
     sending.value = false
   }

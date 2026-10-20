@@ -5,17 +5,12 @@
  */
 import { computed, ref } from 'vue'
 import { formatShortDate } from '../../domain/format'
-import type { ReadinessLevel, WellnessOverview } from '../../domain/models'
+import type { WellnessOverview } from '../../domain/models'
+import { linePath, pointerX } from './chart'
+import { READINESS_LEVELS } from './readiness-levels'
 import { useElementWidth } from './use-element-width'
 
 const props = defineProps<{ history: WellnessOverview['history'] }>()
-
-const LEVEL_LABEL: Record<ReadinessLevel, string> = { VERT: 'Feu vert', ORANGE: 'Feu orange', ROUGE: 'Feu rouge' }
-const LEVEL_COLOR: Record<ReadinessLevel, string> = {
-  VERT: 'var(--success)',
-  ORANGE: 'var(--warning)',
-  ROUGE: 'var(--danger)',
-}
 
 const root = ref<HTMLElement>()
 const width = useElementWidth(root, 320)
@@ -23,23 +18,21 @@ const height = 84
 const pad = { left: 6, right: 6, top: 8, bottom: 18 }
 const hover = ref<number>()
 
+const yOf = (score: number) => pad.top + (1 - score / 100) * (height - pad.top - pad.bottom)
+
 const points = computed(() => {
   const list = props.history
   const innerW = width.value - pad.left - pad.right
-  const innerH = height - pad.top - pad.bottom
   return list.map((p, i) => ({
     ...p,
     x: pad.left + (list.length > 1 ? (i / (list.length - 1)) * innerW : innerW / 2),
-    y: pad.top + (1 - p.score / 100) * innerH,
+    y: yOf(p.score),
   }))
 })
-
-const yOf = (score: number) => pad.top + (1 - score / 100) * (height - pad.top - pad.bottom)
-const path = computed(() => points.value.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(''))
+const path = computed(() => linePath(points.value.map((p) => [p.x, p.y])))
 
 function onMove(event: PointerEvent) {
-  const rect = (event.currentTarget as SVGElement).getBoundingClientRect()
-  const x = event.clientX - rect.left
+  const x = pointerX(event, width.value)
   let best = 0
   points.value.forEach((p, i) => {
     if (Math.abs(p.x - x) < Math.abs(points.value[best]!.x - x)) best = i
@@ -75,7 +68,7 @@ const tooltipLeft = computed(() => {
         :cx="p.x"
         :cy="p.y"
         :r="hover === i ? 5 : 3.5"
-        :fill="LEVEL_COLOR[p.level]"
+        :fill="READINESS_LEVELS[p.level].color"
         class="dot"
       />
       <text :x="pad.left" :y="height - 4" class="axis">{{ formatShortDate(points[0]!.date) }}</text>
@@ -84,7 +77,7 @@ const tooltipLeft = computed(() => {
     <p v-else class="muted small">La tendance apparaîtra après quelques bilans.</p>
     <div v-if="active" class="tooltip" :style="{ left: `${tooltipLeft}px` }" role="status">
       <strong>{{ formatShortDate(active.date) }}</strong>
-      <span><span class="num">{{ active.score }}</span>/100 · {{ LEVEL_LABEL[active.level] }}</span>
+      <span><span class="num">{{ active.score }}</span>/100 · {{ READINESS_LEVELS[active.level].label }}</span>
       <span v-if="active.restingHr" class="muted">FC repos {{ active.restingHr }} bpm</span>
     </div>
     <div class="visually-hidden">
@@ -97,7 +90,7 @@ const tooltipLeft = computed(() => {
           <tr v-for="p in history" :key="p.date">
             <td>{{ p.date }}</td>
             <td>{{ p.score }}</td>
-            <td>{{ LEVEL_LABEL[p.level] }}</td>
+            <td>{{ READINESS_LEVELS[p.level].label }}</td>
           </tr>
         </tbody>
     </table>

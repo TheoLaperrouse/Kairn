@@ -2,6 +2,7 @@
 import { Bike, Dumbbell, Heart } from 'lucide-vue-next'
 import { DAYS, DAYS_SHORT, LEVEL_LABELS } from '../../domain/format'
 import type { AthleteProfile, ExperienceLevel, TerrainAccess } from '../../domain/models'
+import { inputChecked, inputNumber, inputValue, optionalNumber } from './input-event'
 
 const profile = defineModel<AthleteProfile>({ required: true })
 
@@ -22,7 +23,28 @@ function update<K extends keyof AthleteProfile>(key: K, value: AthleteProfile[K]
   profile.value = { ...profile.value, [key]: value }
 }
 
-function updateCross<K extends keyof AthleteProfile['crossTraining']>(key: K, value: AthleteProfile['crossTraining'][K]) {
+type Cross = AthleteProfile['crossTraining']
+
+const CROSS = [
+  {
+    key: 'cycling',
+    perWeek: 'cyclingSessionsPerWeek',
+    icon: Bike,
+    label: 'Vélo',
+    hint: 'Du volume aérobie sans impacts, et de la force en côte pour les montées.',
+    countLabel: 'Séances de vélo par semaine',
+  },
+  {
+    key: 'strength',
+    perWeek: 'strengthSessionsPerWeek',
+    icon: Dumbbell,
+    label: 'Renforcement',
+    hint: 'Séances guidées avec démos animées : quadriceps excentriques, chevilles, gainage.',
+    countLabel: 'Séances de renforcement par semaine',
+  },
+] as const
+
+function updateCross<K extends keyof Cross>(key: K, value: Cross[K]) {
   profile.value = { ...profile.value, crossTraining: { ...profile.value.crossTraining, [key]: value } }
 }
 
@@ -33,18 +55,13 @@ function toggleDay(day: number) {
   const longRunDay = days.includes(profile.value.longRunDay) ? profile.value.longRunDay : (days.at(-1) ?? profile.value.longRunDay)
   profile.value = { ...profile.value, availableDays: days, longRunDay }
 }
-
-function optionalNumber(event: Event): number | undefined {
-  const raw = (event.target as HTMLInputElement).value
-  return raw === '' ? undefined : Number(raw)
-}
 </script>
 
 <template>
   <div class="profile-form">
     <label class="field">
       <span>Prénom</span>
-      <input class="input" :value="profile.name" maxlength="60" required autocomplete="given-name" @input="update('name', ($event.target as HTMLInputElement).value)" />
+      <input class="input" :value="profile.name" maxlength="60" required autocomplete="given-name" @input="update('name', inputValue($event))" />
     </label>
 
     <fieldset class="group">
@@ -61,17 +78,17 @@ function optionalNumber(event: Event): number | undefined {
     <div class="fields">
       <label class="field">
         <span>Kilomètres par semaine (actuellement)</span>
-        <input class="input num" type="number" min="0" max="300" :value="profile.currentWeeklyKm" @input="update('currentWeeklyKm', Number(($event.target as HTMLInputElement).value))" />
+        <input class="input num" type="number" min="0" max="300" :value="profile.currentWeeklyKm" @input="update('currentWeeklyKm', inputNumber($event))" />
       </label>
       <label class="field">
         <span>D+ par semaine (m)</span>
-        <input class="input num" type="number" min="0" max="20000" step="50" :value="profile.currentWeeklyElevationM" @input="update('currentWeeklyElevationM', Number(($event.target as HTMLInputElement).value))" />
+        <input class="input num" type="number" min="0" max="20000" step="50" :value="profile.currentWeeklyElevationM" @input="update('currentWeeklyElevationM', inputNumber($event))" />
       </label>
     </div>
 
     <label class="field">
       <span>Temps d’entraînement maximum par semaine : <strong class="num accent">{{ profile.maxWeeklyHours }} h</strong></span>
-      <input class="range" type="range" min="3" max="25" step="0.5" :value="profile.maxWeeklyHours" @input="update('maxWeeklyHours', Number(($event.target as HTMLInputElement).value))" />
+      <input class="range" type="range" min="3" max="25" step="0.5" :value="profile.maxWeeklyHours" @input="update('maxWeeklyHours', inputNumber($event))" />
       <small>Le plan ne dépassera jamais ce volume, même au pic de préparation.</small>
     </label>
 
@@ -94,7 +111,7 @@ function optionalNumber(event: Event): number | undefined {
 
     <label class="field">
       <span>Jour de la sortie longue</span>
-      <select class="select" :value="profile.longRunDay" @change="update('longRunDay', Number(($event.target as HTMLSelectElement).value))">
+      <select class="select" :value="profile.longRunDay" @change="update('longRunDay', inputNumber($event))">
         <option v-for="d in profile.availableDays" :key="d" :value="d">{{ DAYS[d] }}</option>
       </select>
     </label>
@@ -132,26 +149,14 @@ function optionalNumber(event: Event): number | undefined {
     <fieldset class="group">
       <legend>Compléments à la course <small>(à toi de choisir)</small></legend>
       <div class="cross">
-        <div class="cross-item" :class="{ on: profile.crossTraining.cycling }">
+        <div v-for="c in CROSS" :key="c.key" class="cross-item" :class="{ on: profile.crossTraining[c.key] }">
           <label class="switch">
-            <span><Bike :size="18" aria-hidden="true" /> Vélo</span>
-            <input type="checkbox" :checked="profile.crossTraining.cycling" @change="updateCross('cycling', ($event.target as HTMLInputElement).checked)" />
+            <span><component :is="c.icon" :size="18" aria-hidden="true" /> {{ c.label }}</span>
+            <input type="checkbox" :checked="profile.crossTraining[c.key]" @change="updateCross(c.key, inputChecked($event))" />
           </label>
-          <p class="small muted">Du volume aérobie sans impacts, et de la force en côte pour les montées.</p>
-          <div v-if="profile.crossTraining.cycling" class="count" role="group" aria-label="Séances de vélo par semaine">
-            <button v-for="n in [1, 2] as const" :key="n" type="button" class="chip chip-toggle" :aria-pressed="profile.crossTraining.cyclingSessionsPerWeek === n" @click="updateCross('cyclingSessionsPerWeek', n)">
-              {{ n }} / semaine
-            </button>
-          </div>
-        </div>
-        <div class="cross-item" :class="{ on: profile.crossTraining.strength }">
-          <label class="switch">
-            <span><Dumbbell :size="18" aria-hidden="true" /> Renforcement</span>
-            <input type="checkbox" :checked="profile.crossTraining.strength" @change="updateCross('strength', ($event.target as HTMLInputElement).checked)" />
-          </label>
-          <p class="small muted">Séances guidées avec démos animées : quadriceps excentriques, chevilles, gainage.</p>
-          <div v-if="profile.crossTraining.strength" class="count" role="group" aria-label="Séances de renforcement par semaine">
-            <button v-for="n in [1, 2] as const" :key="n" type="button" class="chip chip-toggle" :aria-pressed="profile.crossTraining.strengthSessionsPerWeek === n" @click="updateCross('strengthSessionsPerWeek', n)">
+          <p class="small muted">{{ c.hint }}</p>
+          <div v-if="profile.crossTraining[c.key]" class="count" role="group" :aria-label="c.countLabel">
+            <button v-for="n in [1, 2] as const" :key="n" type="button" class="chip chip-toggle" :aria-pressed="profile.crossTraining[c.perWeek] === n" @click="updateCross(c.perWeek, n)">
               {{ n }} / semaine
             </button>
           </div>
