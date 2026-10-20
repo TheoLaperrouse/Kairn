@@ -27,9 +27,23 @@ provideApi(
       useTrainingStore(pinia).reset()
       if (router.currentRoute.value.path !== '/connexion') void router.push('/connexion')
     },
-    (fromCache) => (useConnectivityStore(pinia).servedFromCache = fromCache),
+    (fromCache) => {
+      const connectivity = useConnectivityStore(pinia)
+      const training = useTrainingStore(pinia)
+      // The network answers again: the plan shown came from the offline copy, reload it.
+      if (connectivity.servedFromCache && !fromCache && training.loaded) void training.load(true).catch(() => undefined)
+      connectivity.servedFromCache = fromCache
+    },
   ),
 )
+// Back online: one fresh read of the plan clears the offline banner (or reloads the stale data).
+window.addEventListener('online', () => {
+  const connectivity = useConnectivityStore(pinia)
+  const training = useTrainingStore(pinia)
+  if (!connectivity.servedFromCache || !training.loaded) return
+  connectivity.servedFromCache = false
+  void training.load(true).catch(() => undefined)
+})
 
 providePushClient(new BrowserPushClient())
 registerServiceWorker()

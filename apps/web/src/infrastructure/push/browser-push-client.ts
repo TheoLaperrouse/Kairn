@@ -1,14 +1,11 @@
 import type { PushClient, PushSupport } from '../../application/ports/push-client'
 import type { PushSubscriptionPayload } from '../../domain/models'
+import { isAppleMobile, isStandalone } from '../device'
 
 /** Registers the notification service worker; no-op if the browser does not support it. */
 export function registerServiceWorker(): void {
   if (!('serviceWorker' in navigator) || !window.isSecureContext) return
   navigator.serviceWorker.register('/sw.js').catch(() => undefined)
-}
-
-function isStandalone(): boolean {
-  return window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
 }
 
 function keyBytes(base64url: string): Uint8Array<ArrayBuffer> {
@@ -28,9 +25,8 @@ function sameKey(a: ArrayBuffer | null | undefined, b: Uint8Array): boolean {
 export class BrowserPushClient implements PushClient {
   support(): PushSupport {
     if (!window.isSecureContext) return 'INSECURE'
-    const appleMobile = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
     // On iOS, the Push API only exists in the app added to the home screen (iOS 16.4+).
-    if (appleMobile && !isStandalone()) return 'NEEDS_INSTALL'
+    if (isAppleMobile() && !isStandalone()) return 'NEEDS_INSTALL'
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return 'UNSUPPORTED'
     if (Notification.permission === 'denied') return 'DENIED'
     return 'SUPPORTED'

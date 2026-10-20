@@ -65,6 +65,18 @@ describe('HTTP API', () => {
     expect((await put(aProfile({ weightKg: 500 }))).json().error).toMatch(/^« weightKg » : doit valoir au plus \d+$/)
   })
 
+  it('answers malformed requests in French rather than with Fastify’s messages', async () => {
+    const login = (headers: Record<string, string>, payload: string) => app.inject({ method: 'POST', url: '/api/auth/login', headers, payload })
+
+    const badJson = await login({ 'content-type': 'application/json' }, '{bad')
+    expect(badJson.statusCode).toBe(400)
+    expect(badJson.json().error).toBe('Données illisibles : le JSON envoyé est invalide')
+    expect((await login({ 'content-type': 'text/xml' }, '<a/>')).json().error).toBe('Type de contenu non pris en charge')
+    const tooLarge = await login({ 'content-type': 'application/json' }, JSON.stringify({ email: 'x'.repeat(1_100_000) }))
+    expect(tooLarge.statusCode).toBe(413)
+    expect(tooLarge.json().error).toBe('Requête trop volumineuse')
+  })
+
   it('rejects a wrong password without revealing whether the account exists', async () => {
     const unknown = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'nobody@example.com', password: 'whatever-123' } })
     const wrong = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'theo@example.com', password: 'wrong-password' } })

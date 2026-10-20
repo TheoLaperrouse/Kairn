@@ -53,13 +53,26 @@ router.beforeEach(async (to) => {
   return true
 })
 
-// A page loaded before an update asks for code from the previous build: reload it on the new version.
+/** Set while reloading after a missing chunk, so that a chunk that keeps failing does not reload forever. */
+const CHUNK_RELOAD_KEY = 'kairn-chunk-reload'
+
+// A page loaded before an update asks for code from the previous build: reload it once on the new version.
 router.onError((error, to) => {
-  if (/dynamically imported module|Importing a module script failed|error loading dynamically/i.test(String(error))) {
-    window.location.assign(to.fullPath)
+  if (!/dynamically imported module|Importing a module script failed|error loading dynamically/i.test(String(error))) return
+  try {
+    if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === to.fullPath) return
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, to.fullPath)
+  } catch {
+    return
   }
+  window.location.assign(to.fullPath)
 })
 
 router.afterEach((to) => {
+  try {
+    sessionStorage.removeItem(CHUNK_RELOAD_KEY)
+  } catch {
+    // Storage unavailable: the guard above already gave up on reloading.
+  }
   document.title = to.meta.title ? `${to.meta.title} · Kairn` : 'Kairn'
 })

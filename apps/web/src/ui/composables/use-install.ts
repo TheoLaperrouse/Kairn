@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import { isAppleMobile, isStandalone } from '../../infrastructure/device'
 
 /** Chrome/Edge/Samsung Internet event offering to install the app (not standardised, hence the local type). */
 interface InstallPromptEvent extends Event {
@@ -8,10 +9,6 @@ interface InstallPromptEvent extends Event {
 
 const deferred = ref<InstallPromptEvent>()
 const installed = ref(isStandalone())
-
-function isStandalone(): boolean {
-  return window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
-}
 
 /** Must run at startup: the browser fires `beforeinstallprompt` once, early, and never again. */
 export function listenForInstallPrompt(): void {
@@ -26,7 +23,7 @@ export function listenForInstallPrompt(): void {
 }
 
 export function useInstall() {
-  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const ios = isAppleMobile()
 
   async function install() {
     const event = deferred.value

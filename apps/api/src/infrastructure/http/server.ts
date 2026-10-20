@@ -29,7 +29,7 @@ import { DomainError, NotFoundError } from '../../domain/shared/errors'
 import type { CheckIn } from '../../domain/wellness/check-in'
 import type { StravaWebhookEvent } from '../integrations/strava-provider'
 import { AttemptLimiter, UnauthorizedError, clearSessionCookie, requireAuth, setSessionCookie, userId } from './auth'
-import { validationMessage } from './validation-messages'
+import { clientErrorMessage, validationMessage } from './validation-messages'
 import {
   checkInSchema,
   credentialsSchema,
@@ -90,7 +90,7 @@ export async function buildServer(services: Services, options: ServerOptions): P
     if (error instanceof DomainError) return reply.status(400).send({ error: error.message })
     if (error instanceof NotFoundError) return reply.status(404).send({ error: error.message })
     const status = (error as { statusCode?: number }).statusCode
-    if (status && status < 500) return reply.status(status).send({ error: (error as Error).message })
+    if (status && status < 500) return reply.status(status).send({ error: clientErrorMessage(error as Error & { code?: string }) })
     request.log.error(error)
     return reply.status(500).send({ error: 'Erreur interne du serveur' })
   })

@@ -55,6 +55,8 @@ const TAPER_FACTORS: Record<number, number[]> = { 1: [0.6], 2: [0.75, 0.58], 3: 
 const RECOVERY_FACTOR = 0.65
 const RACE_WEEK_FACTOR = 0.3
 const MIN_WEEKS = 4
+/** Fewest runs in a week, whatever the time budget. */
+const MIN_WEEKLY_RUNS = 3
 
 const QUALITY_TYPES: SessionType[] = ['HILL_REPEATS', 'UPHILL_THRESHOLD', 'HIKE_RUN', 'DOWNHILL', 'FARTLEK']
 const FIXED_DURATION: Partial<Record<SessionType, number>> = {
@@ -118,9 +120,11 @@ export function generatePlan(request: PlanRequest): TrainingPlan {
     simulationWeek: pickSimulationWeek(skeleton),
   }
 
+  // The day before the race stays free, even when it falls in the previous week (race on a Monday).
+  const dayBeforeRace = addDays(goal.raceDate, -1)
   const sessions: PlannedSession[] = []
   const weeks: PlanWeek[] = skeleton.map((week) => {
-    const weekSessions = buildWeekSessions(week, ctx).filter((s) => s.date >= today)
+    const weekSessions = buildWeekSessions(week, ctx).filter((s) => s.date >= today && (s.type === 'RACE' || s.date < dayBeforeRace))
     sessions.push(...weekSessions)
     const runs = weekSessions.filter((s) => s.sport === 'RUN' && s.type !== 'RACE')
     return {
@@ -184,7 +188,8 @@ function buildSkeleton(
   goal: RaceGoal,
   speedKme: number,
 ): WeekSkeleton[] {
-  const taper = Math.min(TAPER_WEEKS[category], Math.max(totalWeeks - 3, 1))
+  // A compressed build-up keeps most of its weeks for training: the taper takes a third of them at most.
+  const taper = Math.min(TAPER_WEEKS[category], Math.max(Math.floor((totalWeeks - 1) / 3), 1))
   const buildWeeks = totalWeeks - 1 - taper
   const baseWeeks = Math.max(1, Math.round(buildWeeks * 0.4))
   const buildPhaseWeeks = Math.max(1, Math.round(buildWeeks * 0.33))
@@ -208,6 +213,7 @@ function buildSkeleton(
   const weeks: WeekSkeleton[] = []
   let loadingIndex = 0
   let previousHours = startHours
+  let reachedHours = startHours
   for (let i = 0; i < buildWeeks; i++) {
     const phase = phases[i]!
     let hours: number
@@ -217,6 +223,7 @@ function buildSkeleton(
       hours = startHours + (peak - startHours) * Math.min(1, loadingIndex / rampLength)
       loadingIndex++
       previousHours = hours
+      reachedHours = Math.max(reachedHours, hours)
     }
     const phaseStart = phases.indexOf(phase)
     const phaseLength = phases.lastIndexOf(phase) - phaseStart + 1
@@ -230,6 +237,7 @@ function buildSkeleton(
     })
   }
 
+  // A short build-up may never reach the peak: the taper cuts from the volume actually reached.
   const taperFactors = TAPER_FACTORS[taper]!
   taperFactors.forEach((factor, t) => {
     const index = buildWeeks + t
@@ -238,7 +246,7 @@ function buildSkeleton(
       startDate: addDays(start, index * 7),
       phase: 'TAPER',
       isRecovery: false,
-      hours: peak * factor,
+      hours: reachedHours * factor,
       progress: taperFactors.length > 1 ? t / (taperFactors.length - 1) : 1,
     })
   })
@@ -248,7 +256,7 @@ function buildSkeleton(
     startDate: startOfWeek(goal.raceDate),
     phase: 'RACE',
     isRecovery: false,
-    hours: peak * RACE_WEEK_FACTOR,
+    hours: reachedHours * RACE_WEEK_FACTOR,
     progress: 1,
   })
   return weeks
@@ -292,18 +300,25 @@ function buildWeekSessions(week: WeekSkeleton, ctx: PlanContext): PlannedSession
   const raceDay = week.phase === 'RACE' ? weekday(goal.raceDate) : undefined
 
   let runCount = Math.min(RUNNING_SESSIONS_BY_LEVEL[profile.level], days.length)
-  if (week.isRecovery) runCount = Math.max(3, runCount - 1)
-  if (week.phase === 'RACE') runCount = Math.min(runCount, 3)
-  const runTypes = runTypesFor(week, goal, ctx.category, ctx.simulationWeek === week.index).slice(0, runCount)
+  if (week.isRecovery) runCount = Math.max(MIN_WEEKLY_RUNS, runCount - 1)
+  if (week.phase === 'RACE') runCount = Math.min(runCount, MIN_WEEKLY_RUNS)
+  let runTypes = runTypesFor(week, goal, ctx.category, ctx.simulationWeek === week.index).slice(0, runCount)
 
   // Volume split: cycling takes ~20 % of the hours if enabled.
   const cycling = profile.crossTraining.cycling && week.phase !== 'RACE'
   const totalMin = week.hours * 60
   const runMin = cycling ? totalMin * 0.8 : totalMin
-  const durations = allocateDurations(runTypes, runMin, ctx.category, profile.level, week)
+  let durations = allocateDurations(runTypes, runMin, ctx.category, profile.level, week)
+  // A small budget cannot hold every run at its minimum length: the lowest-priority runs (listed last) go first.
+  const allocatedMin = () => [...durations.values()].flat().reduce((sum, min) => sum + min, 0)
+  while (runTypes.length > MIN_WEEKLY_RUNS && allocatedMin() > runMin * 1.05) {
+    runTypes = runTypes.slice(0, -1)
+    durations = allocateDurations(runTypes, runMin, ctx.category, profile.level, week)
+  }
 
-  const raceDayAvailable = raceDay === undefined ? days : days.filter((d) => d < raceDay - 1 || d === raceDay - 2)
-  const placement = placeRuns(runTypes, raceDayAvailable.length >= 2 ? raceDayAvailable : days, profile.longRunDay, raceDay)
+  // Race week: nothing on or after race day, and the day before stays free.
+  const runDays = raceDay === undefined ? days : days.filter((d) => d < raceDay - 1)
+  const placement = placeRuns(runTypes, runDays, profile.longRunDay)
 
   const sessions: DraftSession[] = placement.map(({ type, day }) =>
     createSession(type, addDays(week.startDate, day), durations.get(type)?.shift() ?? 45, week, ctx),
@@ -358,12 +373,13 @@ function allocateDurations(
     remaining -= fixed
   }
   const easy = types.filter((t) => t === 'ENDURANCE')
-  const easyMin = easy.length > 0 ? clamp(remaining / easy.length, 35, 90) : 0
+  // An easy run never outlasts the week's long run (recovery weeks keep their shape).
+  const easyMin = easy.length > 0 ? clamp(remaining / easy.length, 35, Math.min(90, longMin)) : 0
   easy.forEach((t) => push(t, week.phase === 'RACE' ? 35 : easyMin))
   remaining -= easyMin * easy.length
 
-  // Volume not absorbed by easy runs: it lengthens the long run, then the back-to-back.
-  if (remaining > 0 && week.phase !== 'RACE' && !week.isRecovery) {
+  // Volume not absorbed by easy runs: it lengthens the long run, then the back-to-back (not when unloading).
+  if (remaining > 0 && (week.phase === 'BASE' || week.phase === 'BUILD' || week.phase === 'SPECIFIC') && !week.isRecovery) {
     const extend = (type: SessionType, cap: number) => {
       const list = durations.get(type)
       if (!list?.length || remaining <= 0) return
@@ -389,7 +405,7 @@ function dayDistance(a: number, b: number): number {
   return Math.min(d, 7 - d)
 }
 
-function placeRuns(types: SessionType[], days: number[], longRunDay: number, raceDay?: number): Placement[] {
+function placeRuns(types: SessionType[], days: number[], longRunDay: number): Placement[] {
   const free = new Set(days)
   const placed: Placement[] = []
   const take = (type: SessionType, day: number) => {
@@ -399,10 +415,11 @@ function placeRuns(types: SessionType[], days: number[], longRunDay: number, rac
 
   const longType = types.find((t) => t === 'LONG_RUN' || t === 'SIMULATION')
   const longDay = free.has(longRunDay) ? longRunDay : days.at(-1)!
-  if (longType && raceDay === undefined) take(longType, longDay)
+  if (longType) take(longType, longDay)
 
   if (types.includes('BACK_TO_BACK')) {
-    const candidates = [longDay + 1, longDay - 1].map((d) => (d + 7) % 7)
+    // Same weekend first; the Monday after a Sunday long run only as a last resort.
+    const candidates = [longDay + 1, longDay - 1].filter((d) => d >= 0 && d <= 6).concat((longDay + 1) % 7, (longDay + 6) % 7)
     const b2bDay = candidates.find((d) => free.has(d))
     if (b2bDay !== undefined) take('BACK_TO_BACK', b2bDay)
   }
@@ -420,7 +437,6 @@ function placeRuns(types: SessionType[], days: number[], longRunDay: number, rac
   }
 
   const easyTypes = types.filter((t) => t === 'ENDURANCE' || t === 'RECOVERY')
-  if (raceDay !== undefined && longType) easyTypes.unshift('ENDURANCE')
   for (const type of easyTypes) {
     if (free.size === 0) break
     const dayAfterLong = (longDay + 1) % 7
@@ -440,13 +456,13 @@ function placeCycling(week: WeekSkeleton, existing: DraftSession[], bikeMin: num
   for (let n = 0; n < count; n++) {
     const type: SessionType =
       (week.phase === 'BUILD' || week.phase === 'SPECIFIC') && !week.isRecovery && n === 0 ? 'BIKE_STRENGTH' : 'BIKE_ENDURANCE'
-    const duration = clamp(roundTo(bikeMin / count, 5), 45, 150)
+    const duration = clamp(roundTo(bikeMin / count, 5), 30, 150)
     let day = freeDays.shift()
     if (day === undefined) {
       // No free day: cycling replaces an easy endurance run (less impact).
       const runs = existing.filter((s) => s.sport === 'RUN')
       const swap = existing.find((s) => s.type === 'ENDURANCE')
-      if (!swap || runs.length <= 3) break
+      if (!swap || runs.length <= MIN_WEEKLY_RUNS) break
       existing.splice(existing.indexOf(swap), 1)
       day = weekday(swap.date)
     }

@@ -9,15 +9,28 @@ const DATA_CACHE = 'kairn-data'
 const NETWORK_TIMEOUT_MS = 4000
 /** API responses that are not worth keeping offline (downloads, redirects to a provider). */
 const UNCACHED_API = /^\/api\/(calendar|integrations\/[^/]+\/connect)|\.fit$/
+/** Bumped when the account changes: API responses requested before that are not cached. */
+let dataGeneration = 0
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
-      if (CACHING) await (await caches.open(SHELL_CACHE)).addAll(['/index.html', ...PRECACHE])
+      if (CACHING) await precache()
       await self.skipWaiting()
     })(),
   )
 })
+
+/** Hashed files already downloaded by the previous version are copied instead of downloaded again. */
+async function precache() {
+  const cache = await caches.open(SHELL_CACHE)
+  await Promise.all(
+    ['/index.html', ...PRECACHE].map(async (path) => {
+      const previous = path.startsWith('/assets/') ? await caches.match(path) : undefined
+      await (previous ? cache.put(path, previous) : cache.add(path))
+    }),
+  )
+}
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -35,16 +48,21 @@ self.addEventListener('fetch', (event) => {
   if (!CACHING || url.origin !== self.location.origin) return
 
   if (request.method !== 'GET') {
-    // Logging out leaves nothing of the account on the device.
-    if (url.pathname === '/api/auth/logout') event.waitUntil(caches.delete(DATA_CACHE))
+    // Logging in or out, or revoking a session: nothing of the previous account stays on the device.
+    if (url.pathname.startsWith('/api/auth/')) {
+      dataGeneration++
+      event.waitUntil(caches.delete(DATA_CACHE))
+    }
     return
   }
+  // Videos are read in byte ranges (206), which the Cache API cannot store.
+  if (request.headers.has('range')) return
   if (url.pathname.startsWith('/api/')) {
     if (!UNCACHED_API.test(url.pathname)) event.respondWith(apiResponse(event, request))
     return
   }
   if (request.mode === 'navigate') event.respondWith(pageResponse(event, request))
-  else if (url.pathname.startsWith('/assets/')) event.respondWith(assetResponse(request))
+  else if (url.pathname.startsWith('/assets/')) event.respondWith(assetResponse(event, request))
   else event.respondWith(staticResponse(event, request))
 })
 
@@ -53,28 +71,38 @@ function withTimeout(promise) {
   return Promise.race([promise, new Promise((resolve) => setTimeout(resolve, NETWORK_TIMEOUT_MS))])
 }
 
-/** Pages: the latest index.html, or the cached one when offline or on a poor connection. */
+/** Copies a successful response into a cache without delaying the page (the copy is taken before the body is read). */
+function store(event, cacheName, request, response) {
+  if (response.status !== 200) return
+  const copy = response.clone()
+  event.waitUntil(caches.open(cacheName).then((cache) => cache.put(request, copy)).catch(() => undefined))
+}
+
+/**
+ * Pages: the latest index.html, or the cached one when offline or on a poor connection. The network copy is
+ * not cached: it may point at the next build's files, which only the next service worker precaches.
+ */
 async function pageResponse(event, request) {
   const network = fetch(request)
-  event.waitUntil(network.then((response) => response.ok && caches.open(SHELL_CACHE).then((c) => c.put('/index.html', response.clone()))).catch(() => undefined))
+  event.waitUntil(network.catch(() => undefined))
   const response = await withTimeout(network.catch(() => undefined))
   return response ?? (await caches.match('/index.html')) ?? network
 }
 
 /** Hashed build files never change: cache first. */
-async function assetResponse(request) {
+async function assetResponse(event, request) {
   const cached = await caches.match(request)
   if (cached) return cached
   const response = await fetch(request)
-  if (response.ok) (await caches.open(SHELL_CACHE)).put(request, response.clone())
+  store(event, SHELL_CACHE, request, response)
   return response
 }
 
 /** Icons, manifest, motion clips: served from the cache and refreshed in the background. */
 async function staticResponse(event, request) {
   const cached = await caches.match(request)
-  const network = fetch(request).then(async (response) => {
-    if (response.ok) await (await caches.open(SHELL_CACHE)).put(request, response.clone())
+  const network = fetch(request).then((response) => {
+    store(event, SHELL_CACHE, request, response)
     return response
   })
   if (cached) {
@@ -89,10 +117,11 @@ async function staticResponse(event, request) {
  * an `X-Kairn-Offline` header so the app can tell the user.
  */
 async function apiResponse(event, request) {
-  const network = fetch(request).then(async (response) => {
-    const cache = await caches.open(DATA_CACHE)
-    if (response.ok && response.headers.get('content-type')?.includes('json')) await cache.put(request, response.clone())
-    else if (response.status === 401) await caches.delete(DATA_CACHE)
+  const generation = dataGeneration
+  const network = fetch(request).then((response) => {
+    if (generation !== dataGeneration) return response
+    if (response.headers.get('content-type')?.includes('json')) store(event, DATA_CACHE, request, response)
+    if (response.status === 401) event.waitUntil(caches.delete(DATA_CACHE))
     return response
   })
   event.waitUntil(network.catch(() => undefined))
