@@ -2,7 +2,7 @@ import type { PlannedSession } from '../plan/training-plan'
 import { round1 } from '../shared/math'
 import type { Activity } from './activity'
 
-/** Noms donnés par défaut par les montres, Strava (en anglais et en français) ou nos parseurs. */
+/** Default names given by watches, Strava (in English and French) or our parsers. */
 const GENERIC_NAMES = [
   /^(morning|lunch|afternoon|evening|night) (run|trail run|ride|hike|walk|workout|weight training)$/i,
   /^(course à pied|sortie à vélo|vélo|trail|randonnée|marche|entraînement|musculation|renforcement|sortie trail|sortie)( (le matin|le midi|à l['’]heure du déjeuner|(dans )?l['’]après-midi|en soirée|le soir|la nuit))?$/i,
@@ -16,7 +16,7 @@ function kmLabel(km: number): string {
   return `${km >= 10 ? Math.round(km) : round1(km)} km`.replace('.', ',')
 }
 
-/** Nom lisible : le titre de la séance prévue, sinon une description tirée du profil de la sortie. */
+/** Readable name: the planned session's title, otherwise a description derived from the activity's profile. */
 export function suggestActivityName(activity: Pick<Activity, 'sport' | 'durationSec' | 'distanceKm' | 'elevationGainM'>, session?: PlannedSession): string {
   if (session) return session.title
   if (activity.sport === 'STRENGTH') return 'Renforcement'

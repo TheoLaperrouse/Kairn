@@ -2,24 +2,24 @@ import type { ActivitySample } from '../activity/activity'
 import { mean, round2 } from '../shared/math'
 
 /**
- * Découpage d'une trace en montées et descentes significatives.
+ * Splits a track into significant climbs and descents.
  *
- * Les sommets et creux sont repérés avec une hystérésis (un replat ou un petit
- * contre-pied de moins de `HYSTERESIS_M` ne coupe pas une montée), puis on garde
- * les portions d'au moins `MIN_ELEVATION_M` mètres. Les pauses (ravito, photo au
- * sommet) sont exclues du temps : la VAM reflète l'effort en mouvement.
+ * Peaks and troughs are detected with hysteresis (a flat stretch or a small
+ * dip of less than `HYSTERESIS_M` does not break a climb), then
+ * portions of at least `MIN_ELEVATION_M` metres are kept. Pauses (aid station, photo at
+ * the top) are excluded from the time: VAM reflects moving effort.
  */
 export interface Climb {
   startKm: number
   endKm: number
   startAltitudeM: number
   endAltitudeM: number
-  /** Dénivelé net, positif pour une montée. */
+  /** Net elevation change, positive for a climb. */
   elevationM: number
-  /** Temps en mouvement. */
+  /** Moving time. */
   durationSec: number
   gradePct: number
-  /** Vitesse ascensionnelle (montée) ou de descente, en m/h. */
+  /** Vertical speed of ascent (climb) or descent, in m/h. */
   verticalSpeed: number
   avgHeartRate?: number
 }
@@ -32,10 +32,10 @@ export interface ClimbProfile {
 const HYSTERESIS_M = 20
 const MIN_ELEVATION_M = 50
 const MIN_DURATION_SEC = 180
-/** Trou d'enregistrement au-delà duquel on ne sait plus si l'on bougeait (montre arrêtée). */
+/** Recording gap beyond which we can no longer tell whether the athlete was moving (watch stopped). */
 const MAX_INTERVAL_SEC = 300
 
-/** Un intervalle est une pause si l'on n'avance ni ne monte (moins de 0,5 km/h et de 60 m/h). */
+/** An interval is a pause if there is no forward or upward progress (under 0.5 km/h and 60 m/h). */
 function isMoving(a: ActivitySample, b: ActivitySample): boolean {
   const dt = b.t - a.t
   if (dt <= 0 || dt > MAX_INTERVAL_SEC) return false
@@ -44,14 +44,14 @@ function isMoving(a: ActivitySample, b: ActivitySample): boolean {
   return horizontalKmh >= 0.5 || verticalMh >= 60
 }
 
-/** Temps en mouvement entre les échantillons `from` et `to` (indices inclus). */
+/** Moving time between samples `from` and `to` (inclusive indices). */
 export function movingSeconds(samples: ActivitySample[], from = 0, to = samples.length - 1): number {
   let seconds = 0
   for (let i = from + 1; i <= to; i++) if (isMoving(samples[i - 1]!, samples[i]!)) seconds += samples[i]!.t - samples[i - 1]!.t
   return seconds
 }
 
-/** Indices des sommets et creux successifs de l'altitude (zigzag à hystérésis). */
+/** Indices of successive altitude peaks and troughs (hysteresis zigzag). */
 function turningPoints(samples: ActivitySample[], indices: number[]): number[] {
   const alt = (i: number) => samples[i]!.alt!
   const first = indices[0]!
@@ -93,10 +93,10 @@ function turningPoints(samples: ActivitySample[], indices: number[]): number[] {
   return pivots
 }
 
-/** Écart d'altitude sous lequel deux points sont au même niveau (replat avant une montée, pause au sommet). */
+/** Altitude difference below which two points are at the same level (flat before a climb, pause at the top). */
 const LEVEL_TOLERANCE_M = 1
 
-/** Une approche en faux plat (moins de 3 % sur 200 m) ne fait pas partie de la montée : elle diluerait la VAM. */
+/** A gently rising approach (under 3 % over 200 m) is not part of the climb: it would dilute the VAM. */
 const STEEP_GRADE = 0.03
 const GRADE_WINDOW_KM = 0.2
 
@@ -107,14 +107,14 @@ function trimGentleEnds(samples: ActivitySample[], from: number, to: number): [n
     const rise = ((samples[b]!.alt ?? NaN) - (samples[a]!.alt ?? NaN)) * direction
     return !(rise < STEEP_GRADE * distanceM)
   }
-  // Avance le départ tant que les 200 m suivants sont presque plats.
+  // Move the start forward while the next 200 m are nearly flat.
   for (;;) {
     let k = from + 1
     while (k < to && samples[k]!.d - samples[from]!.d < GRADE_WINDOW_KM) k++
     if (k >= to || samples[k]!.d - samples[from]!.d < GRADE_WINDOW_KM || steepBetween(from, k)) break
     from++
   }
-  // Recule l'arrivée tant que les 200 m précédents sont presque plats.
+  // Move the end back while the previous 200 m are nearly flat.
   for (;;) {
     let k = to - 1
     while (k > from && samples[to]!.d - samples[k]!.d < GRADE_WINDOW_KM) k--
@@ -125,7 +125,7 @@ function trimGentleEnds(samples: ActivitySample[], from: number, to: number): [n
 }
 
 function segment(samples: ActivitySample[], pivotFrom: number, pivotTo: number): Climb | undefined {
-  // Une portion commence au dernier point du replat de départ et finit au premier point du palier d'arrivée.
+  // A portion starts at the last point of the starting flat and ends at the first point of the finishing plateau.
   let from = pivotFrom
   while (from < pivotTo && Math.abs(samples[from + 1]!.alt! - samples[pivotFrom]!.alt!) < LEVEL_TOLERANCE_M) from++
   let to = pivotTo
@@ -151,7 +151,7 @@ function segment(samples: ActivitySample[], pivotFrom: number, pivotTo: number):
   }
 }
 
-/** Les analyses de la semaine et les références de VAM relisent souvent les mêmes traces. */
+/** The week's analyses and VAM baselines often re-read the same tracks. */
 const cache = new WeakMap<ActivitySample[], ClimbProfile>()
 
 export function detectClimbs(samples: ActivitySample[]): ClimbProfile {
@@ -175,7 +175,7 @@ function computeClimbs(samples: ActivitySample[]): ClimbProfile {
   return { climbs, descents }
 }
 
-/** VAM d'un ensemble de montées : dénivelé cumulé sur temps cumulé. */
+/** VAM of a set of climbs: cumulative elevation over cumulative time. */
 export function aggregateVerticalSpeed(parts: Climb[]): number | undefined {
   const seconds = parts.reduce((s, c) => s + c.durationSec, 0)
   if (seconds === 0) return undefined

@@ -7,7 +7,7 @@ import type { SessionType, WorkoutStep, Zone } from './training-plan'
 export interface SessionContext {
   durationMin: number
   phase: TrainingPhase
-  /** Avancement dans la phase, de 0 (début) à 1 (fin). */
+  /** Progress through the phase, from 0 (start) to 1 (end). */
   progress: number
   goal: RaceGoal
   terrain: TerrainAccess
@@ -21,7 +21,7 @@ export interface SessionContent {
   keySession: boolean
   steps: WorkoutStep[]
   tips: string[]
-  /** Part du ratio D+/km de la course à reproduire sur cette séance (0 = plat). */
+  /** Share of the race's climbing/km ratio to reproduce in this session (0 = flat). */
   verticalShare: number
 }
 
@@ -44,7 +44,7 @@ function step(
   zone: Zone,
   extra: Partial<WorkoutStep> = {},
 ): WorkoutStep {
-  // Précision à la seconde : les sprints en côte durent 10 s.
+  // Precision to the second: hill sprints last 10 s.
   return { kind, label, durationMin: Math.round(durationMin * 60) / 60, zone, ...extra }
 }
 

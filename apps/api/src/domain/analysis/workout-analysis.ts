@@ -31,7 +31,7 @@ export interface PlanComparison {
   actualDurationMin: number
   plannedDistanceKm?: number
   plannedElevationM?: number
-  /** Temps d'effort prévu (blocs « effort » des séances de qualité) et temps réellement passé dans la zone visée. */
+  /** Planned effort time ("effort" blocks of quality sessions) and time actually spent in the target zone. */
   plannedEffortMin?: number
   effortMin?: number
 }
@@ -42,25 +42,25 @@ export interface WorkoutAnalysis {
   zones?: HeartRateZones & { seconds: TimeInZones }
   climbs: Climb[]
   descents: Climb[]
-  /** VAM moyenne sur l'ensemble des montées, et meilleure montée d'au moins 100 m. */
+  /** Average VAM over all climbs, and best climb of at least 100 m. */
   ascentVam?: number
   bestClimb?: Climb
   descentSpeed?: number
-  /** Médiane des meilleures VAM des 8 semaines précédentes (au moins 3 sorties). */
+  /** Median of the best VAMs over the previous 8 weeks (at least 3 activities). */
   vamBaseline?: number
-  /** Meilleures VAM tenues 5, 10, 20 et 30 min sur cette sortie. */
+  /** Best VAMs held for 5, 10, 20 and 30 min on this activity. */
   vamCurve: VamCurve
-  /** Records personnels battus, avec l'ancienne meilleure valeur. */
+  /** Personal records beaten, with the previous best value. */
   vamRecords: Array<{ minutes: VamDuration; vam: number; previous: number }>
-  /** Perte d'efficience (allure-effort / FC) entre la 1re et la 2e moitié, en %. */
+  /** Efficiency loss (effort pace / HR) between the 1st and 2nd half, in %. */
   decouplingPct?: number
   load: number
   plannedLoad?: number
-  /** FC max du profil dépassée (ou absente) : valeur observée à proposer, sur 10 s pour écarter les pics du capteur. */
+  /** Profile max HR exceeded (or missing): observed value to suggest, over 10 s to discard sensor spikes. */
   hrMaxSuggestion?: { observed: number; current?: number }
   comparison?: PlanComparison
   verdict: Verdict
-  /** Note de conformité au plan, sur 100. */
+  /** Plan compliance score, out of 100. */
   score?: number
   headline: string
   insights: Insight[]
@@ -70,13 +70,13 @@ export interface WorkoutAnalysis {
 export interface AnalysisContext {
   profile: Pick<AthleteProfile, 'hrMax' | 'hrRest'>
   session?: PlannedSession
-  /** Séances du plan, pour conseiller la suite. */
+  /** Plan sessions, to advise on what comes next. */
   sessions: PlannedSession[]
-  /** Activités antérieures, pour situer la VAM du jour. */
+  /** Earlier activities, to put the day's VAM in context. */
   history: Activity[]
 }
 
-/** Séances d'endurance : l'important est de ne pas dépasser la zone visée. */
+/** Endurance sessions: what matters is not exceeding the target zone. */
 const EASY_TYPES: ReadonlySet<SessionType> = new Set([
   'ENDURANCE',
   'RECOVERY',
@@ -86,7 +86,7 @@ const EASY_TYPES: ReadonlySet<SessionType> = new Set([
   'DOWNHILL',
   'BIKE_ENDURANCE',
 ])
-/** Séances de qualité : l'important est d'atteindre la zone visée assez longtemps. */
+/** Quality sessions: what matters is reaching the target zone for long enough. */
 const QUALITY_TYPES: ReadonlySet<SessionType> = new Set(['HILL_REPEATS', 'UPHILL_THRESHOLD', 'FARTLEK', 'BIKE_STRENGTH', 'SIMULATION'])
 
 const MIN_BEST_CLIMB_M = 100
@@ -138,9 +138,9 @@ export function analyzeWorkout(activity: Activity, context: AnalysisContext): Wo
   return analysis
 }
 
-/** Au-delà, c'est une erreur du capteur, pas une FC. */
+/** Beyond this, it is a sensor error, not a heart rate. */
 const MAX_PLAUSIBLE_HR = 225
-/** Sans trace, la FC max annoncée par la montre est un point isolé : on exige un net dépassement. */
+/** Without a track, the max HR reported by the watch is a single point: a clear overshoot is required. */
 const SUMMARY_HR_MARGIN = 3
 
 function observedMaxHeartRate(activity: Activity): number | undefined {
@@ -176,10 +176,10 @@ function baselineVam(activity: Activity, history: Activity[]): number | undefine
 }
 
 /**
- * Découplage aérobie : on compare l'efficience (km-effort par heure, rapportés à la FC)
- * de la première et de la seconde moitié du temps en mouvement, échauffement exclu
- * (la FC y monte encore). Au-delà de 5 %, l'endurance de base ou l'hydratation / l'alimentation
- * ont lâché. Pas de verdict si les deux moitiés n'ont pas un terrain comparable.
+ * Aerobic decoupling: compares the efficiency (km-effort per hour, relative to HR)
+ * of the first and second half of the moving time, warm-up excluded
+ * (HR is still rising then). Beyond 5 %, base endurance or hydration / fueling
+ * gave way. No verdict if the two halves do not have comparable terrain.
  */
 const WARM_UP_SEC = 600
 const MAX_TERRAIN_GAP_M_PER_KM = 15
@@ -223,7 +223,7 @@ function effortMinutesOf(session: PlannedSession): number {
   return session.steps.filter((s) => s.kind === 'EFFORT').reduce((sum, s) => sum + s.durationMin * (s.repeat ?? 1), 0)
 }
 
-/** Zone à partir de laquelle on compte le temps d'effort : la FC met 1 à 2 min à monter sur les efforts courts. */
+/** Zone from which effort time is counted: HR takes 1 to 2 min to rise on short efforts. */
 function effortZone(session: PlannedSession): Zone {
   return (session.type === 'HILL_REPEATS' || session.zone === 5 ? Math.max(session.zone - 1, 1) : session.zone) as Zone
 }
@@ -245,14 +245,14 @@ function compare(activity: Activity, session: PlannedSession, zones?: TimeInZone
   }
 }
 
-/** Trop intense pour une séance facile : plus de 10 % deux zones au-dessus, ou 40 % une zone au-dessus. */
+/** Too intense for an easy session: over 10 % two zones above, or 40 % one zone above. */
 function tooIntense(comparison: PlanComparison, zones: TimeInZones): boolean {
   const target = comparison.targetZone
   if (comparison.sessionType === 'RECOVERY') return shareAtOrAbove(zones, 3) > 0.1
   return shareAtOrAbove(zones, target + 2) > 0.1 || shareAtOrAbove(zones, target + 1) > 0.4
 }
 
-/** Séance de qualité appuyée bien au-delà des blocs prévus : plus de deux fois et 15 min de plus. */
+/** Quality session pushed well beyond the planned blocks: more than twice and 15 min more. */
 function overdone(comparison: PlanComparison): boolean {
   const planned = comparison.plannedEffortMin ?? 0
   return comparison.effortMin !== undefined && planned > 0 && comparison.effortMin > Math.max(planned * 2, planned + 15)
@@ -357,7 +357,7 @@ function intensityInsight(a: WorkoutAnalysis, zones: TimeInZones): Insight | und
   return undefined
 }
 
-/** Durée et dénivelé réalisés face à la séance prévue. */
+/** Actual duration and elevation gain against the planned session. */
 function planInsights(activity: Activity, a: WorkoutAnalysis, c: PlanComparison): Insight[] {
   const list: Insight[] = []
   const ratio = c.actualDurationMin / c.plannedDurationMin

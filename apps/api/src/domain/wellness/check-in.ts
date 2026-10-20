@@ -2,24 +2,24 @@ import { addDays, isValidIsoDate, type IsoDate } from '../shared/dates'
 import { assertDomain } from '../shared/errors'
 import { mean } from '../shared/math'
 
-/** Échelle 1 (très mauvais) → 5 (excellent), sauf mention contraire. */
+/** Scale 1 (very bad) → 5 (excellent), unless stated otherwise. */
 type Scale = 1 | 2 | 3 | 4 | 5
 
 export interface CheckIn {
   date: IsoDate
   sleepHours: number
   sleepQuality: Scale
-  /** 1 = aucune courbature … 5 = jambes détruites. */
+  /** 1 = no soreness … 5 = wrecked legs. */
   soreness: Scale
-  /** 1 = en pleine forme … 5 = épuisé. */
+  /** 1 = full of energy … 5 = exhausted. */
   fatigue: Scale
   motivation: Scale
-  /** 1 = serein … 5 = très stressé. */
+  /** 1 = calm … 5 = very stressed. */
   stress: Scale
   restingHr?: number
-  /** VFC (rMSSD, ms) mesurée par la montre ou une appli. */
+  /** HRV (rMSSD, ms) measured by the watch or an app. */
   hrv?: number
-  /** Signes de maladie : gorge, fièvre, nez… */
+  /** Signs of illness: throat, fever, nose… */
   illnessSymptoms: boolean
   notes?: string
 }
@@ -29,7 +29,7 @@ export type ReadinessLevel = 'GREEN' | 'ORANGE' | 'RED'
 export interface Readiness {
   score: number
   level: ReadinessLevel
-  /** Facteurs qui ont pesé, du plus pénalisant au moins pénalisant. */
+  /** Factors that weighed in, from most to least penalising. */
   factors: Array<{ label: string; impact: number }>
   message: string
   action: 'NONE' | 'LIGHTEN' | 'REST'
@@ -49,8 +49,8 @@ export function validateCheckIn(checkIn: CheckIn): void {
 const BASELINE_DAYS = 14
 
 /**
- * Score de disponibilité (0-100) à partir des sensations et, si disponibles, de la FC de repos
- * et de la VFC comparées à la moyenne personnelle des 14 derniers jours.
+ * Readiness score (0-100) from how the athlete feels and, when available, resting HR
+ * and HRV compared with the personal average of the last 14 days.
  */
 export function computeReadiness(checkIn: CheckIn, history: CheckIn[]): Readiness {
   const previous = history
@@ -89,7 +89,7 @@ export function computeReadiness(checkIn: CheckIn, history: CheckIn[]): Readines
   const level: ReadinessLevel = score >= 65 && !checkIn.illnessSymptoms ? 'GREEN' : score >= 45 ? 'ORANGE' : 'RED'
 
   const lastTwo = previous.filter((h) => h.date >= addDays(checkIn.date, -2))
-  // Niveau des bilans passés sans comparaison aux références : évite une récursion coûteuse.
+  // Level of past check-ins without comparison to baselines: avoids a costly recursion.
   const recentLevels = [...lastTwo.map((h) => computeReadiness(h, []).level), level]
   if (recentLevels.length === 3 && recentLevels.every((l) => l !== 'GREEN')) {
     alerts.push('Trois jours d’affilée sans feu vert : signe de surcharge. Envisage une semaine allégée.')

@@ -2,7 +2,7 @@ import { assertDomain } from '../shared/errors'
 
 export type ExperienceLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT'
 
-/** Terrain d'entraînement accessible : conditionne les substituts (escaliers, tapis incliné…). */
+/** Accessible training terrain: determines the substitutes (stairs, inclined treadmill…). */
 export type TerrainAccess = 'MOUNTAINS' | 'HILLS' | 'FLAT'
 
 export interface CrossTrainingPreferences {
@@ -20,7 +20,7 @@ export interface AthleteProfile {
   hrRest?: number
   currentWeeklyKm: number
   currentWeeklyElevationM: number
-  /** 0 = lundi … 6 = dimanche. */
+  /** 0 = Monday … 6 = Sunday. */
   availableDays: number[]
   longRunDay: number
   maxWeeklyHours: number
@@ -42,7 +42,7 @@ export function validateProfile(profile: AthleteProfile): void {
   }
 }
 
-/** Nombre de séances de course par semaine conseillé selon le niveau. */
+/** Recommended number of running sessions per week by level. */
 export const RUNNING_SESSIONS_BY_LEVEL: Record<ExperienceLevel, number> = {
   BEGINNER: 3,
   INTERMEDIATE: 4,
@@ -50,7 +50,7 @@ export const RUNNING_SESSIONS_BY_LEVEL: Record<ExperienceLevel, number> = {
   EXPERT: 6,
 }
 
-/** Vitesse d'entraînement moyenne en km-effort/h (footings, sorties longues). */
+/** Average training speed in km-effort/h (easy runs, long runs). */
 export const TRAINING_SPEED_KME: Record<ExperienceLevel, number> = {
   BEGINNER: 7,
   INTERMEDIATE: 8,

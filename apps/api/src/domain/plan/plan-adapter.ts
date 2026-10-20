@@ -4,9 +4,9 @@ import { round1, roundTo } from '../shared/math'
 import type { AdjustmentReason, PlanAdjustment, PlannedSession, SessionType, TrainingPlan } from './training-plan'
 
 /**
- * Adaptation du plan à la vraie vie : séances manquées, maladie, blessure, fatigue.
- * Toutes les fonctions sont pures : elles renvoient un nouveau plan et une entrée de journal
- * expliquant ce qui a changé, pour que l'athlète garde la main.
+ * Adapting the plan to real life: missed sessions, illness, injury, fatigue.
+ * All functions are pure: they return a new plan and a log entry
+ * explaining what changed, so the athlete stays in control.
  */
 
 export interface AdaptationResult {
@@ -23,9 +23,9 @@ export interface AdaptationContext {
 
 const INTENSE_TYPES: SessionType[] = ['HILL_REPEATS', 'UPHILL_THRESHOLD', 'DOWNHILL', 'FARTLEK', 'SIMULATION', 'HIKE_RUN']
 const LONG_TYPES: SessionType[] = ['LONG_RUN', 'SIMULATION', 'BACK_TO_BACK']
-/** Une séance clé manquée n'est rattrapée que si elle date de moins de 3 jours. */
+/** A missed key session is only made up if it is less than 3 days old. */
 const CATCH_UP_WINDOW_DAYS = 3
-/** Pas de rattrapage dans les 10 derniers jours avant la course : l'affûtage prime. */
+/** No make-up sessions in the last 10 days before the race: the taper comes first. */
 const RACE_PROTECTION_DAYS = 10
 
 const REASON_LABELS: Record<AdjustmentReason, string> = {
@@ -57,9 +57,9 @@ function raceDate(plan: TrainingPlan): IsoDate | undefined {
 }
 
 /**
- * Rattrape les séances clés manquées récemment en les déplaçant sur un jour disponible
- * des 6 prochains jours, sans coller deux séances dures. Si aucun créneau ne convient,
- * la séance est abandonnée : mieux vaut perdre une séance que s'entasser de la fatigue.
+ * Makes up recently missed key sessions by moving them to an available day
+ * in the next 6 days, without putting two hard sessions back to back. If no slot fits,
+ * the session is dropped: better to lose a session than to pile up fatigue.
  */
 export function rescheduleMissedSessions(plan: TrainingPlan, ctx: AdaptationContext): AdaptationResult {
   const race = raceDate(plan)
@@ -139,14 +139,14 @@ export interface Unavailability {
   from: IsoDate
   to: IsoDate
   reason: Exclude<AdjustmentReason, 'MISSED_SESSION' | 'FATIGUE'>
-  /** Blessure : le vélo, la natation ou l'elliptique restent possibles. */
+  /** Injury: cycling, swimming or the elliptical remain possible. */
   crossTrainingOk: boolean
 }
 
 /**
- * Déclare une période sans course (maladie, blessure, voyage), puis programme une reprise
- * progressive : intensité supprimée et volume remonté de 50 % à 90 % sur une période
- * proportionnelle à l'arrêt.
+ * Declares a period without running (illness, injury, travel), then schedules a gradual
+ * return: intensity removed and volume ramped from 50 % to 90 % over a period
+ * proportional to the break.
  */
 export function applyUnavailability(plan: TrainingPlan, period: Unavailability, ctx: AdaptationContext): AdaptationResult {
   assertDomain(period.from <= period.to, 'La date de fin doit suivre la date de début')
@@ -156,8 +156,8 @@ export function applyUnavailability(plan: TrainingPlan, period: Unavailability, 
   const label = REASON_LABELS[period.reason]
   const injury = period.reason === 'INJURY'
   const crossTrain = injury && period.crossTrainingOk
-  const reprise = period.reason === 'UNAVAILABLE' && days < 5 ? 0 : Math.min(Math.round(days * (injury ? 1.5 : 1)), 21)
-  const repriseEnd = addDays(period.to, reprise)
+  const returnDays = period.reason === 'UNAVAILABLE' && days < 5 ? 0 : Math.min(Math.round(days * (injury ? 1.5 : 1)), 21)
+  const returnEnd = addDays(period.to, returnDays)
 
   let skipped = 0
   let converted = 0
@@ -172,8 +172,8 @@ export function applyUnavailability(plan: TrainingPlan, period: Unavailability, 
       skipped++
       return { ...s, status: 'SKIPPED', adjustment: `Annulée : ${label} du ${shortDate(period.from)} au ${shortDate(period.to)}.` }
     }
-    if (reprise > 0 && s.date > period.to && s.date <= repriseEnd && s.sport !== 'STRENGTH') {
-      const progress = daysBetween(period.to, s.date) / reprise
+    if (returnDays > 0 && s.date > period.to && s.date <= returnEnd && s.sport !== 'STRENGTH') {
+      const progress = daysBetween(period.to, s.date) / returnDays
       const factor = 0.5 + 0.4 * progress
       if (s.type === 'BACK_TO_BACK' && progress < 0.5) {
         skipped++
@@ -188,7 +188,7 @@ export function applyUnavailability(plan: TrainingPlan, period: Unavailability, 
   const details = [
     skipped > 0 ? `${skipped} séance${skipped > 1 ? 's' : ''} annulée${skipped > 1 ? 's' : ''}.` : '',
     converted > 0 ? `${converted} sortie${converted > 1 ? 's' : ''} remplacée${converted > 1 ? 's' : ''} par du vélo / natation / elliptique.` : '',
-    eased > 0 ? `${eased} séance${eased > 1 ? 's' : ''} allégée${eased > 1 ? 's' : ''} jusqu’au ${shortDate(repriseEnd)} pour reprendre en douceur.` : '',
+    eased > 0 ? `${eased} séance${eased > 1 ? 's' : ''} allégée${eased > 1 ? 's' : ''} jusqu’au ${shortDate(returnEnd)} pour reprendre en douceur.` : '',
     injury ? 'En cas de douleur qui persiste, consulte un professionnel de santé avant de reprendre l’intensité.' : '',
   ].filter(Boolean)
 
@@ -203,7 +203,7 @@ export function applyUnavailability(plan: TrainingPlan, period: Unavailability, 
 
 export type LightenMode = 'LIGHTEN' | 'REST'
 
-/** Allège (ou annule) une séance suite au bilan du matin. */
+/** Lightens (or cancels) a session following the morning check-in. */
 export function lightenSession(session: PlannedSession, mode: LightenMode): PlannedSession {
   assertDomain(session.status === 'PLANNED', 'Seule une séance prévue peut être allégée')
   assertDomain(session.type !== 'RACE', 'On ne touche pas au jour de course')

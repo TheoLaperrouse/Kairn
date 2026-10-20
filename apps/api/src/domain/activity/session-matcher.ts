@@ -1,16 +1,16 @@
 import type { PlannedSession } from '../plan/training-plan'
 import type { Activity } from './activity'
 
-/** Écart fictif qui départage deux rattachements équivalents en faveur de celui déjà en place. */
+/** Fictitious gap that breaks ties between two equivalent matches in favour of the existing one. */
 const KEEP_EXISTING_BONUS_MIN = 0.01
-/** Au-delà, on ne cherche plus l'optimum (journée atypique) : l'ordre suffit. */
+/** Beyond this, we stop searching for the optimum (atypical day): order is enough. */
 const MAX_ACTIVITIES_PER_DAY = 6
 
 /**
- * Rattache les activités d'une journée aux séances prévues ce jour-là : même sport, le plus
- * d'activités rattachées possible, puis la somme des écarts de durée la plus faible.
- * Avec une double séance, la sortie du matin ne prend donc pas la séance du soir parce
- * qu'elle a été importée la première.
+ * Matches a day's activities to the sessions planned that day: same sport, as many
+ * matched activities as possible, then the lowest sum of duration gaps.
+ * With a double session, the morning run therefore does not take the evening session just
+ * because it was imported first.
  */
 export function assignDay(
   activities: Array<Pick<Activity, 'id' | 'sport' | 'durationSec' | 'plannedSessionId'>>,

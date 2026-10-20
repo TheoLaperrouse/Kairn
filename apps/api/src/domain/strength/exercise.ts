@@ -1,9 +1,9 @@
 /**
- * Exercices de renforcement spécifiques au trail.
+ * Trail-specific strength exercises.
  *
- * Chaque exercice embarque une animation « bonhomme » décrite par des poses-clés
- * (vue de profil, le personnage regarde vers la droite). Le front interpole les
- * poses pour produire une démonstration animée sans dépendre d'une vidéo externe.
+ * Each exercise embeds a "stick figure" animation described by keyframe poses
+ * (side view, the figure faces right). The front end interpolates the
+ * poses to produce an animated demo without relying on an external video.
  */
 
 export type ExerciseCategory =
@@ -15,12 +15,12 @@ export type ExerciseCategory =
   | 'MOBILITY'
 
 /**
- * Angles en degrés.
- * - Segments « pendants » (bras, avant-bras, cuisses, tibias) : 0 = vertical vers le bas,
- *   valeur positive = rotation vers l'avant (la droite), négative = vers l'arrière.
- * - Tronc : 0 = vertical vers le haut, positif = penché vers l'avant, 90 = horizontal tête devant.
- * - Tête : inclinaison relative au tronc (optionnelle).
- * Les jambes/bras « near » sont côté spectateur, « far » côté opposé (dessinés plus clair).
+ * Angles in degrees.
+ * - "Hanging" segments (upper arms, forearms, thighs, shins): 0 = vertical pointing down,
+ *   positive value = rotation forwards (to the right), negative = backwards.
+ * - Torso: 0 = vertical pointing up, positive = leaning forwards, 90 = horizontal, head in front.
+ * - Head: tilt relative to the torso (optional).
+ * "Near" legs/arms are on the viewer's side, "far" on the opposite side (drawn lighter).
  */
 export interface Pose {
   torso: number
@@ -33,24 +33,24 @@ export interface Pose {
   nearShin: number
   farThigh: number
   farShin: number
-  /** Décalage horizontal du bassin (unités de la scène, 1 = longueur de cuisse). */
+  /** Horizontal pelvis offset (scene units, 1 = thigh length). */
   /**
-   * Angle absolu du pied (même convention que les segments pendants : 90 = à plat vers l'avant,
-   * < 90 = pointe vers le bas, ex. 60 en demi-pointes). Par défaut : à plat quand le tibia est
-   * proche de la verticale, dans le prolongement naturel quand la jambe est en l'air ou à l'horizontale.
+   * Absolute foot angle (same convention as hanging segments: 90 = flat pointing forwards,
+   * < 90 = toes pointing down, e.g. 60 on tiptoe). Default: flat when the shin is
+   * near vertical, in natural extension when the leg is in the air or horizontal.
    */
   nearFoot?: number
   farFoot?: number
   hipX?: number
-  /** Hauteur au-dessus du sol pour les phases aériennes (sauts). Par défaut le point le plus bas touche le sol. */
+  /** Height above the ground for airborne phases (jumps). By default the lowest point touches the ground. */
   air?: number
-  /** Si renseigné, le point le plus bas est posé à cette hauteur (ex. pied sur une marche). */
+  /** If set, the lowest point rests at this height (e.g. foot on a step). */
   groundOffset?: number
 }
 
 export interface SceneProp {
   kind: 'BOX' | 'BENCH' | 'MAT' | 'BAND' | 'DUMBBELL' | 'CUSHION' | 'WALL'
-  /** Position horizontale du centre, mêmes unités que hipX. */
+  /** Horizontal position of the center, same units as hipX. */
   x: number
   width?: number
   height?: number
@@ -60,12 +60,12 @@ export interface ExerciseAnimation {
   durationMs: number
   keyframes: Pose[]
   /**
-   * Instant (0 → 1) de chaque pose-clé dans le cycle, croissant, premier à 0. Permet un tempo réaliste
-   * (descente lente, remontée rapide, maintien). Par défaut : poses-clés régulièrement espacées.
-   * Deux instants voisins avec la même pose produisent un maintien.
+   * Time (0 → 1) of each keyframe in the cycle, increasing, first at 0. Allows a realistic tempo
+   * (slow lowering, fast rise, hold). Default: evenly spaced keyframes.
+   * Two adjacent times with the same pose produce a hold.
    */
   timing?: number[]
-  /** Répétitions contenues dans un cycle (2 quand le cycle montre les deux côtés). Défaut : 1. */
+  /** Reps contained in one cycle (2 when the cycle shows both sides). Default: 1. */
   repsPerCycle?: number
   props?: SceneProp[]
 }
@@ -81,7 +81,7 @@ export interface Exercise {
   cues: string[]
   commonMistakes: string[]
   trailBenefit: string
-  /** Variante plus facile / plus difficile, en texte. */
+  /** Easier / harder variant, as text. */
   regression?: string
   progression?: string
   animation: ExerciseAnimation

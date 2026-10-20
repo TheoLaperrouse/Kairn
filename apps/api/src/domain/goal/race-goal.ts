@@ -3,8 +3,8 @@ import { isValidIsoDate, type IsoDate } from '../shared/dates'
 import type { ExperienceLevel } from '../athlete/athlete-profile'
 
 /**
- * Catégories inspirées de l'ITRA, calculées sur le kilomètre-effort
- * (1 km-effort = 1 km à plat = 100 m de dénivelé positif).
+ * ITRA-inspired categories, computed on the km-effort
+ * (1 km-effort = 1 flat km = 100 m of elevation gain).
  */
 export type TrailCategory = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL'
 
@@ -23,13 +23,13 @@ export interface RaceGoal {
   raceDate: IsoDate
   distanceKm: number
   elevationGainM: number
-  /** 1 = chemins roulants … 5 = très technique (pierriers, mains nécessaires). */
+  /** 1 = smooth trails … 5 = very technical (scree, hands needed). */
   technicity: 1 | 2 | 3 | 4 | 5
-  /** Altitude maximale, pour les conseils d'acclimatation. */
+  /** Maximum altitude, for acclimatisation advice. */
   maxAltitudeM?: number
   polesAllowed: boolean
   nightSections: boolean
-  /** Objectif chrono facultatif, en heures. */
+  /** Optional target time, in hours. */
   targetTimeH?: number
   presetId?: string
 }
@@ -56,12 +56,12 @@ export function categorize(goal: Pick<RaceGoal, 'distanceKm' | 'elevationGainM'>
   return 'XXL'
 }
 
-/** Mètres de D+ par kilomètre : indique à quel point la course est « verticale ». */
+/** Metres of climbing per kilometre: shows how "vertical" the race is. */
 export function verticalRatio(goal: Pick<RaceGoal, 'distanceKm' | 'elevationGainM'>): number {
   return goal.elevationGainM / goal.distanceKm
 }
 
-/** Vitesse de course moyenne en km-effort/h sur ~50 km-effort, par niveau. */
+/** Average race speed in km-effort/h over ~50 km-effort, by level. */
 const REFERENCE_SPEED: Record<ExperienceLevel, number> = {
   BEGINNER: 5.5,
   INTERMEDIATE: 6.5,
@@ -72,8 +72,8 @@ const REFERENCE_SPEED: Record<ExperienceLevel, number> = {
 const TECHNICITY_FACTOR = [1.05, 1.02, 1, 0.93, 0.85] as const
 
 /**
- * Estimation du temps de course : la vitesse en km-effort décroît avec la longueur
- * (loi de puissance de type Riegel) et avec la technicité du terrain.
+ * Race time estimate: km-effort speed decreases with length
+ * (Riegel-style power law) and with terrain technicity.
  */
 export function estimateRaceDurationH(goal: RaceGoal, level: ExperienceLevel): number {
   if (goal.targetTimeH) return goal.targetTimeH
@@ -83,7 +83,7 @@ export function estimateRaceDurationH(goal: RaceGoal, level: ExperienceLevel): n
   return effort / speed
 }
 
-/** Durée de préparation recommandée (semaines) selon la catégorie. */
+/** Recommended preparation length (weeks) by category. */
 export const RECOMMENDED_WEEKS: Record<TrailCategory, number> = {
   XS: 8,
   S: 10,

@@ -5,16 +5,16 @@ import { addDays, daysBetween, type IsoDate } from '../shared/dates'
 import { clamp, round1 } from '../shared/math'
 
 /**
- * Modèle Banister « fitness / fatigue » :
- * - forme de fond (CTL) : moyenne exponentielle sur 42 jours ;
- * - fatigue (ATL) : moyenne exponentielle sur 7 jours ;
- * - fraîcheur (TSB) = CTL − ATL. On vise +5 à +25 le jour de la course.
+ * Banister "fitness / fatigue" model:
+ * - fitness (CTL): 42-day exponential average;
+ * - fatigue (ATL): 7-day exponential average;
+ * - form (TSB) = CTL − ATL. The target is +5 to +25 on race day.
  */
 const CTL_DAYS = 42
 const ATL_DAYS = 7
 
 const SPORT_FACTOR = { RUN: 1, BIKE: 0.65, STRENGTH: 0.5 } as const
-/** Facteur d'intensité utilisé pour estimer la charge prévue (min × facteur). */
+/** Intensity factor used to estimate planned load (min × factor). */
 const ZONE_LOAD_FACTOR: Record<Zone, number> = { 1: 0.6, 2: 0.8, 3: 1, 4: 1.25, 5: 1.5 }
 
 export interface LoadPoint {
@@ -27,8 +27,8 @@ export interface LoadPoint {
 }
 
 /**
- * Charge d'une activité : TRIMP de Banister si la fréquence cardiaque est connue,
- * sinon estimation durée × intensité moyenne, majorée par le dénivelé.
+ * Load of an activity: Banister TRIMP if heart rate is known,
+ * otherwise an estimate of duration × average intensity, increased by elevation gain.
  */
 export function activityLoad(activity: Activity, profile: Pick<AthleteProfile, 'hrMax' | 'hrRest'>): number {
   const minutes = activity.durationSec / 60
@@ -41,7 +41,7 @@ export function activityLoad(activity: Activity, profile: Pick<AthleteProfile, '
   return Math.round(minutes * 0.8 * factor * verticalBonus)
 }
 
-/** TRIMP de Banister pour une fraction de FC de réserve donnée ; vélo et renfo pèsent moins que la course. */
+/** Banister TRIMP for a given heart rate reserve fraction; cycling and strength weigh less than running. */
 function trimp(minutes: number, reserve: number, sport: Sport): number {
   return Math.round(minutes * reserve * 0.64 * Math.exp(1.92 * reserve) * (sport === 'RUN' ? 1 : SPORT_FACTOR[sport] + 0.2))
 }
@@ -50,13 +50,13 @@ export function plannedLoad(session: PlannedSession): number {
   return Math.round(session.durationMin * ZONE_LOAD_FACTOR[session.zone] * SPORT_FACTOR[session.sport])
 }
 
-/** Fraction de FC de réserve au milieu de chaque zone. */
+/** Heart rate reserve fraction at the middle of each zone. */
 const ZONE_RESERVE: Record<Zone, number> = { 1: 0.55, 2: 0.65, 3: 0.75, 4: 0.85, 5: 0.95 }
 
 /**
- * Charge attendue d'une séance prévue, dans la même échelle que `activityLoad` pour une sortie
- * avec FC : TRIMP calculé sur la FC de réserve moyenne des étapes. Sans FC, l'estimation
- * durée × intensité de `plannedLoad` est déjà dans la bonne échelle.
+ * Expected load of a planned session, on the same scale as `activityLoad` for an activity
+ * with HR: TRIMP computed on the steps' average heart rate reserve. Without HR, the
+ * duration × intensity estimate of `plannedLoad` is already on the right scale.
  */
 export function expectedActivityLoad(session: PlannedSession, withHeartRate: boolean): number {
   if (!withHeartRate) return plannedLoad(session)
@@ -70,9 +70,9 @@ export function expectedActivityLoad(session: PlannedSession, withHeartRate: boo
 }
 
 /**
- * La charge réalisée se calcule à la FC dès qu'elle est connue (TRIMP), sinon à la durée.
- * La charge prévue doit suivre la même échelle, sinon la projection jusqu'au jour de course
- * mélange deux unités : on retient l'échelle des sorties récentes.
+ * Actual load is computed from HR whenever it is known (TRIMP), otherwise from duration.
+ * Planned load must follow the same scale, otherwise the projection up to race day
+ * mixes two units: we use the scale of recent activities.
  */
 export function usesHeartRateLoad(profile: Pick<AthleteProfile, 'hrMax' | 'hrRest'>, activities: Activity[]): boolean {
   if (!profile.hrMax || !profile.hrRest) return false
@@ -84,8 +84,8 @@ export function usesHeartRateLoad(profile: Pick<AthleteProfile, 'hrMax' | 'hrRes
 }
 
 /**
- * Série quotidienne de charge du `from` au `to` inclus. Les jours postérieurs à `today`
- * utilisent la charge prévue par le plan : on projette la forme jusqu'au jour de course.
+ * Daily load series from `from` to `to` inclusive. Days after `today`
+ * use the load planned by the plan: form is projected up to race day.
  */
 export function computeLoadSeries(
   activities: Activity[],

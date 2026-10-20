@@ -36,7 +36,7 @@ export interface SummaryHighlight {
 export interface WeeklySummary {
   weekStart: IsoDate
   weekEnd: IsoDate
-  /** La semaine n'est pas terminée : bilan provisoire. */
+  /** The week is not over: provisional summary. */
   inProgress: boolean
   week?: WeekInfo
   goalName?: string
@@ -45,10 +45,10 @@ export interface WeeklySummary {
   targets?: WeekVolumeTotals
   sessions: { planned: number; done: number; skipped: number; missed: number }
   keySessions: Array<{ id: string; title: string; date: IsoDate; status: SessionStatus; verdict?: Verdict; activityId?: string }>
-  /** Temps passé dans chaque zone (course et vélo), si la FC est disponible. */
+  /** Time spent in each zone (running and cycling), if HR is available. */
   zones?: TimeInZones
   verdicts: Partial<Record<Verdict, number>>
-  /** `reliable` : au moins 4 semaines d'historique, sans quoi forme et fraîcheur partent de zéro et n'ont pas de sens. */
+  /** `reliable`: at least 4 weeks of history, otherwise fitness and form start from zero and are meaningless. */
   form: { fitness: number; fitnessChange: number; freshness: number; reliable: boolean }
   readiness?: { average: number; days: number; redDays: number }
   highlights: SummaryHighlight[]
@@ -64,12 +64,12 @@ export interface SummaryInput {
   profile: AthleteProfile
   goal?: RaceGoal
   plan?: TrainingPlan
-  /** Toutes les activités de l'utilisateur (l'historique sert à la charge et aux tendances). */
+  /** All of the user's activities (history is used for load and trends). */
   activities: Activity[]
   checkIns: CheckIn[]
 }
 
-/** Historique minimal pour que le modèle forme / fatigue soit interprétable. */
+/** Minimum history for the fitness / fatigue model to be meaningful. */
 const HISTORY_FOR_FORM_DAYS = 28
 
 function volumeOf(activities: Activity[]): WeekVolumeTotals {
@@ -256,7 +256,7 @@ function highlights(activities: Activity[], analyses: Map<string, WorkoutAnalysi
   return list
 }
 
-/** Ratio du volume horaire réalisé sur la cible d'une semaine du plan. */
+/** Ratio of actual training hours to a plan week's target. */
 function hoursRatio(input: SummaryInput, week: PlanWeek): number | undefined {
   if (week.targetHours <= 0) return undefined
   const within = inWeek(week.startDate)
@@ -354,7 +354,7 @@ function insights(summary: WeeklySummary, input: SummaryInput, analyses: Map<str
   }
 
   if (!summary.form.reliable) {
-    // Pas de commentaire sur la forme : le modèle n'a pas encore assez d'historique.
+    // No comment on form: the model does not have enough history yet.
   } else if (summary.form.freshness <= -25) {
     list.push({
       tone: 'ATTENTION',

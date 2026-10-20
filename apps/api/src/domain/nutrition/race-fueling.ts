@@ -34,9 +34,9 @@ const CARBS_BY_GUT: Record<GutTraining, number> = { NONE: 60, PARTIAL: 75, TRAIN
 const SODIUM_BY_SWEAT: Record<SweatProfile, number> = { LOW: 500, MEDIUM: 600, HIGH: 700 }
 
 /**
- * Plan de ravitaillement heure par heure. Repères : 60-90 g de glucides/h (jusqu'à 120 g
- * si l'intestin est entraîné), 500-700 mg de sodium par litre bu (ISSN), boisson à la soif
- * modulée par la chaleur. Au-delà de 6 h, on alterne sucré et salé pour limiter l'écœurement.
+ * Hour-by-hour fueling plan. Guidelines: 60-90 g of carbs/h (up to 120 g
+ * if the gut is trained), 500-700 mg of sodium per litre drunk (ISSN), drinking to thirst
+ * adjusted for heat. Beyond 6 h, sweet and savoury alternate to limit taste fatigue.
  */
 export function computeFuelingPlan(input: FuelingInput): FuelingPlan {
   assertDomain(input.durationH > 0 && input.durationH <= 72, 'Durée entre 0 et 72 h')

@@ -51,11 +51,11 @@ export interface PlannedSession {
   status: SessionStatus
   activityId?: string
   notes?: string
-  /** Explication lisible quand Kairn a modifié la séance (déplacée, allégée, remplacée…). */
+  /** Readable explanation when Kairn changed the session (moved, lightened, replaced…). */
   adjustment?: string
-  /** Date initialement prévue, si la séance a été déplacée. */
+  /** Originally planned date, if the session was moved. */
   originalDate?: IsoDate
-  /** Rôle de la séance dans la préparation : calculé à la lecture, jamais enregistré. */
+  /** The session's role in the preparation: computed on read, never stored. */
   purpose?: string
 }
 
@@ -78,7 +78,7 @@ export interface TrainingPlan {
   weeks: PlanWeek[]
   sessions: PlannedSession[]
   warnings: string[]
-  /** Journal des adaptations automatiques ou demandées, du plus récent au plus ancien. */
+  /** Log of automatic or requested adaptations, most recent first. */
   adjustments?: PlanAdjustment[]
 }
 

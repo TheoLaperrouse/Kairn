@@ -3,12 +3,12 @@ import type { TrainingPhase } from '../plan/phase'
 export interface RoutineBlock {
   exerciseId: string
   sets: number
-  /** Soit des répétitions… */
+  /** Either reps… */
   reps?: number
-  /** …soit une durée de maintien/effort. */
+  /** …or a hold/effort duration. */
   durationSec?: number
   restSec: number
-  /** Indication de tempo, ex. "3-1-1" (excentrique-pause-concentrique). */
+  /** Tempo hint, e.g. "3-1-1" (eccentric-pause-concentric). */
   tempo?: string
   perSide?: boolean
   notes?: string
@@ -17,7 +17,7 @@ export interface RoutineBlock {
 export interface StrengthRoutine {
   id: string
   name: string
-  /** Phases du plan dans lesquelles la routine est proposée. */
+  /** Plan phases in which the routine is offered. */
   phases: TrainingPhase[]
   durationMin: number
   focus: string

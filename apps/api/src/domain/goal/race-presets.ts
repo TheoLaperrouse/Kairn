@@ -3,12 +3,12 @@ import type { RaceGoal } from './race-goal'
 export interface RacePreset extends Omit<RaceGoal, 'id' | 'raceDate' | 'presetId' | 'targetTimeH'> {
   presetId: string
   location: string
-  /** Mois habituel de l'épreuve (1-12), pour proposer une date. */
+  /** Usual month of the event (1-12), to suggest a date. */
   usualMonth: number
   highlights: string
 }
 
-/** Données indicatives issues d'éditions récentes : les tracés évoluent d'une année à l'autre. */
+/** Indicative data from recent editions: courses change from year to year. */
 export const RACE_PRESETS: RacePreset[] = [
   {
     presetId: 'utmb',

@@ -6,9 +6,9 @@ import { assertDomain } from '../shared/errors'
 import { clamp, round1, round2, roundTo } from '../shared/math'
 
 /**
- * Parcours officiel de la course (GPX de l'organisation) et plan de course qui en découle :
- * découpage montées/descentes, temps de passage aux ravitos, marges sur les barrières horaires
- * et ravitaillement à emporter entre chaque point.
+ * The race's official course (organiser's GPX) and the race plan derived from it:
+ * climb/descent breakdown, split times at aid stations, margins on cut-off times
+ * and food to carry between each point.
  */
 
 export interface CoursePoint {
@@ -19,14 +19,14 @@ export interface CoursePoint {
 export interface AidStation {
   name: string
   km: number
-  /** Barrière horaire en heures depuis le départ. */
+  /** Cut-off time in hours from the start. */
   cutoffH?: number
-  /** Base de vie / ravito complet (arrêt plus long, sac d'allègement). */
+  /** Life base / full aid station (longer stop, drop bag). */
   major: boolean
 }
 
 export interface RaceCourseSettings {
-  /** Heure de départ locale, `HH:MM`. */
+  /** Local start time, `HH:MM`. */
   startTime: string
   temperatureC: number
   sweat: SweatProfile
@@ -70,7 +70,7 @@ export interface Split {
   name: string
   km: number
   elapsedH: number
-  /** Heure locale d'arrivée, `HH:MM`, et numéro du jour (0 = jour du départ). */
+  /** Local arrival time, `HH:MM`, and day number (0 = start day). */
   clock: string
   day: number
   cutoffH?: number
@@ -89,7 +89,7 @@ export interface RacePlan {
   movingH: number
   segments: CourseSegment[]
   splits: Split[]
-  /** Temps prévu à chaque point du profil (pour le survol du graphique). */
+  /** Predicted time at each profile point (for chart hover). */
   timeline: Array<{ km: number; elapsedH: number }>
   warnings: string[]
 }
@@ -100,7 +100,7 @@ export interface TrackPoint {
   ele: number
 }
 
-/** Construit le profil (distance cumulée, altitude lissée) à partir des points GPS. */
+/** Builds the profile (cumulative distance, smoothed altitude) from the GPS points. */
 export function buildProfile(track: TrackPoint[]): CoursePoint[] {
   assertDomain(track.length >= 10, 'Le tracé contient trop peu de points')
   let distance = 0
@@ -109,7 +109,7 @@ export function buildProfile(track: TrackPoint[]): CoursePoint[] {
     if (prev) distance += haversineKm(prev.lat, prev.lon, p.lat, p.lon)
     return { distanceKm: distance, altitudeM: p.ele }
   })
-  // Lissage glissant sur ~150 m pour gommer le bruit d'altitude des traces.
+  // Moving average over ~150 m to smooth out track altitude noise.
   const smoothed = raw.map((p, i) => {
     const window = raw.filter((q, j) => Math.abs(j - i) <= 20 && Math.abs(q.distanceKm - p.distanceKm) <= 0.075)
     return { distanceKm: p.distanceKm, altitudeM: window.reduce((s, q) => s + q.altitudeM, 0) / window.length }
@@ -120,7 +120,7 @@ export function buildProfile(track: TrackPoint[]): CoursePoint[] {
   }))
 }
 
-/** Kilomètre du tracé le plus proche d'un waypoint (ravitaillement indiqué dans le GPX). */
+/** Course kilometre closest to a waypoint (aid station marked in the GPX). */
 export function snapToTrack(track: TrackPoint[], target: { lat: number; lon: number }): number {
   let best = { km: 0, gap: Infinity }
   let distance = 0
@@ -143,13 +143,13 @@ export function courseStats(points: CoursePoint[]): Pick<RaceCourse, 'totalDista
   }
 }
 
-/** Coût relatif d'un mètre de descente selon la technicité (plus c'est technique, plus ça coûte). */
+/** Relative cost of one metre of descent by technicity (the more technical, the costlier). */
 const DESCENT_DIVISOR = [400, 320, 250, 180, 130] as const
-/** Ralentissement progressif : +25 % de coût à l'arrivée par rapport au départ. */
+/** Progressive slowdown: +25 % cost at the finish compared with the start. */
 const FATIGUE_DRIFT = 0.25
 const NIGHT_START_MIN = 21 * 60
 const NIGHT_END_MIN = 6 * 60 + 30
-/** Seuils de détection des montées/descentes. */
+/** Climb/descent detection thresholds. */
 const HYSTERESIS_M = 40
 const FLAT_GRADE_PCT = 3
 
@@ -167,7 +167,7 @@ export function planRace(course: RaceCourse, goal: RaceGoal, level: ExperienceLe
   const totalStopH = stations.reduce((sum, a) => sum + stopMin(a), 0) / 60
   const movingH = Math.max(totalH - totalStopH, totalH * 0.8)
 
-  // Coût de chaque pas du profil, puis mise à l'échelle sur le temps en mouvement estimé.
+  // Cost of each profile step, then scaled to the estimated moving time.
   const divisor = DESCENT_DIVISOR[goal.technicity - 1]!
   const costs = points.slice(1).map((p, i) => {
     const prev = points[i]!
@@ -178,7 +178,7 @@ export function planRace(course: RaceCourse, goal: RaceGoal, level: ExperienceLe
   })
   const scale = movingH / costs.reduce((a, b) => a + b, 0)
 
-  // Temps écoulé à chaque point, arrêts aux ravitos inclus.
+  // Elapsed time at each point, including aid station stops.
   const elapsed: number[] = [0]
   let stationIndex = 0
   points.slice(1).forEach((p, i) => {
@@ -285,7 +285,7 @@ function legStats(points: CoursePoint[], fromKm: number, toKm: number) {
   return { gain: roundTo(gain, 10), loss: roundTo(loss, 10) }
 }
 
-/** Glucides à emporter : la boisson d'effort (≈ 60 g/L) d'abord, le reste en solide. */
+/** Carbs to carry: sports drink (≈ 60 g/L) first, the rest as solid food. */
 function legNutrition(durationH: number, carbsH: number, fluidH: number, sodiumH: number, startH: number): LegNutrition {
   const carbsG = Math.round(carbsH * durationH)
   const fluidMl = roundTo(fluidH * durationH, 50)
@@ -303,7 +303,7 @@ function legNutrition(durationH: number, carbsH: number, fluidH: number, sodiumH
   return { carbsG, fluidMl, sodiumMg: Math.round(sodiumH * durationH), carry }
 }
 
-/** Découpage montées / descentes / portions roulantes par recherche d'extrema avec hystérésis. */
+/** Climb / descent / runnable section breakdown via extrema search with hysteresis. */
 function segment(points: CoursePoint[], timeAt: (km: number) => number): CourseSegment[] {
   const extrema: number[] = [0]
   let trend = 0
@@ -323,7 +323,7 @@ function segment(points: CoursePoint[], timeAt: (km: number) => number): CourseS
       high = low = i
     }
   }
-  // Dernier extremum en cours (ex. fond de vallée suivi d'une portion plate jusqu'à l'arrivée).
+  // Last pending extremum (e.g. valley floor followed by a flat section to the finish).
   const pending = trend === -1 ? low : trend === 1 ? high : undefined
   if (pending !== undefined && pending !== extrema.at(-1) && pending !== points.length - 1) extrema.push(pending)
   if (extrema.at(-1) !== points.length - 1) extrema.push(points.length - 1)
@@ -350,7 +350,7 @@ function segment(points: CoursePoint[], timeAt: (km: number) => number): CourseS
     })
   }
 
-  // Fusion des segments consécutifs de même nature.
+  // Merge consecutive segments of the same kind.
   const merged: CourseSegment[] = []
   for (const s of raw) {
     const last = merged.at(-1)

@@ -3,18 +3,18 @@ import { addDays, startOfWeek, type IsoDate } from '../shared/dates'
 import { round2 } from '../shared/math'
 
 /**
- * Courbe de VAM record : meilleure vitesse ascensionnelle tenue pendant 5, 10, 20 et 30 min.
+ * Record VAM curve: best vertical ascent speed held for 5, 10, 20 and 30 min.
  *
- * Une fenêtre glisse sur la trace : elle trouve le meilleur passage, que la montée soit
- * régulière ou faite de plusieurs rampes. Indépendante du parcours, elle montre si l'on
- * progresse vraiment en côte.
+ * A window slides over the track: it finds the best stretch, whether the climb is
+ * steady or made of several ramps. Independent of the route, it shows whether
+ * climbing is really improving.
  */
 const VAM_DURATIONS = [5, 10, 20, 30] as const
 export type VamDuration = (typeof VAM_DURATIONS)[number]
 
 export interface VamEffort {
   minutes: VamDuration
-  /** m/h, sur le dénivelé net de la fenêtre. */
+  /** m/h, over the window's net elevation change. */
   vam: number
   elevationM: number
   startKm: number
@@ -23,12 +23,12 @@ export interface VamEffort {
 
 export type VamCurve = Partial<Record<VamDuration, VamEffort>>
 
-/** En dessous, on ne monte pas vraiment : un footing vallonné ne doit pas peser dans la courbe. */
+/** Below this, it is not really climbing: a hilly easy run must not weigh in the curve. */
 const MIN_CLIMBING_VAM = 300
-/** Une fenêtre qui enjambe un trou d'enregistrement (montre arrêtée) n'est pas un effort continu. */
+/** A window spanning a recording gap (watch stopped) is not a continuous effort. */
 const MAX_WINDOW_STRETCH = 1.25
 
-/** Meilleure VAM tenue pendant `minutes`, ou `undefined` si la trace ne contient pas un tel effort. */
+/** Best VAM held for `minutes`, or `undefined` if the track contains no such effort. */
 export function bestVam(samples: ActivitySample[], minutes: VamDuration): VamEffort | undefined {
   const points = samples.filter((s) => s.alt !== undefined)
   const duration = minutes * 60
@@ -68,12 +68,12 @@ export function vamCurve(samples: ActivitySample[]): VamCurve {
   return curve
 }
 
-/** La VAM n'a de sens comparé d'une sortie à l'autre qu'à pied (course, rando). */
+/** VAM is only comparable from one activity to another on foot (running, hiking). */
 function climbingActivities(activities: Activity[]): Activity[] {
   return activities.filter((a) => a.sport === 'RUN' && (a.samples?.length ?? 0) >= 2)
 }
 
-/** Records battus par `activity` face aux sorties qui la précèdent (aucun s'il n'y a pas d'antériorité). */
+/** Records beaten by `activity` against the activities before it (none if there is no history). */
 export function vamRecords(activity: Activity, history: Activity[]): Array<{ effort: VamEffort; previous: number }> {
   if (activity.sport !== 'RUN' || !activity.samples?.length) return []
   const curve = vamCurve(activity.samples)
@@ -95,10 +95,10 @@ export interface VamMark {
 
 export interface VamProgress {
   durations: readonly VamDuration[]
-  /** Semaines de la plus ancienne à la plus récente, y compris celles sans montée (pour garder l'axe du temps). */
+  /** Weeks from oldest to most recent, including those without climbing (to keep the time axis). */
   weeks: Array<{ weekStart: IsoDate; best: Partial<Record<VamDuration, VamMark>> }>
   records: Partial<Record<VamDuration, VamMark>>
-  /** Meilleure VAM des 4 dernières semaines face aux 8 semaines précédentes. */
+  /** Best VAM of the last 4 weeks against the previous 8 weeks. */
   trend: Partial<Record<VamDuration, { recent?: number; previous?: number; deltaPct?: number }>>
 }
 

@@ -9,8 +9,8 @@ export interface User {
 }
 
 /**
- * Session d'un appareil. Le jeton n'est jamais stocké en clair :
- * seule son empreinte (`tokenHash`) est persistée.
+ * A device session. The token is never stored in plain text:
+ * only its hash (`tokenHash`) is persisted.
  */
 export interface DeviceSession {
   id: string
@@ -48,7 +48,7 @@ const SYSTEMS: Array<[RegExp, string]> = [
   [/Linux/, 'Linux'],
 ]
 
-/** Libellé lisible à partir du User-Agent, ex. « Firefox · Linux ». */
+/** Readable label from the User-Agent, e.g. "Firefox · Linux". */
 export function describeDevice(userAgent: string | undefined): string {
   if (!userAgent) return 'Appareil inconnu'
   const browser = BROWSERS.find(([re]) => re.test(userAgent))?.[1] ?? 'Navigateur'

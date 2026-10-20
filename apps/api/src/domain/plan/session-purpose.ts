@@ -6,7 +6,7 @@ import type { PlannedSession, SessionType, TrainingPlan } from './training-plan'
 interface PurposeContext {
   phase: TrainingPhase
   goal: RaceGoal
-  /** Durée de course estimée, en heures. */
+  /** Estimated race duration, in hours. */
   raceHours: number
 }
 
@@ -51,7 +51,7 @@ const PURPOSES: Record<SessionType, (c: PurposeContext) => string> = {
   RACE: ({ goal }) => `${goal.name}, c’est aujourd’hui : tout le travail est fait, fais-toi confiance.`,
 }
 
-/** Rôle de la séance dans la préparation, relié à la course visée. */
+/** The session's role in the preparation, tied to the target race. */
 export function sessionPurpose(session: PlannedSession, plan: TrainingPlan, goal: RaceGoal, profile: Pick<AthleteProfile, 'level'>): string {
   const phase = plan.weeks.find((w) => w.index === session.weekIndex)?.phase ?? 'BUILD'
   return PURPOSES[session.type]({ phase, goal, raceHours: estimateRaceDurationH(goal, profile.level) })

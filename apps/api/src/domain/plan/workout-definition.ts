@@ -2,8 +2,8 @@ import { assertDomain } from '../shared/errors'
 import type { PlannedSession, WorkoutStep, Zone } from './training-plan'
 
 /**
- * Séance structurée, indépendante de tout format de fichier : c'est ce que
- * l'adaptateur FIT encode pour l'envoyer sur une montre Garmin.
+ * Structured workout, independent of any file format: this is what
+ * the FIT adapter encodes to send it to a Garmin watch.
  */
 export type StepIntensity = 'WARMUP' | 'ACTIVE' | 'RECOVERY' | 'COOLDOWN'
 
@@ -12,7 +12,7 @@ export interface TimedStep {
   name: string
   durationSec: number
   intensity: StepIntensity
-  /** Zone cardiaque cible, résolue par la montre selon les zones de l'athlète. */
+  /** Target heart rate zone, resolved by the watch from the athlete's zones. */
   heartRateZone: Zone
   notes?: string
 }
@@ -37,7 +37,7 @@ const INTENSITY: Record<WorkoutStep['kind'], StepIntensity> = {
   COOLDOWN: 'COOLDOWN',
 }
 
-/** Les montres tronquent les noms : on reste court. */
+/** Watches truncate names: keep it short. */
 const NAME_MAX = 30
 
 export function isExportable(session: PlannedSession): boolean {
@@ -54,7 +54,7 @@ export function toWorkoutDefinition(session: PlannedSession): WorkoutDefinition 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i]!
     const next = steps[i + 1]
-    // Effort + récup répétés n fois → un bloc de répétition.
+    // Effort + recovery repeated n times → a repeat block.
     if (step.repeat && step.repeat > 1 && next?.repeat === step.repeat && next.kind === 'RECOVERY') {
       items.push({ kind: 'REPEAT', times: step.repeat, steps: [toTimed(step), toTimed(next)] })
       i++

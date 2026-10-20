@@ -1,4 +1,4 @@
-/** Date calendaire au format ISO `YYYY-MM-DD`, sans fuseau horaire. */
+/** Calendar date in ISO `YYYY-MM-DD` format, without time zone. */
 export type IsoDate = string
 
 const DAY_MS = 86_400_000
@@ -20,7 +20,7 @@ export function daysBetween(from: IsoDate, to: IsoDate): number {
   return Math.round((toUtc(to) - toUtc(from)) / DAY_MS)
 }
 
-/** 0 = lundi … 6 = dimanche (convention française). */
+/** 0 = Monday … 6 = Sunday (French convention). */
 export function weekday(date: IsoDate): number {
   return (new Date(toUtc(date)).getUTCDay() + 6) % 7
 }
@@ -37,16 +37,16 @@ export function toIsoDate(date: Date): IsoDate {
   return date.toISOString().slice(0, 10)
 }
 
-/** Fuseau retenu tant que l'utilisateur n'en a pas donné (via son téléphone). */
+/** Time zone used until the user has provided one (via their phone). */
 export const DEFAULT_TIME_ZONE = 'Europe/Paris'
 
 export interface LocalTime {
   date: IsoDate
-  /** Minutes écoulées depuis minuit. */
+  /** Minutes elapsed since midnight. */
   minutes: number
 }
 
-/** Date et heure murales d'un instant dans un fuseau. */
+/** Wall-clock date and time of an instant in a time zone. */
 export function localTime(instant: Date, timeZone: string): LocalTime {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })

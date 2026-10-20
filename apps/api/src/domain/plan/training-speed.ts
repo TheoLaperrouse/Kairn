@@ -6,14 +6,14 @@ import { clamp, median, round1 } from '../shared/math'
 const WINDOW_DAYS = 42
 const MIN_DURATION_SEC = 30 * 60
 const MIN_RUNS = 3
-/** Bornes de vraisemblance : de la rando-course lente au coureur élite. */
+/** Plausibility bounds: from slow hike-running to elite runner. */
 const MIN_SPEED = 5
 const MAX_SPEED = 14
 
 /**
- * Vitesse d'entraînement réelle en km-effort/h (1 km + 100 m D+) : médiane des sorties à pied
- * d'au moins 30 min sur 6 semaines. Elle remplace la valeur type du niveau pour estimer
- * distance et D+ des séances, qui sont prévues en durée.
+ * Actual training speed in km-effort/h (1 km + 100 m of climbing): median of runs
+ * of at least 30 min over 6 weeks. It replaces the level's typical value to estimate
+ * the distance and climbing of sessions, which are planned by duration.
  */
 export function personalTrainingSpeed(activities: Activity[], today: IsoDate): number | undefined {
   const since = addDays(today, -WINDOW_DAYS)

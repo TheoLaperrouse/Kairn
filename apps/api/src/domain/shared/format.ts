@@ -1,4 +1,4 @@
-/** Mise en forme française des messages produits par le domaine (analyses, bilans, notifications). */
+/** French formatting of the messages produced by the domain (analyses, summaries, notifications). */
 const integer = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
 const oneDecimal = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 })
 
@@ -25,7 +25,7 @@ export function formatPercent(ratio: number): string {
 
 const WEEKDAYS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
 
-/** 0 = lundi. */
+/** 0 = Monday. */
 export function weekdayName(index: number): string {
   return WEEKDAYS[index] ?? ''
 }

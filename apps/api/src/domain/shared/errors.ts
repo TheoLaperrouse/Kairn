@@ -1,4 +1,4 @@
-/** Violation d'une règle métier : l'entrée est invalide du point de vue du domaine. */
+/** Business rule violation: the input is invalid from the domain's point of view. */
 export class DomainError extends Error {
   constructor(message: string) {
     super(message)

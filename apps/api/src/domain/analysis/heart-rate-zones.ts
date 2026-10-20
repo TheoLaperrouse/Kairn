@@ -3,15 +3,15 @@ import type { ActivitySample } from '../activity/activity'
 import type { Zone } from '../plan/training-plan'
 
 /**
- * Zones cardiaques à 5 niveaux, alignées sur celles des séances du plan (Z1 récup → Z5 VMA).
- * - Méthode de Karvonen (% de la FC de réserve) quand la FC de repos est connue : plus juste ;
- * - sinon % de la FC max, comme les montres par défaut.
+ * 5-level heart rate zones, aligned with those of the plan's sessions (Z1 recovery → Z5 VO2max).
+ * - Karvonen method (% of heart rate reserve) when resting HR is known: more accurate;
+ * - otherwise % of max HR, like watches by default.
  */
 export type ZoneMethod = 'RESERVE' | 'MAX'
 
 export interface HeartRateZones {
   method: ZoneMethod
-  /** Borne basse (bpm) de Z2, Z3, Z4 et Z5. */
+  /** Lower bound (bpm) of Z2, Z3, Z4 and Z5. */
   bounds: [number, number, number, number]
 }
 
@@ -19,8 +19,8 @@ export type TimeInZones = Record<Zone, number>
 
 const THRESHOLDS = [0.6, 0.7, 0.8, 0.9] as const
 /**
- * Au-delà, l'écart entre deux échantillons est une pause (montre arrêtée) : il ne compte pas.
- * Assez large pour les enregistrements espacés (mode UltraTrac : un point par minute).
+ * Beyond this, the gap between two samples is a pause (watch stopped): it does not count.
+ * Wide enough for sparse recordings (UltraTrac mode: one point per minute).
  */
 const MAX_INTERVAL_SEC = 120
 
@@ -41,7 +41,7 @@ export function zoneOf(heartRate: number, zones: HeartRateZones): Zone {
   return zone
 }
 
-/** Secondes passées dans chaque zone, pondérées par l'intervalle entre échantillons. */
+/** Seconds spent in each zone, weighted by the interval between samples. */
 export function timeInZones(samples: ActivitySample[], zones: HeartRateZones): TimeInZones {
   const time: TimeInZones = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
   for (let i = 1; i < samples.length; i++) {

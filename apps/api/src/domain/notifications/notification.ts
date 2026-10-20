@@ -6,26 +6,26 @@ import { assertDomain } from '../shared/errors'
 import { formatInt, formatKm, formatMinutes } from '../shared/format'
 import type { WeeklySummary } from '../summary/weekly-summary'
 
-/** Message affiché par le téléphone ; `url` est ouverte au toucher. */
+/** Message displayed by the phone; `url` is opened on tap. */
 export interface PushMessage {
   title: string
   body: string
   url: string
-  /** Remplace une notification précédente de même étiquette au lieu de s'empiler. */
+  /** Replaces a previous notification with the same tag instead of stacking. */
   tag: string
 }
 
 export interface NotificationSettings {
-  /** Fuseau IANA de l'utilisateur, ex. « Europe/Paris ». */
+  /** The user's IANA time zone, e.g. "Europe/Paris". */
   timeZone: string
   morning: { enabled: boolean; time: string }
   weekly: { enabled: boolean; time: string }
   analysis: { enabled: boolean }
-  /** Rappel du bilan du matin, s'il n'est pas rempli à l'heure dite un jour de séance. */
+  /** Morning check-in reminder, if it is not filled in by the set time on a session day. */
   checkIn: { enabled: boolean; time: string }
 }
 
-/** Dernières notifications envoyées : évite les doublons, y compris après un redémarrage. */
+/** Last notifications sent: avoids duplicates, including after a restart. */
 export interface NotificationState {
   lastMorning?: IsoDate
   lastWeekly?: IsoDate
@@ -40,12 +40,12 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   checkIn: { enabled: false, time: '09:00' },
 }
 
-/** Réglages enregistrés avant l'ajout d'une option : on complète avec les valeurs par défaut. */
+/** Settings saved before an option was added: filled in with the default values. */
 export function normalizeSettings(settings: Partial<NotificationSettings>): NotificationSettings {
   return { ...DEFAULT_NOTIFICATION_SETTINGS, ...settings }
 }
 
-/** Après un redémarrage, un rappel manqué part encore dans ce délai. */
+/** After a restart, a missed reminder is still sent within this delay. */
 const CATCH_UP_MIN = 4 * 60
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -70,7 +70,7 @@ function minutesOf(time: string): number {
   return h! * 60 + m!
 }
 
-/** Rappel quotidien activé, pas encore envoyé aujourd'hui, et heure atteinte depuis moins de `CATCH_UP_MIN`. */
+/** Daily reminder enabled, not yet sent today, and time reached less than `CATCH_UP_MIN` ago. */
 function isDailyReminderDue(reminder: { enabled: boolean; time: string }, lastSent: IsoDate | undefined, now: LocalTime): boolean {
   if (!reminder.enabled || lastSent === now.date) return false
   const at = minutesOf(reminder.time)
@@ -81,7 +81,7 @@ export function isMorningDue(settings: NotificationSettings, state: Notification
   return isDailyReminderDue(settings.morning, state.lastMorning, now)
 }
 
-/** Le bilan part le dimanche à l'heure choisie, ou le lundi matin s'il a été manqué. */
+/** The summary is sent on Sunday at the chosen time, or Monday morning if it was missed. */
 export function dueWeeklySummary(settings: NotificationSettings, state: NotificationState, now: LocalTime): IsoDate | undefined {
   if (!settings.weekly.enabled) return undefined
   const day = weekday(now.date)
@@ -105,7 +105,7 @@ function describeSession(session: PlannedSession): string {
   return `${SPORT_EMOJI[session.sport]} ${session.title} · ${details.join(', ')}`
 }
 
-/** Dernier bilan du matin connu, pour adapter le rappel. */
+/** Latest known morning check-in, to adapt the reminder. */
 export interface LatestReadiness {
   date: IsoDate
   level: Readiness['level']
@@ -114,7 +114,7 @@ export interface LatestReadiness {
 
 const LEVEL_WORDS: Record<Readiness['level'], string> = { GREEN: 'au vert', ORANGE: 'à l’orange', RED: 'au rouge' }
 
-/** Rappel du matin, s'il reste au moins une séance prévue aujourd'hui. */
+/** Morning reminder, if at least one session is still planned today. */
 export function morningMessage(sessions: PlannedSession[], options: { date: IsoDate; latest?: LatestReadiness }): PushMessage | undefined {
   const today = sessions.filter((s) => s.date === options.date && s.status === 'PLANNED')
   if (today.length === 0) return undefined
@@ -143,7 +143,7 @@ export function morningMessage(sessions: PlannedSession[], options: { date: IsoD
   }
 }
 
-/** Rappel du bilan du matin, les jours où une séance est prévue. */
+/** Morning check-in reminder, on days when a session is planned. */
 export function checkInReminderMessage(sessions: PlannedSession[], date: IsoDate): PushMessage | undefined {
   if (!sessions.some((s) => s.date === date && s.status === 'PLANNED' && s.type !== 'RACE')) return undefined
   return {

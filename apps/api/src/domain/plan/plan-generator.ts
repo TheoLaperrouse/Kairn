@@ -36,11 +36,11 @@ export interface PlanRequest {
   today: IsoDate
   createdAt: string
   routines: RoutineSummary[]
-  /** Vitesse réelle d'entraînement (km-effort/h) mesurée sur les sorties récentes ; à défaut, la valeur type du niveau. */
+  /** Actual training speed (km-effort/h) measured on recent activities; otherwise, the level's typical value. */
   trainingSpeedKme?: number
 }
 
-/** Volume hebdomadaire au pic (h) pour un coureur intermédiaire. */
+/** Peak weekly volume (h) for an intermediate runner. */
 const PEAK_HOURS: Record<TrailCategory, number> = { XS: 5, S: 6.5, M: 8, L: 10, XL: 12, XXL: 14 }
 const LEVEL_VOLUME_FACTOR: Record<ExperienceLevel, number> = {
   BEGINNER: 0.75,
@@ -48,7 +48,7 @@ const LEVEL_VOLUME_FACTOR: Record<ExperienceLevel, number> = {
   ADVANCED: 1.2,
   EXPERT: 1.4,
 }
-/** Durée maximale de la sortie longue (min). */
+/** Maximum long run duration (min). */
 const MAX_LONG_RUN_MIN: Record<TrailCategory, number> = { XS: 110, S: 180, M: 240, L: 300, XL: 360, XXL: 420 }
 const TAPER_WEEKS: Record<TrailCategory, number> = { XS: 1, S: 1, M: 2, L: 2, XL: 3, XXL: 3 }
 const TAPER_FACTORS: Record<number, number[]> = { 1: [0.6], 2: [0.75, 0.58], 3: [0.85, 0.72, 0.58] }
@@ -74,7 +74,7 @@ const PHASE_FOCUS: Record<TrainingPhase, string> = {
   RACE: 'Repos actif, sommeil, charge glucidique les 2 derniers jours.',
 }
 
-/** Données communes à toutes les semaines du plan. */
+/** Data shared by all the plan's weeks. */
 interface PlanContext {
   request: PlanRequest
   category: TrailCategory
@@ -90,7 +90,7 @@ interface WeekSkeleton {
   phase: TrainingPhase
   isRecovery: boolean
   hours: number
-  /** Avancement dans la phase (0 → 1). */
+  /** Progress through the phase (0 → 1). */
   progress: number
 }
 
@@ -200,7 +200,7 @@ function buildSkeleton(
   const currentHours = kmEffort(profile.currentWeeklyKm, profile.currentWeeklyElevationM) / speedKme
   const startHours = Math.min(clamp(currentHours * 1.05, peak * 0.45, peak * 0.85), peak)
 
-  // Cycle 3:1 — toutes les 4e semaines de construction sont allégées, sauf juste avant l'affûtage.
+  // 3:1 cycle — every 4th build week is lighter, except right before the taper.
   const isRecovery = phases.map((_, i) => (i + 1) % 4 === 0 && i < buildWeeks - 1)
   const loadingWeeks = isRecovery.filter((r) => !r).length
   const rampLength = Math.max(loadingWeeks * 0.85, 1)
@@ -296,7 +296,7 @@ function buildWeekSessions(week: WeekSkeleton, ctx: PlanContext): PlannedSession
   if (week.phase === 'RACE') runCount = Math.min(runCount, 3)
   const runTypes = runTypesFor(week, goal, ctx.category, ctx.simulationWeek === week.index).slice(0, runCount)
 
-  // Répartition du volume : le vélo prend ~20 % des heures s'il est activé.
+  // Volume split: cycling takes ~20 % of the hours if enabled.
   const cycling = profile.crossTraining.cycling && week.phase !== 'RACE'
   const totalMin = week.hours * 60
   const runMin = cycling ? totalMin * 0.8 : totalMin
@@ -362,7 +362,7 @@ function allocateDurations(
   easy.forEach((t) => push(t, week.phase === 'RACE' ? 35 : easyMin))
   remaining -= easyMin * easy.length
 
-  // Volume non absorbé par les footings : il allonge la sortie longue puis le back-to-back.
+  // Volume not absorbed by easy runs: it lengthens the long run, then the back-to-back.
   if (remaining > 0 && week.phase !== 'RACE' && !week.isRecovery) {
     const extend = (type: SessionType, cap: number) => {
       const list = durations.get(type)
@@ -383,7 +383,7 @@ interface Placement {
   day: number
 }
 
-/** Distance circulaire entre deux jours (la semaine suivante recommence). */
+/** Circular distance between two days (the next week starts over). */
 function dayDistance(a: number, b: number): number {
   const d = Math.abs(a - b)
   return Math.min(d, 7 - d)
@@ -443,7 +443,7 @@ function placeCycling(week: WeekSkeleton, existing: DraftSession[], bikeMin: num
     const duration = clamp(roundTo(bikeMin / count, 5), 45, 150)
     let day = freeDays.shift()
     if (day === undefined) {
-      // Pas de jour libre : le vélo remplace un footing d'endurance (moins d'impacts).
+      // No free day: cycling replaces an easy endurance run (less impact).
       const runs = existing.filter((s) => s.sport === 'RUN')
       const swap = existing.find((s) => s.type === 'ENDURANCE')
       if (!swap || runs.length <= 3) break
@@ -487,12 +487,12 @@ function pickRoutines(routines: RoutineSummary[], week: WeekSkeleton, count: num
   if (week.isRecovery) {
     return [eligible.reduce((a, b) => (a.durationMin <= b.durationMin ? a : b))]
   }
-  // Les routines les plus complètes d'abord, en alternant d'une semaine à l'autre.
+  // The most complete routines first, alternating from one week to the next.
   const sorted = [...eligible].sort((a, b) => b.durationMin - a.durationMin || a.id.localeCompare(b.id))
   return Array.from({ length: Math.min(count, sorted.length) }, (_, i) => sorted[(week.index + i) % sorted.length]!)
 }
 
-/** Ratio D+/km réaliste à l'entraînement : borné par le terrain disponible. */
+/** Realistic climbing/km ratio in training: capped by the available terrain. */
 function effectiveVerticalRatio(goal: RaceGoal, profile: AthleteProfile): number {
   const cap = profile.terrain === 'FLAT' ? 15 : profile.terrain === 'HILLS' ? 35 : Infinity
   return Math.min(verticalRatio(goal), cap)
