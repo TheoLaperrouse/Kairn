@@ -21,7 +21,7 @@ async function copy() {
     copied.value = true
     setTimeout(() => (copied.value = false), 1800)
   } catch {
-    /* presse-papiers indisponible : le lien reste sélectionnable */
+    /* clipboard unavailable: the link stays selectable */
   }
 }
 

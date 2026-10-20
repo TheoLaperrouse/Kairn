@@ -1,10 +1,10 @@
 import type { PushSubscriptionPayload } from '../../domain/models'
 
 /**
- * Capacité de l'appareil à recevoir des notifications :
- * - `NEEDS_INSTALL` : iPhone / iPad, il faut d'abord ajouter Kairn à l'écran d'accueil ;
- * - `INSECURE` : page servie en http (hors localhost), le navigateur refuse ;
- * - `DENIED` : l'utilisateur a bloqué les notifications pour ce site.
+ * Whether the device can receive notifications:
+ * - `NEEDS_INSTALL`: iPhone / iPad, Kairn must first be added to the home screen;
+ * - `INSECURE`: page served over http (outside localhost), the browser refuses;
+ * - `DENIED`: the user blocked notifications for this site.
  */
 export type PushSupport = 'SUPPORTED' | 'UNSUPPORTED' | 'NEEDS_INSTALL' | 'INSECURE' | 'DENIED'
 
@@ -12,7 +12,7 @@ export interface PushClient {
   support(): PushSupport
   currentEndpoint(): Promise<string | undefined>
   subscribe(publicKey: string): Promise<PushSubscriptionPayload>
-  /** Retourne l'endpoint désabonné. */
+  /** Returns the unsubscribed endpoint. */
   unsubscribe(): Promise<string | undefined>
   timeZone(): string
 }

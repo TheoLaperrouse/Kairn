@@ -16,7 +16,7 @@ import { router } from './ui/router'
 
 const pinia = createPinia()
 
-// Session révoquée depuis un autre appareil ou expirée : retour à l'écran de connexion.
+// Session revoked from another device or expired: back to the login screen.
 provideApi(
   createHttpTrainingApi(() => {
     useAuthStore(pinia).forget()

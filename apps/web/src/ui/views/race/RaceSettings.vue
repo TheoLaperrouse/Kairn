@@ -14,7 +14,7 @@ const savingSettings = ref(false)
 const settingsSaved = ref(false)
 const savingStations = ref(false)
 
-// Copie locale éditée puis enregistrée.
+// Local copy, edited then saved.
 const settings = reactive<RaceCourseSettings>({ ...props.course.settings })
 watch(
   () => props.course.settings,

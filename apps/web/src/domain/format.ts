@@ -91,7 +91,7 @@ export function formatSeconds(seconds: number): string {
   return formatDuration(seconds / 60)
 }
 
-/** Chrono `m:ss` pour les minuteurs. */
+/** `m:ss` clock for timers. */
 export function formatClock(seconds: number): string {
   const s = Math.max(0, Math.ceil(seconds))
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
@@ -149,7 +149,7 @@ export const VERDICT_LABELS: Record<Verdict, string> = {
   UNPLANNED: 'Sortie libre',
 }
 
-/** Ton d'un verdict : réussi, à surveiller, ou neutre (sortie hors plan). */
+/** Tone of a verdict: success, warning, or neutral (unplanned outing). */
 export const VERDICT_TONES: Record<Verdict, 'success' | 'warning' | 'neutral'> = {
   ON_TARGET: 'success',
   TOO_HARD: 'warning',
@@ -167,7 +167,7 @@ export function startOfWeekIso(iso: string): string {
   return addDaysIso(iso, -weekdayOf(iso))
 }
 
-/** « 3 – 9 mars » ou « 28 févr. – 6 mars ». */
+/** « 3 – 9 mars » or « 28 févr. – 6 mars ». */
 export function formatWeekRange(start: string): string {
   const end = addDaysIso(start, 6)
   const sameMonth = start.slice(0, 7) === end.slice(0, 7)

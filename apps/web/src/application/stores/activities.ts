@@ -19,7 +19,7 @@ export const useActivitiesStore = defineStore('activities', () => {
     verdicts.value = judged
   }
 
-  /** Après un import, le plan a pu changer (séances validées) : on le recharge. */
+  /** After an import the plan may have changed (sessions completed), so reload it. */
   async function afterImport(outcomes: ImportOutcome[]) {
     lastImport.value = outcomes
     if (outcomes.some((o) => o.status === 'IMPORTED')) {

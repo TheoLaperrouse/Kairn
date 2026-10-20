@@ -334,7 +334,7 @@ textarea {
   mask-image: linear-gradient(to bottom, black, transparent);
 }
 
-/* Infobulle des graphiques, positionnée par le composant. */
+/* Chart tooltip, positioned by the component. */
 .chart-tooltip {
   position: absolute;
   z-index: 2;

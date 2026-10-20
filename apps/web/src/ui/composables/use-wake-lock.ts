@@ -1,6 +1,6 @@
 import { onBeforeUnmount, onMounted } from 'vue'
 
-/** Garde l'écran allumé. Le verrou, perdu quand l'onglet passe en arrière-plan, est repris au retour tant que `isActive()`. */
+/** Keeps the screen on. The lock, lost when the tab goes to the background, is reacquired on return as long as `isActive()`. */
 export function useWakeLock(isActive: () => boolean) {
   let wakeLock: WakeLockSentinel | undefined
 

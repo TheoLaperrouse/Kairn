@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import type { Exercise, FuelingInput, FuelingPlan, Recipe, RoutineDetail, StrengthRoutine } from '../../domain/models'
 import { useApi } from '../api-provider'
 
-/** Contenu éditorial (exercices, routines, recettes) : chargé une fois puis mis en cache. */
+/** Editorial content (exercises, routines, recipes): loaded once, then cached. */
 export const useContentStore = defineStore('content', () => {
   const api = useApi()
   const exercises = ref<Exercise[]>([])

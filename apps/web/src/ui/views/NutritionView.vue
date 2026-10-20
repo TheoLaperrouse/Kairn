@@ -5,7 +5,7 @@ import FuelingStrategy from './nutrition/FuelingStrategy.vue'
 import RecipeBrowser from './nutrition/RecipeBrowser.vue'
 
 const content = useContentStore()
-const tab = ref<'recettes' | 'course'>('recettes')
+const tab = ref<'recipes' | 'course'>('recipes')
 
 onMounted(() => content.loadRecipes())
 </script>
@@ -19,14 +19,14 @@ onMounted(() => content.loadRecipes())
         <p class="lead">Des recettes maison pensées pour l’effort long, et un plan de ravitaillement calibré pour ta course.</p>
       </div>
       <div class="tabs" role="tablist" aria-label="Sections nutrition">
-        <button role="tab" type="button" :aria-selected="tab === 'recettes'" @click="tab = 'recettes'">Recettes</button>
+        <button role="tab" type="button" :aria-selected="tab === 'recipes'" @click="tab = 'recipes'">Recettes</button>
         <button role="tab" type="button" :aria-selected="tab === 'course'" @click="tab = 'course'">Stratégie de course</button>
       </div>
     </header>
 
-    <!-- Filtres et calcul conservés d'un onglet à l'autre. -->
+    <!-- Filters and calculator state are kept when switching tabs. -->
     <KeepAlive>
-      <RecipeBrowser v-if="tab === 'recettes'" />
+      <RecipeBrowser v-if="tab === 'recipes'" />
       <FuelingStrategy v-else />
     </KeepAlive>
   </div>

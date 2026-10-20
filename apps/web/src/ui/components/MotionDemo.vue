@@ -1,5 +1,5 @@
 <script lang="ts">
-/** Disponibilité des MP4 exportés, vérifiée une seule fois par fichier pour toute l'app. */
+/** Availability of the exported MP4s, checked only once per file for the whole app. */
 const availability = new Map<string, Promise<boolean>>()
 
 function isAvailable(src: string): Promise<boolean> {
@@ -44,7 +44,7 @@ watch(
   { immediate: true },
 )
 
-/** Ramène la lecture au début du passage dès qu'on atteint sa fin : boucle sans couture. */
+/** Jumps playback back to the start of the clip as soon as it reaches its end: seamless loop. */
 function keepInSegment() {
   const el = video.value
   const c = clip.value
@@ -81,7 +81,7 @@ watch(
     }
   },
 )
-// Le film est calé sur le tempo du catalogue ; on ajuste la vitesse au tempo demandé par la séance.
+// The film is timed to the catalogue tempo; playback speed is adjusted to the tempo the session asks for.
 watch(
   [() => props.cycleMs, video],
   () => {
@@ -120,7 +120,7 @@ onBeforeUnmount(() => cancelAnimationFrame(frameHandle))
   width: 100%;
   height: 100%;
   min-height: 0;
-  /* Flex plutôt que grille : la démo hérite d'une hauteur définie et ne déborde jamais du cadre. */
+  /* Flex rather than grid: the demo inherits a defined height and never overflows its frame. */
   display: flex;
   align-items: center;
   justify-content: center;

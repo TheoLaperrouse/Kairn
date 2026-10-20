@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Déclaration d'une période sans course (maladie, blessure, indisponibilité) :
- * le plan est adapté puis une reprise progressive est programmée.
+ * Declares a period without running (illness, injury, unavailability):
+ * the plan is adapted, then a gradual return is scheduled.
  */
 import { Bandage, CalendarX, CircleCheck, Thermometer, TriangleAlert, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Constats d'une analyse ou d'un bilan : icône et intitulé portent le ton, jamais la couleur seule. */
+/** Findings of an analysis or summary: icon and title carry the tone, never color alone. */
 import { CircleAlert, CircleCheck, Info } from 'lucide-vue-next'
 import type { Insight } from '../../domain/models'
 

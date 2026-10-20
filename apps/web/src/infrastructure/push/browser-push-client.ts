@@ -1,7 +1,7 @@
 import type { PushClient, PushSupport } from '../../application/ports/push-client'
 import type { PushSubscriptionPayload } from '../../domain/models'
 
-/** Enregistre le service worker des notifications ; sans effet si le navigateur ne le permet pas. */
+/** Registers the notification service worker; no-op if the browser does not support it. */
 export function registerServiceWorker(): void {
   if (!('serviceWorker' in navigator) || !window.isSecureContext) return
   navigator.serviceWorker.register('/sw.js').catch(() => undefined)
@@ -29,7 +29,7 @@ export class BrowserPushClient implements PushClient {
   support(): PushSupport {
     if (!window.isSecureContext) return 'INSECURE'
     const appleMobile = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-    // Sur iOS, la Push API n'existe que dans l'application ajoutée à l'écran d'accueil (iOS 16.4+).
+    // On iOS, the Push API only exists in the app added to the home screen (iOS 16.4+).
     if (appleMobile && !isStandalone()) return 'NEEDS_INSTALL'
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return 'UNSUPPORTED'
     if (Notification.permission === 'denied') return 'DENIED'
@@ -49,7 +49,7 @@ export class BrowserPushClient implements PushClient {
     const registration = await navigator.serviceWorker.ready
     const key = keyBytes(publicKey)
     let subscription = await registration.pushManager.getSubscription()
-    // Abonnement créé avec une autre clé serveur (réinstallation) : on le remplace.
+    // Subscription created with another server key (reinstall): replace it.
     if (subscription && !sameKey(subscription.options.applicationServerKey, key)) {
       await subscription.unsubscribe()
       subscription = null

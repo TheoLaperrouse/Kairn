@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Tendance du score de forme sur 28 jours : ligne 2px, points colorés par niveau
- * (toujours doublés d'un libellé dans l'infobulle), zones de seuil discrètes.
+ * 28-day readiness score trend: 2px line, dots coloured by level
+ * (always paired with a label in the tooltip), subtle threshold bands.
  */
 import { computed, ref } from 'vue'
 import { formatShortDate } from '../../domain/format'

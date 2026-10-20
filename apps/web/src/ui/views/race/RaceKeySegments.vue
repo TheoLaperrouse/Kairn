@@ -8,7 +8,7 @@ const props = defineProps<{ course: RaceCourse; plan: RacePlan }>()
 
 const KIND_LABEL: Record<CourseSegment['kind'], string> = { UPHILL: 'Montée', DOWNHILL: 'Descente', FLAT: 'Portion roulante' }
 
-/** Seules les vraies difficultés : au moins 250 m (ou 8 % du dénivelé total) de montée ou de descente. */
+/** Only real difficulties: at least 250 m (or 8% of total elevation) of climb or descent. */
 const keySegments = computed(() => {
   const threshold = Math.max(250, props.course.elevationGainM * 0.08)
   return props.plan.segments.filter(

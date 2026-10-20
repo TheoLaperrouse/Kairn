@@ -35,7 +35,7 @@ import type {
   ActivityVerdict,
 } from '../../domain/models'
 
-/** Port de sortie du front : les stores ne connaissent que cette interface, jamais `fetch`. */
+/** Front-end output port: stores only know this interface, never `fetch`. */
 export interface TrainingApi {
   register(email: string, password: string, displayName: string): Promise<User>
   login(email: string, password: string): Promise<User>
@@ -87,7 +87,7 @@ export interface TrainingApi {
   deleteRaceCourse(): Promise<void>
 
   watchStatus(): Promise<{ configured: boolean }>
-  /** URL de téléchargement du fichier FIT d'une séance (lien direct, le cookie suffit). */
+  /** Download URL of a session's FIT file (direct link, the cookie is enough). */
   workoutFileUrl(sessionId: string): string
   sendSessionToWatch(sessionId: string): Promise<void>
   sendWeekToWatch(weekIndex: number): Promise<string[]>

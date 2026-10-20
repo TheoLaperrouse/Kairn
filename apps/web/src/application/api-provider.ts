@@ -2,8 +2,8 @@ import type { PushClient } from './ports/push-client'
 import type { TrainingApi } from './ports/training-api'
 
 /**
- * Point d'injection de l'adaptateur API : `main.ts` fournit l'implémentation HTTP,
- * les tests peuvent fournir un double en mémoire.
+ * Injection point for the API adapter: `main.ts` provides the HTTP implementation,
+ * tests can provide an in-memory double.
  */
 let current: TrainingApi | undefined
 

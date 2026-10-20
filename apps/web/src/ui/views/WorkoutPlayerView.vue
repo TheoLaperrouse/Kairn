@@ -59,7 +59,7 @@ const currentExercise = computed(() =>
 )
 const nextEffort = computed(() => queue.value.slice(index.value + 1).find((s): s is EffortStep => s.kind === 'EFFORT'))
 
-/** Durée de la phase courante (préparation, effort chronométré ou repos) ; `undefined` pour un effort en répétitions. */
+/** Duration of the current stage (prep, timed effort or rest); `undefined` for a rep-based effort. */
 const stageDuration = computed<number | undefined>(() => {
   const s = step.value
   if (!s) return undefined
@@ -80,7 +80,7 @@ const repProgress = computed(() => {
   return (elapsed.value % e.repSec) / e.repSec
 })
 
-/** Phases du tempo (ex. 3-1-1 → descente / pause / montée) et celle en cours dans la répétition. */
+/** Tempo phases (e.g. 3-1-1 → lower / pause / lift) and the current one within the rep. */
 const tempoPhases = computed(() => {
   const e = effort.value
   if (!e?.tempo) return []
@@ -157,7 +157,7 @@ function tick() {
     }
     if (left <= 0) return advanceStage()
   }
-  // Répétitions terminées : petit délai pour souffler, puis on enchaîne.
+  // Reps finished: short breather, then move on.
   if (effort.value?.reps && stage.value === 'RUN' && elapsed.value >= effort.value.reps * effort.value.repSec + 2.5) {
     advanceStage()
   }
@@ -489,7 +489,7 @@ const RING = 2 * Math.PI * 54
 </template>
 
 <style scoped>
-/* Fond sombre immersif, quel que soit le thème de l'application. */
+/* Immersive dark background, whatever the app theme. */
 .player {
   color-scheme: dark;
   --bg: #0b1424;
@@ -1061,7 +1061,7 @@ const RING = 2 * Math.PI * 54
   margin-top: var(--space-2);
 }
 
-/* Portrait / mobile : démo en haut, infos en dessous */
+/* Portrait / mobile: demo on top, info below */
 @media (max-width: 860px), (orientation: portrait) {
   .stage {
     grid-template-columns: 1fr;

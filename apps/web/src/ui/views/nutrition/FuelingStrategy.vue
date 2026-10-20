@@ -14,7 +14,7 @@ const plan = ref<FuelingPlan>()
 const computing = ref(false)
 const fuelingError = ref('')
 
-// Préremplit avec la durée estimée de l'objectif et le poids du profil.
+// Prefilled with the goal's estimated duration and the profile weight.
 onMounted(async () => {
   if (!training.dashboard) await training.loadDashboard().catch(() => {})
   const estimated = training.dashboard?.goal.estimatedDurationH

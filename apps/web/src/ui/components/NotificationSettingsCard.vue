@@ -30,13 +30,13 @@ async function run(action: () => Promise<unknown>, success?: string) {
 
 function update(change: (s: NotificationSettings) => NotificationSettings) {
   if (!settings.value) return
-  // Copie simple : les objets réactifs (proxys) ne passent pas par structuredClone.
+  // Plain copy: reactive objects (proxies) can't go through structuredClone.
   void run(() => store.save(change(JSON.parse(JSON.stringify(settings.value)) as NotificationSettings)))
 }
 
 type PrefKey = Exclude<keyof NotificationSettings, 'timeZone'>
 
-/** Préférences communes à tous les appareils du compte ; `timeLabel` quand l'heure se règle. */
+/** Preferences shared by every device on the account; `timeLabel` when the time is configurable. */
 const PREFS: Array<{ key: PrefKey; icon: Component; label: string; timeLabel?: string; hint?: string }> = [
   { key: 'morning', icon: Smartphone, label: 'Séance du jour, le matin', timeLabel: 'Heure du rappel du matin', hint: 'Uniquement les jours où une séance est prévue.' },
   {
@@ -109,7 +109,7 @@ const test = () => run(async () => {
 
     <p v-if="message" class="alert" :class="{ 'alert-error': message.kind === 'error' }" role="status">{{ message.text }}</p>
 
-    <!-- Préférences, communes à tous les appareils du compte -->
+    <!-- Preferences, shared by every device on the account -->
     <div v-if="settings" class="prefs" :class="{ dimmed: !store.status?.devices.length }">
       <div v-for="pref in PREFS" :key="pref.key" class="pref">
         <label class="switch">

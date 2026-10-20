@@ -1,4 +1,4 @@
-/** Lecture des champs de formulaire liés par `:value` + `@input` / `@change`. */
+/** Reads form fields bound with `:value` + `@input` / `@change`. */
 export function inputValue(event: Event): string {
   return (event.target as HTMLInputElement | HTMLSelectElement).value
 }
@@ -7,7 +7,7 @@ export function inputNumber(event: Event): number {
   return Number(inputValue(event))
 }
 
-/** Champ numérique facultatif : vide → `undefined`. */
+/** Optional numeric field: empty → `undefined`. */
 export function optionalNumber(event: Event): number | undefined {
   const raw = inputValue(event)
   return raw === '' ? undefined : Number(raw)

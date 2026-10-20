@@ -7,7 +7,7 @@ import { formatHours } from '../../../domain/race-time'
 
 const props = defineProps<{ splits: Split[] }>()
 
-/** Ligne de départ + chaque point de passage, pour les fiches « à emporter ». */
+/** Start line + every checkpoint, for the take-along sheets. */
 const legs = computed(() => props.splits.map((split, i, all) => ({ from: i === 0 ? 'Départ' : all[i - 1]!.name, split })))
 </script>
 

@@ -1,6 +1,6 @@
 /**
- * Modèles du front : miroir des contrats JSON exposés par l'API.
- * Le front a son propre domaine (affichage, cinématique, formatage) et ne dépend pas du code serveur.
+ * Front-end models: a mirror of the JSON contracts exposed by the API.
+ * The front end has its own domain (display, kinematics, formatting) and does not depend on server code.
  */
 
 export type IsoDate = string
@@ -112,7 +112,7 @@ export interface PlannedSession {
   notes?: string
   adjustment?: string
   originalDate?: IsoDate
-  /** Rôle de la séance dans la préparation. */
+  /** Role of the session in the training block. */
   purpose?: string
 }
 
@@ -149,7 +149,7 @@ export interface Activity {
   sport: Sport
   name: string
   startTime: string
-  /** Jour du départ dans le fuseau du coureur (absent sur les activités anciennes). */
+  /** Start day in the runner's time zone (missing on older activities). */
   localDate?: IsoDate
   durationSec: number
   distanceKm: number
@@ -157,12 +157,12 @@ export interface Activity {
   avgHeartRate?: number
   maxHeartRate?: number
   profile: ProfilePoint[]
-  /** Trace détaillée, présente seulement sur une activité chargée seule. */
+  /** Detailed trace, only present when an activity is loaded on its own. */
   samples?: ActivitySample[]
   plannedSessionId?: string
 }
 
-/** Échantillon de trace : secondes depuis le départ, km, altitude, FC. */
+/** Trace sample: seconds since start, km, altitude, heart rate. */
 export interface ActivitySample {
   t: number
   d: number
@@ -397,9 +397,9 @@ export interface Pose {
   farThigh: number
   farShin: number
   /**
-   * Angle absolu du pied (même convention que les segments pendants : 90 = à plat vers l'avant,
-   * < 90 = pointe vers le bas, ex. 60 en demi-pointes). Par défaut : à plat quand le tibia est
-   * proche de la verticale, dans le prolongement naturel quand la jambe est en l'air ou à l'horizontale.
+   * Absolute foot angle (same convention as hanging segments: 90 = flat, pointing forward,
+   * < 90 = toes pointing down, e.g. 60 on tiptoe). Default: flat when the shin is near vertical,
+   * in natural extension when the leg is in the air or horizontal.
    */
   nearFoot?: number
   farFoot?: number
@@ -431,9 +431,9 @@ export interface Exercise {
   animation: {
     durationMs: number
     keyframes: Pose[]
-    /** Instant (0 → 1) de chaque pose-clé dans le cycle ; par défaut, espacement régulier. */
+    /** Instant (0 → 1) of each keyframe in the cycle; evenly spaced by default. */
     timing?: number[]
-    /** Répétitions contenues dans un cycle (2 quand le cycle montre les deux côtés). Défaut : 1. */
+    /** Reps contained in one cycle (2 when the cycle shows both sides). Default: 1. */
     repsPerCycle?: number
     props?: SceneProp[]
   }
@@ -633,7 +633,7 @@ export interface RaceCourseView {
   goalMismatch?: { distanceKm: number; elevationGainM: number }
 }
 
-/** Jour d'une activité : le jour local quand il est connu. */
+/** Day of an activity: the local day when known. */
 export function activityDay(activity: Pick<Activity, 'startTime' | 'localDate'>): IsoDate {
   return activity.localDate ?? activity.startTime.slice(0, 10)
 }

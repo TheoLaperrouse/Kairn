@@ -1,6 +1,6 @@
 import { onBeforeUnmount, ref, watch, type Ref } from 'vue'
 
-/** Largeur d'un élément suivie au redimensionnement, y compris s'il n'apparaît qu'après le montage. */
+/** Element width tracked on resize, even if the element only appears after mounting. */
 export function useElementWidth(target: Ref<HTMLElement | undefined>, fallback = 640, min = 240): Ref<number> {
   const width = ref(fallback)
   let observer: ResizeObserver | undefined

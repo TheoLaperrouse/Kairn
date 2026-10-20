@@ -28,7 +28,7 @@ function toggleTheme() {
   try {
     localStorage.setItem('kairn-theme', theme)
   } catch {
-    /* stockage indisponible : le choix vaut pour la session */
+    /* storage unavailable: the choice lasts for the session */
   }
 }
 </script>

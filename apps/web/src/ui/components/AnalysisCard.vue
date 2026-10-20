@@ -16,7 +16,7 @@ const icon = computed(() => (tone.value === 'success' ? CircleCheck : tone.value
 const rows = computed(() => {
   const c = props.analysis.comparison
   if (!c) return []
-  // `judged` : écart qui compte dans le verdict. Distance et D+ prévus ne sont que des estimations.
+  // `judged`: a gap that counts in the verdict. Planned distance and elevation gain are only estimates.
   const list = [{ label: 'Durée', done: formatDuration(c.actualDurationMin), planned: formatDuration(c.plannedDurationMin), ratio: c.actualDurationMin / c.plannedDurationMin, judged: true }]
   if (c.plannedDistanceKm) {
     list.push({ label: 'Distance', done: `${formatNumber(props.actual.distanceKm, 1)} km`, planned: `${formatNumber(c.plannedDistanceKm, 1)} km`, ratio: props.actual.distanceKm / c.plannedDistanceKm, judged: false })
@@ -216,7 +216,7 @@ async function lighten() {
 .fill.off {
   background: var(--warning);
 }
-/* Repère du 100 % (aux deux tiers de la jauge, qui va jusqu'à 150 %). */
+/* 100% marker (two thirds along the gauge, which goes up to 150%). */
 .mark {
   position: absolute;
   left: 66.6%;
