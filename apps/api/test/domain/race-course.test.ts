@@ -33,6 +33,7 @@ describe('race plan from the official GPX', () => {
     const plan = planRace(course(), goal, 'INTERMEDIATE')
     expect(plan.segments.map((s) => s.kind)).toEqual(['UPHILL', 'DOWNHILL', 'FLAT'])
     expect(plan.segments[0]!.avgGradePct).toBeCloseTo(10, 0)
+    expect(plan.segments.every((s) => s.key)).toBe(true)
   })
 
   it('computes increasing split times, slower uphill than on the flat', () => {

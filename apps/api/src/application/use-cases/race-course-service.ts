@@ -8,9 +8,11 @@ import {
   type RaceCourseSettings,
   type RacePlan,
 } from '../../domain/race-course/race-course'
+import { withRehearsals } from '../../domain/race-course/climb-rehearsal'
 import type { RaceGoal } from '../../domain/goal/race-goal'
+import { toIsoDate } from '../../domain/shared/dates'
 import { DomainError, assertDomain } from '../../domain/shared/errors'
-import type { Clock, CourseFileParser, GoalRepository, ProfileRepository, RaceCourseRepository } from '../ports'
+import type { ActivityRepository, Clock, CourseFileParser, GoalRepository, ProfileRepository, RaceCourseRepository } from '../ports'
 
 export interface RaceCourseView {
   course: RaceCourse
@@ -32,6 +34,7 @@ export class RaceCourseService {
     private readonly courses: RaceCourseRepository,
     private readonly goals: GoalRepository,
     private readonly profiles: ProfileRepository,
+    private readonly activities: ActivityRepository,
     private readonly parser: CourseFileParser,
     private readonly clock: Clock,
   ) {}
@@ -110,9 +113,10 @@ export class RaceCourseService {
     if (!goal || !profile) throw new DomainError('Renseigne ton objectif et ton profil avant d’analyser le parcours')
     const distanceGap = Math.abs(goal.distanceKm - course.totalDistanceKm) / course.totalDistanceKm
     const gainGap = Math.abs(goal.elevationGainM - course.elevationGainM) / Math.max(course.elevationGainM, 1)
+    const plan = planRace(course, goal, profile.level)
     return {
       course,
-      plan: planRace(course, goal, profile.level),
+      plan: { ...plan, segments: withRehearsals(plan.segments, this.activities.list(userId), toIsoDate(this.clock.now())) },
       goalMismatch:
         distanceGap > 0.03 || gainGap > 0.05
           ? { distanceKm: course.totalDistanceKm, elevationGainM: course.elevationGainM }

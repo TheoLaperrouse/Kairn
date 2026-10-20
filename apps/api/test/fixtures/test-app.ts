@@ -118,7 +118,7 @@ export async function buildTestApp(now: Date, options: { providers?: ActivityPro
       activities: activityService,
       dashboard: new DashboardService(profiles, goals, plans, activities, clock),
       content: new ContentService(catalog),
-      raceCourses: new RaceCourseService(new repos.SqliteRaceCourseRepository(db), goals, profiles, new GpxCourseParser(), clock),
+      raceCourses: new RaceCourseService(new repos.SqliteRaceCourseRepository(db), goals, profiles, activities, new GpxCourseParser(), clock),
       wellness: new WellnessService(checkIns, plans, clock),
       workouts: new WorkoutExportService(plans, new FitWorkoutEncoder(), new FolderWatchOutbox(watchDir)),
       analyses,

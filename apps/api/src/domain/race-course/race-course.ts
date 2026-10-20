@@ -3,6 +3,7 @@ import { estimateRaceDurationH, type RaceGoal } from '../goal/race-goal'
 import { computeFuelingPlan, type GutTraining, type SweatProfile } from '../nutrition/race-fueling'
 import { downsampleProfile, haversineKm } from '../activity/activity'
 import { assertDomain } from '../shared/errors'
+import type { ClimbRehearsal } from './climb-rehearsal'
 import { clamp, round1, round2, roundTo } from '../shared/math'
 
 /**
@@ -57,6 +58,10 @@ export interface CourseSegment {
   avgGradePct: number
   startElapsedH: number
   durationH: number
+  /** A real difficulty of the race, worth preparing specifically. */
+  key: boolean
+  /** Local hill to rehearse it on, when the runner's tracks contain one. */
+  rehearsal?: ClimbRehearsal
 }
 
 export interface LegNutrition {
@@ -152,6 +157,17 @@ const NIGHT_END_MIN = 6 * 60 + 30
 /** Climb/descent detection thresholds. */
 const HYSTERESIS_M = 40
 const FLAT_GRADE_PCT = 3
+/** Key segments: at least 250 m (or 8 % of the total elevation gain) of climb or descent, or 5 km of runnable ground. */
+const KEY_DROP_M = 250
+const KEY_DROP_SHARE = 0.08
+const KEY_FLAT_KM = 5
+
+function isKeySegment(s: Pick<CourseSegment, 'kind' | 'startKm' | 'endKm' | 'gainM' | 'lossM'>, courseGainM: number): boolean {
+  const threshold = Math.max(KEY_DROP_M, courseGainM * KEY_DROP_SHARE)
+  if (s.kind === 'UPHILL') return s.gainM >= threshold
+  if (s.kind === 'DOWNHILL') return s.lossM >= threshold
+  return s.endKm - s.startKm >= KEY_FLAT_KM
+}
 
 export function planRace(course: RaceCourse, goal: RaceGoal, level: ExperienceLevel): RacePlan {
   const { points, aidStations, settings } = course
@@ -263,7 +279,7 @@ export function planRace(course: RaceCourse, goal: RaceGoal, level: ExperienceLe
   return {
     totalH: round2(elapsed.at(-1)!),
     movingH: round2(movingH),
-    segments: segment(points, timeAt),
+    segments: segment(points, timeAt, course.elevationGainM),
     splits,
     timeline: points
       .filter((_, i) => i % Math.ceil(points.length / 300) === 0 || i === points.length - 1)
@@ -304,7 +320,7 @@ function legNutrition(durationH: number, carbsH: number, fluidH: number, sodiumH
 }
 
 /** Climb / descent / runnable section breakdown via extrema search with hysteresis. */
-function segment(points: CoursePoint[], timeAt: (km: number) => number): CourseSegment[] {
+function segment(points: CoursePoint[], timeAt: (km: number) => number, courseGainM: number): CourseSegment[] {
   const extrema: number[] = [0]
   let trend = 0
   let high = 0
@@ -328,7 +344,7 @@ function segment(points: CoursePoint[], timeAt: (km: number) => number): CourseS
   if (pending !== undefined && pending !== extrema.at(-1) && pending !== points.length - 1) extrema.push(pending)
   if (extrema.at(-1) !== points.length - 1) extrema.push(points.length - 1)
 
-  const raw: CourseSegment[] = []
+  const raw: Omit<CourseSegment, 'key'>[] = []
   for (let i = 1; i < extrema.length; i++) {
     const a = points[extrema[i - 1]!]!
     const b = points[extrema[i]!]!
@@ -351,7 +367,7 @@ function segment(points: CoursePoint[], timeAt: (km: number) => number): CourseS
   }
 
   // Merge consecutive segments of the same kind.
-  const merged: CourseSegment[] = []
+  const merged: Omit<CourseSegment, 'key'>[] = []
   for (const s of raw) {
     const last = merged.at(-1)
     if (last && last.kind === s.kind) {
@@ -370,6 +386,7 @@ function segment(points: CoursePoint[], timeAt: (km: number) => number): CourseS
       endKm: round1(s.endKm),
       startElapsedH: round2(start),
       durationH: round2(timeAt(s.endKm) - start),
+      key: isKeySegment(s, courseGainM),
     }
   })
 }

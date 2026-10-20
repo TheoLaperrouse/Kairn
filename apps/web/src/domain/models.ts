@@ -599,6 +599,25 @@ export interface CourseSegment {
   avgGradePct: number
   startElapsedH: number
   durationH: number
+  key: boolean
+  rehearsal?: ClimbRehearsal
+}
+
+/** A hill from the runner's own tracks matching a race climb or descent. */
+export interface ClimbRehearsal {
+  local: {
+    activityId: string
+    activityName: string
+    date: string
+    startKm: number
+    endKm: number
+    elevationM: number
+    gradePct: number
+    verticalSpeed: number
+  }
+  repetitions: number
+  gradeGapPct: number
+  estimatedDurationH: number
 }
 
 export interface Split {

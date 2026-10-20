@@ -41,6 +41,23 @@ describe('race plan (official GPX)', () => {
     expect(goal.distanceKm).toBeCloseTo(30, 0)
   })
 
+  it('suggests rehearsing each key climb on a hill from the imported runs', async () => {
+    // 30 min climbing 200 m over 2.5 km (8 %), then back down.
+    const points = Array.from({ length: 61 }, (_, i) => {
+      const ele = 100 + (i <= 30 ? i : 60 - i) * (200 / 30)
+      const time = new Date(Date.parse('2027-03-01T07:00:00Z') + i * 60_000).toISOString()
+      return `<trkpt lat="${48 + (i <= 30 ? i : 60 - i) * 0.00075}" lon="-3"><ele>${ele.toFixed(1)}</ele><time>${time}</time></trkpt>`
+    }).join('')
+    const gpx = `<?xml version="1.0"?><gpx version="1.1" creator="test"><trk><name>Côte du château</name><type>running</type><trkseg>${points}</trkseg></trk></gpx>`
+    const run = multipart('files', 'hill.gpx', gpx, 'application/gpx+xml')
+    await app.inject({ method: 'POST', url: '/api/activities/import', headers: { cookie, ...run.headers }, payload: run.payload })
+
+    const [climb] = (await app.inject({ method: 'GET', url: '/api/race-course', headers: { cookie } })).json().plan.segments
+    expect(climb.kind).toBe('UPHILL')
+    expect(climb.rehearsal.local.activityName).toBe('Côte du château')
+    expect(climb.rehearsal.repetitions).toBe(Math.ceil(climb.gainM / climb.rehearsal.local.elevationM))
+  })
+
   it('rejects a file that is not a GPX', async () => {
     const upload = multipart('file', 'course.txt', 'hello')
     const response = await app.inject({ method: 'POST', url: '/api/race-course', headers: { cookie, ...upload.headers }, payload: upload.payload })

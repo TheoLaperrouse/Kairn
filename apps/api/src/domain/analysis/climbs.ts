@@ -124,7 +124,7 @@ function trimGentleEnds(samples: ActivitySample[], from: number, to: number): [n
   return [from, to]
 }
 
-function segment(samples: ActivitySample[], pivotFrom: number, pivotTo: number): Climb | undefined {
+function segment(samples: ActivitySample[], pivotFrom: number, pivotTo: number, { minElevationM, minDurationSec }: ClimbThresholds): Climb | undefined {
   // A portion starts at the last point of the starting flat and ends at the first point of the finishing plateau.
   let from = pivotFrom
   while (from < pivotTo && Math.abs(samples[from + 1]!.alt! - samples[pivotFrom]!.alt!) < LEVEL_TOLERANCE_M) from++
@@ -135,7 +135,7 @@ function segment(samples: ActivitySample[], pivotFrom: number, pivotTo: number):
   const end = samples[to]!
   const elevationM = end.alt! - start.alt!
   const durationSec = movingSeconds(samples, from, to)
-  if (Math.abs(elevationM) < MIN_ELEVATION_M || durationSec < MIN_DURATION_SEC) return undefined
+  if (Math.abs(elevationM) < minElevationM || durationSec < minDurationSec) return undefined
   const distanceM = (end.d - start.d) * 1000
   const avgHeartRate = mean(samples.slice(from + 1, to + 1).flatMap((s) => (s.hr === undefined ? [] : [s.hr])))
   return {
@@ -152,24 +152,33 @@ function segment(samples: ActivitySample[], pivotFrom: number, pivotTo: number):
 }
 
 /** The week's analyses and VAM baselines often re-read the same tracks. */
-const cache = new WeakMap<ActivitySample[], ClimbProfile>()
+const cache = new WeakMap<ActivitySample[], Map<string, ClimbProfile>>()
 
-export function detectClimbs(samples: ActivitySample[]): ClimbProfile {
-  const cached = cache.get(samples)
-  if (cached) return cached
-  const result = computeClimbs(samples)
-  cache.set(samples, result)
+export interface ClimbThresholds {
+  minElevationM: number
+  minDurationSec: number
+}
+
+const DEFAULT_THRESHOLDS: ClimbThresholds = { minElevationM: MIN_ELEVATION_M, minDurationSec: MIN_DURATION_SEC }
+
+/** Thresholds can be lowered to keep the short local hills a flat-lander trains on. */
+export function detectClimbs(samples: ActivitySample[], thresholds = DEFAULT_THRESHOLDS): ClimbProfile {
+  const key = `${thresholds.minElevationM}:${thresholds.minDurationSec}`
+  let byThresholds = cache.get(samples)
+  if (!byThresholds) cache.set(samples, (byThresholds = new Map()))
+  let result = byThresholds.get(key)
+  if (!result) byThresholds.set(key, (result = computeClimbs(samples, thresholds)))
   return result
 }
 
-function computeClimbs(samples: ActivitySample[]): ClimbProfile {
+function computeClimbs(samples: ActivitySample[], thresholds: ClimbThresholds): ClimbProfile {
   const withAltitude = samples.flatMap((s, i) => (s.alt === undefined ? [] : [i]))
   if (withAltitude.length < 3) return { climbs: [], descents: [] }
   const pivots = turningPoints(samples, withAltitude)
   const climbs: Climb[] = []
   const descents: Climb[] = []
   for (let k = 1; k < pivots.length; k++) {
-    const part = segment(samples, pivots[k - 1]!, pivots[k]!)
+    const part = segment(samples, pivots[k - 1]!, pivots[k]!, thresholds)
     if (part) (part.elevationM > 0 ? climbs : descents).push(part)
   }
   return { climbs, descents }

@@ -9,6 +9,7 @@ import AnalysisCard from '../components/AnalysisCard.vue'
 import WatchExport from '../components/WatchExport.vue'
 import ZoneBadge from '../components/ZoneBadge.vue'
 import { SESSION_ICONS } from '../components/session-icons'
+import RaceRehearsalCard from './session/RaceRehearsalCard.vue'
 import RoutineCard from './session/RoutineCard.vue'
 import WorkoutSteps from './session/WorkoutSteps.vue'
 
@@ -139,6 +140,8 @@ async function saveNotes() {
       <RoutineCard v-if="session.routineId" :routine-id="session.routineId" :session-id="session.id" />
 
       <WorkoutSteps :steps="session.steps" />
+
+      <RaceRehearsalCard v-if="session.status === 'PLANNED'" :session="session" />
 
       <WatchExport v-if="(session.sport === 'RUN' || session.sport === 'BIKE') && session.type !== 'RACE'" :session="session" />
 

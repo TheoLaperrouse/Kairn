@@ -115,7 +115,7 @@ const services = {
   ),
   dashboard: new DashboardService(profiles, goals, plans, activityRepository, clock),
   content: new ContentService(catalog),
-  raceCourses: new RaceCourseService(new SqliteRaceCourseRepository(db), goals, profiles, new GpxCourseParser(), clock),
+  raceCourses: new RaceCourseService(new SqliteRaceCourseRepository(db), goals, profiles, activityRepository, new GpxCourseParser(), clock),
   wellness: new WellnessService(checkIns, plans, clock),
   workouts: new WorkoutExportService(plans, new FitWorkoutEncoder(), new FolderWatchOutbox(env.GARMIN_NEWFILES_DIR)),
   analyses,
