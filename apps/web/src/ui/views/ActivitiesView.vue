@@ -3,7 +3,6 @@ import {
   Bike,
   CheckCircle2,
   ChevronRight,
-  Copy,
   Dumbbell,
   Footprints,
   Info,
@@ -11,7 +10,6 @@ import {
   LoaderCircle,
   RefreshCw,
   Unplug,
-  UploadCloud,
   XCircle,
 } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
@@ -19,21 +17,20 @@ import { useRoute, useRouter } from 'vue-router'
 import { useActivitiesStore } from '../../application/stores/activities'
 import { useTrainingStore } from '../../application/stores/training'
 import { SPORT_LABELS, VERDICT_LABELS, VERDICT_TONES, formatDate, formatNumber, formatRelative, formatSeconds } from '../../domain/format'
-import { activityDay, type ImportOutcome, type Sport } from '../../domain/models'
+import { activityDay, type Sport } from '../../domain/models'
 import VamProgressCard from '../components/VamProgressCard.vue'
+import { errorMessage } from '../composables/error-message'
+import ActivityImportCard from './activities/ActivityImportCard.vue'
 
 const store = useActivitiesStore()
 const training = useTrainingStore()
 const route = useRoute()
 const router = useRouter()
 
-const dragging = ref(false)
-const fileInput = ref<HTMLInputElement>()
 const banner = ref<{ kind: 'ok' | 'error'; text: string }>()
 const syncing = ref<string>()
 
 const SPORT_ICONS: Record<Sport, typeof Footprints> = { RUN: Footprints, BIKE: Bike, STRENGTH: Dumbbell }
-const ACCEPTED = ['.fit', '.gpx', '.tcx']
 
 onMounted(async () => {
   await store.load()
@@ -56,23 +53,6 @@ function sessionTitle(id?: string) {
   return id ? training.sessionById(id)?.title : undefined
 }
 
-async function handleFiles(list: FileList | File[] | null | undefined) {
-  const files = [...(list ?? [])].filter((f) => ACCEPTED.some((ext) => f.name.toLowerCase().endsWith(ext)))
-  const rejected = [...(list ?? [])].length - files.length
-  if (rejected > 0) banner.value = { kind: 'error', text: `${rejected} fichier(s) ignoré(s) : seuls les .FIT, .GPX et .TCX sont acceptés.` }
-  if (files.length === 0) return
-  try {
-    await store.importFiles(files)
-  } catch (e) {
-    banner.value = { kind: 'error', text: e instanceof Error ? e.message : 'Import impossible' }
-  }
-}
-
-function onDrop(event: DragEvent) {
-  dragging.value = false
-  void handleFiles(event.dataTransfer?.files)
-}
-
 async function sync(provider: string) {
   syncing.value = provider
   try {
@@ -80,15 +60,10 @@ async function sync(provider: string) {
     const imported = outcomes.filter((o) => o.status === 'IMPORTED').length
     banner.value = { kind: 'ok', text: imported ? `${imported} nouvelle(s) activité(s) importée(s) depuis ${providerLabel(provider)}.` : 'Tout est déjà à jour.' }
   } catch (e) {
-    banner.value = { kind: 'error', text: e instanceof Error ? e.message : 'Synchronisation impossible' }
+    banner.value = { kind: 'error', text: errorMessage(e, 'Synchronisation impossible') }
   } finally {
     syncing.value = undefined
   }
-}
-
-function outcomeLabel(outcome: ImportOutcome): string {
-  if (outcome.status === 'IMPORTED') return outcome.activity.name
-  return outcome.filename
 }
 
 const totals = computed(() => {
@@ -120,41 +95,7 @@ const totals = computed(() => {
     </p>
 
     <div class="grid grid-2 top">
-      <section class="card" aria-labelledby="import-title">
-        <div class="card-title"><h2 id="import-title">Importer des fichiers</h2></div>
-        <div
-          class="dropzone"
-          :class="{ dragging, busy: store.busy }"
-          @dragenter.prevent="dragging = true"
-          @dragover.prevent="dragging = true"
-          @dragleave.prevent="dragging = false"
-          @drop.prevent="onDrop"
-        >
-          <LoaderCircle v-if="store.busy" :size="36" class="spin" aria-hidden="true" />
-          <UploadCloud v-else :size="36" aria-hidden="true" />
-          <p><strong>Glisse tes fichiers ici</strong></p>
-          <p class="muted small">.FIT (montre Garmin, Coros, Suunto…), .GPX ou .TCX — plusieurs à la fois</p>
-          <button type="button" class="btn btn-sm" :disabled="store.busy" @click="fileInput?.click()">Parcourir…</button>
-          <input ref="fileInput" type="file" multiple :accept="ACCEPTED.join(',')" class="visually-hidden" aria-label="Choisir des fichiers d’activité" @change="handleFiles(($event.target as HTMLInputElement).files); ($event.target as HTMLInputElement).value = ''" />
-        </div>
-
-        <ul v-if="store.lastImport.length" class="outcomes" aria-live="polite">
-          <li v-for="(o, i) in store.lastImport" :key="i" :class="o.status.toLowerCase()">
-            <CheckCircle2 v-if="o.status === 'IMPORTED'" :size="18" aria-hidden="true" />
-            <Copy v-else-if="o.status === 'DUPLICATE'" :size="18" aria-hidden="true" />
-            <XCircle v-else :size="18" aria-hidden="true" />
-            <div>
-              <strong>{{ outcomeLabel(o) }}</strong>
-              <p v-if="o.status === 'IMPORTED'" class="small">
-                <template v-if="o.matchedSessionTitle">✓ rattachée à « {{ o.matchedSessionTitle }} »</template>
-                <template v-else>Importée (pas de séance prévue ce jour-là)</template>
-              </p>
-              <p v-else-if="o.status === 'DUPLICATE'" class="small">Déjà importée, ignorée</p>
-              <p v-else class="small">{{ o.reason }}</p>
-            </div>
-          </li>
-        </ul>
-      </section>
+      <ActivityImportCard @error="banner = { kind: 'error', text: $event }" />
 
       <section class="card" aria-labelledby="sync-title">
         <div class="card-title"><h2 id="sync-title">Synchronisation automatique</h2></div>
@@ -258,28 +199,6 @@ const totals = computed(() => {
   min-height: 28px;
   font-size: 1.1rem;
 }
-.dropzone {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-2);
-  text-align: center;
-  padding: var(--space-6) var(--space-4);
-  border: 2px dashed var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  color: var(--text-2);
-  transition:
-    border-color 0.15s var(--ease),
-    background 0.15s var(--ease);
-}
-.dropzone.dragging {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-.dropzone.busy {
-  opacity: 0.8;
-}
 .spin {
   animation: spin 0.8s linear infinite;
 }
@@ -287,39 +206,6 @@ const totals = computed(() => {
   to {
     transform: rotate(360deg);
   }
-}
-.outcomes {
-  list-style: none;
-  padding: 0;
-  margin: var(--space-4) 0 0;
-  display: grid;
-  gap: var(--space-2);
-}
-.outcomes li {
-  display: flex;
-  gap: var(--space-3);
-  align-items: flex-start;
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  min-width: 0;
-}
-.outcomes li > div {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.outcomes .imported svg {
-  color: var(--success);
-}
-.outcomes .duplicate svg {
-  color: var(--muted);
-}
-.outcomes .failed svg {
-  color: var(--danger);
-}
-.outcomes svg {
-  flex: none;
-  margin-top: 2px;
 }
 .provider {
   display: grid;

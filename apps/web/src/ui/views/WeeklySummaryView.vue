@@ -20,6 +20,7 @@ import {
 import type { WeeklySummary } from '../../domain/models'
 import InsightList from '../components/InsightList.vue'
 import ZoneBar from '../components/ZoneBar.vue'
+import { errorMessage } from '../composables/error-message'
 
 const props = defineProps<{ week?: string }>()
 const api = useApi()
@@ -37,7 +38,7 @@ watch(
     try {
       summary.value = await api.weeklySummary(week)
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Bilan indisponible'
+      error.value = errorMessage(e, 'Bilan indisponible')
     } finally {
       loading.value = false
     }

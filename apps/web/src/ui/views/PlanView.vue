@@ -1,21 +1,28 @@
 <script setup lang="ts">
-import { CalendarCheck, CircleCheck, ChevronDown, History, RotateCcw, Send, Thermometer, TriangleAlert } from 'lucide-vue-next'
+import { History, RotateCcw, Thermometer, TriangleAlert } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useApi } from '../../application/api-provider'
 import { useTrainingStore } from '../../application/stores/training'
-import { PHASE_LABELS, SPORT_LABELS, formatDuration, formatNumber, formatShortDate, todayIso } from '../../domain/format'
-import type { PlanWeek, Sport } from '../../domain/models'
+import { SPORT_LABELS, formatShortDate, todayIso } from '../../domain/format'
+import type { PlannedSession, Sport } from '../../domain/models'
 import AdjustmentLog from '../components/AdjustmentLog.vue'
 import PhaseTimeline from '../components/PhaseTimeline.vue'
 import UnavailabilityDialog from '../components/UnavailabilityDialog.vue'
-import SessionCard from '../components/SessionCard.vue'
-import { PHASE_COLORS } from '../components/phase-colors'
+import PlanWeekItem from './plan/PlanWeekItem.vue'
+
+const SPORTS: Sport[] = ['RUN', 'BIKE', 'STRENGTH']
 
 const training = useTrainingStore()
+const api = useApi()
 const plan = computed(() => training.plan)
 const today = todayIso()
 
-const sports = ref<Set<Sport>>(new Set(['RUN', 'BIKE', 'STRENGTH']))
+const sports = ref<Set<Sport>>(new Set(SPORTS))
+const open = ref<Set<number>>(new Set())
+const selected = ref<number>()
+const unavailabilityOpen = ref(false)
+const watchConfigured = ref(false)
+
 function toggleSport(sport: Sport) {
   const next = new Set(sports.value)
   if (next.has(sport) && next.size > 1) next.delete(sport)
@@ -29,17 +36,15 @@ const currentIndex = computed(() => {
   return found?.index ?? weeks[0]?.index
 })
 
-const open = ref<Set<number>>(new Set())
-const selected = ref<number>()
-
-function sessionsOf(week: PlanWeek) {
-  return (plan.value?.sessions ?? []).filter((s) => s.weekIndex === week.index && sports.value.has(s.sport))
-}
-
-function weekStats(week: PlanWeek) {
-  const all = (plan.value?.sessions ?? []).filter((s) => s.weekIndex === week.index && s.type !== 'COURSE')
-  return { done: all.filter((s) => s.status === 'DONE').length, total: all.length, strengthMin: all.filter((s) => s.sport === 'STRENGTH').reduce((a, s) => a + s.durationMin, 0) }
-}
+const sessionsByWeek = computed(() => {
+  const byWeek = new Map<number, PlannedSession[]>()
+  for (const s of plan.value?.sessions ?? []) {
+    const list = byWeek.get(s.weekIndex)
+    if (list) list.push(s)
+    else byWeek.set(s.weekIndex, [s])
+  }
+  return byWeek
+})
 
 function toggle(index: number) {
   const next = new Set(open.value)
@@ -48,35 +53,15 @@ function toggle(index: number) {
   open.value = next
 }
 
-async function focusWeek(index: number) {
+async function scrollToWeek(index: number, behavior?: ScrollBehavior) {
+  await nextTick()
+  document.getElementById(`week-${index}`)?.scrollIntoView({ behavior, block: 'start' })
+}
+
+function focusWeek(index: number) {
   selected.value = index
   open.value = new Set([...open.value, index])
-  await nextTick()
-  document.getElementById(`week-${index}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
-const api = useApi()
-const unavailabilityOpen = ref(false)
-const watchConfigured = ref(false)
-const sending = ref<number>()
-const sentWeeks = ref<Record<number, string>>({})
-
-async function sendWeek(index: number) {
-  sending.value = index
-  try {
-    const sent = await api.sendWeekToWatch(index)
-    sentWeeks.value = { ...sentWeeks.value, [index]: sent.length ? `${sent.length} séance${sent.length > 1 ? 's' : ''} envoyée${sent.length > 1 ? 's' : ''}` : 'Aucune séance à envoyer' }
-  } catch (e) {
-    sentWeeks.value = { ...sentWeeks.value, [index]: e instanceof Error ? e.message : 'Envoi impossible' }
-  } finally {
-    sending.value = undefined
-  }
-}
-
-function hasWatchSessions(week: PlanWeek) {
-  return (plan.value?.sessions ?? []).some(
-    (s) => s.weekIndex === week.index && s.status === 'PLANNED' && s.sport !== 'STRENGTH' && s.type !== 'COURSE',
-  )
+  void scrollToWeek(index, 'smooth')
 }
 
 onMounted(async () => {
@@ -86,8 +71,7 @@ onMounted(async () => {
     .catch(() => undefined)
   if (currentIndex.value === undefined) return
   open.value = new Set([currentIndex.value])
-  await nextTick()
-  document.getElementById(`week-${currentIndex.value}`)?.scrollIntoView({ block: 'start' })
+  await scrollToWeek(currentIndex.value)
 })
 </script>
 
@@ -108,6 +92,7 @@ onMounted(async () => {
         <RouterLink to="/reglages" class="btn btn-ghost"><RotateCcw :size="17" aria-hidden="true" /> Ajuster et régénérer</RouterLink>
       </div>
     </header>
+
     <UnavailabilityDialog :open="unavailabilityOpen" @close="unavailabilityOpen = false" />
 
     <template v-if="plan">
@@ -131,7 +116,7 @@ onMounted(async () => {
       <div class="filters" role="group" aria-label="Filtrer par sport">
         <span class="muted">Afficher :</span>
         <button
-          v-for="sport in (['RUN', 'BIKE', 'STRENGTH'] as Sport[])"
+          v-for="sport in SPORTS"
           :key="sport"
           type="button"
           class="chip chip-toggle"
@@ -143,50 +128,17 @@ onMounted(async () => {
       </div>
 
       <ol class="weeks">
-        <li v-for="week in plan.weeks" :id="`week-${week.index}`" :key="week.index" class="week card" :class="{ current: week.index === currentIndex, past: currentIndex !== undefined && week.index < currentIndex }" :style="{ '--phase': PHASE_COLORS[week.phase] }">
-          <button type="button" class="week-head" :aria-expanded="open.has(week.index)" :aria-controls="`week-body-${week.index}`" @click="toggle(week.index)">
-            <span class="week-num">
-              <span class="eyebrow">Sem.</span>
-              <span class="num">{{ week.index + 1 }}</span>
-            </span>
-            <span class="week-info">
-              <span class="week-title">
-                <span class="phase-chip">{{ PHASE_LABELS[week.phase] }}</span>
-                <span v-if="week.isRecovery" class="chip chip-teal">allégée</span>
-                <span v-if="week.index === currentIndex" class="chip chip-accent">en cours</span>
-                <span class="muted week-date">du {{ formatShortDate(week.startDate) }}</span>
-              </span>
-              <span class="week-targets">
-                <span><strong class="num">{{ formatNumber(week.targetHours, 1) }}</strong> h</span>
-                <span><strong class="num">{{ week.targetKm }}</strong> km</span>
-                <span><strong class="num">{{ formatNumber(week.targetElevationM) }}</strong> m D+</span>
-                <span v-if="weekStats(week).strengthMin" class="muted">+ {{ formatDuration(weekStats(week).strengthMin) }} renfo</span>
-              </span>
-            </span>
-            <span class="week-progress" :aria-label="`${weekStats(week).done} séances faites sur ${weekStats(week).total}`">
-              <span class="num">{{ weekStats(week).done }}/{{ weekStats(week).total }}</span>
-            </span>
-            <ChevronDown :size="20" class="chevron" aria-hidden="true" />
-          </button>
-          <div v-if="open.has(week.index)" :id="`week-body-${week.index}`" class="week-body">
-            <div class="week-tools">
-              <p class="focus text-2">{{ week.focus }}</p>
-              <RouterLink v-if="week.startDate <= todayIso()" :to="`/bilan/${week.startDate}`" class="btn btn-sm btn-ghost">
-                <CalendarCheck :size="15" aria-hidden="true" /> Bilan de la semaine
-              </RouterLink>
-              <div v-if="watchConfigured && hasWatchSessions(week)" class="row">
-                <button type="button" class="btn btn-sm" :disabled="sending === week.index" @click="sendWeek(week.index)">
-                  <Send :size="15" aria-hidden="true" /> {{ sending === week.index ? 'Envoi…' : 'Envoyer la semaine sur la montre' }}
-                </button>
-                <span v-if="sentWeeks[week.index]" class="sent" role="status"><CircleCheck :size="15" aria-hidden="true" /> {{ sentWeeks[week.index] }}</span>
-              </div>
-            </div>
-            <div class="sessions">
-              <SessionCard v-for="s in sessionsOf(week)" :key="s.id" :session="s" />
-              <p v-if="!sessionsOf(week).length" class="muted">Aucune séance pour ce filtre.</p>
-            </div>
-          </div>
-        </li>
+        <PlanWeekItem
+          v-for="week in plan.weeks"
+          :key="week.index"
+          :week="week"
+          :sessions="sessionsByWeek.get(week.index) ?? []"
+          :sports="sports"
+          :current-index="currentIndex"
+          :open="open.has(week.index)"
+          :watch-configured="watchConfigured"
+          @toggle="toggle(week.index)"
+        />
       </ol>
     </template>
   </div>
@@ -206,20 +158,6 @@ onMounted(async () => {
 .adjust-card[open] summary {
   margin-bottom: var(--space-4);
 }
-.week-tools {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-3);
-}
-.sent {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: var(--success);
-}
 .filters {
   display: flex;
   flex-wrap: wrap;
@@ -237,115 +175,5 @@ onMounted(async () => {
   padding: 0;
   display: grid;
   gap: var(--space-3);
-}
-.week {
-  padding: 0;
-  overflow: hidden;
-  border-left: 4px solid var(--phase);
-  scroll-margin-top: 80px;
-}
-.week.current {
-  border-color: var(--accent);
-  border-left-color: var(--phase);
-  box-shadow:
-    var(--shadow),
-    0 0 0 1px var(--accent);
-}
-.week.past {
-  opacity: 0.8;
-}
-.week-head {
-  width: 100%;
-  display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  background: none;
-  border: 0;
-  text-align: left;
-  cursor: pointer;
-}
-.week-head:hover {
-  background: var(--surface-2);
-}
-.week-num {
-  display: grid;
-  justify-items: center;
-  min-width: 40px;
-}
-.week-num .num {
-  font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 700;
-  line-height: 1;
-}
-.week-info {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-.week-title {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 8px;
-  align-items: center;
-}
-.phase-chip {
-  font-weight: 700;
-  color: var(--text);
-}
-.week-date {
-  font-size: 0.85rem;
-}
-.week-targets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  font-size: 0.88rem;
-  color: var(--text-2);
-}
-.week-targets strong {
-  color: var(--text);
-}
-.week-progress {
-  font-size: 0.85rem;
-  color: var(--text-2);
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--surface-2);
-}
-.chevron {
-  color: var(--muted);
-  transition: transform 0.2s var(--ease);
-}
-[aria-expanded='true'] .chevron {
-  transform: rotate(180deg);
-}
-.week-body {
-  padding: 0 var(--space-5) var(--space-5);
-  display: grid;
-  gap: var(--space-3);
-}
-.focus {
-  font-size: 0.92rem;
-}
-.sessions {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
-  gap: var(--space-2);
-}
-@media (max-width: 600px) {
-  .week-head {
-    grid-template-columns: auto 1fr auto;
-    padding: var(--space-3) var(--space-4);
-    gap: var(--space-3);
-  }
-  .week-progress {
-    display: none;
-  }
-  .week-body {
-    padding: 0 var(--space-4) var(--space-4);
-  }
 }
 </style>

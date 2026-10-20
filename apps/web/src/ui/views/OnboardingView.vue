@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight, Bike, Check, Dumbbell, Flag, Mountain } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRight, Check } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../application/stores/auth'
 import { useTrainingStore } from '../../application/stores/training'
-import { DAYS, LEVEL_LABELS, TERRAIN_LABELS, formatLongDate, formatNumber, todayIso } from '../../domain/format'
+import { addDaysIso, todayIso } from '../../domain/format'
 import type { AthleteProfile, RaceGoal } from '../../domain/models'
 import GoalForm from '../components/GoalForm.vue'
 import KairnLogo from '../components/KairnLogo.vue'
 import ProfileForm from '../components/ProfileForm.vue'
+import { errorMessage } from '../composables/error-message'
+import OnboardingRecap from './onboarding/OnboardingRecap.vue'
+import PlanGenerating from './onboarding/PlanGenerating.vue'
 
 const training = useTrainingStore()
 const auth = useAuthStore()
@@ -18,21 +21,11 @@ const STEPS = ['Objectif', 'Profil', 'Récapitulatif'] as const
 const step = ref(0)
 const error = ref('')
 const generating = ref(false)
-const generationLine = ref(0)
-const GENERATION_LINES = [
-  'Calcul de ta périodisation…',
-  'Répartition du dénivelé semaine par semaine…',
-  'Placement des sorties longues et des back-to-back…',
-  'Choix des séances de renforcement…',
-  'Projection de ta forme le jour J…',
-]
 
 function defaultGoal(): RaceGoal {
-  const date = new Date(`${todayIso()}T00:00:00Z`)
-  date.setUTCDate(date.getUTCDate() + 7 * 20)
   return {
     name: '',
-    raceDate: date.toISOString().slice(0, 10),
+    raceDate: addDaysIso(todayIso(), 7 * 20),
     distanceKm: 80,
     elevationGainM: 4000,
     technicity: 3,
@@ -90,10 +83,6 @@ function back() {
 async function generate() {
   error.value = ''
   generating.value = true
-  generationLine.value = 0
-  const ticker = window.setInterval(() => {
-    generationLine.value = Math.min(generationLine.value + 1, GENERATION_LINES.length - 1)
-  }, 650)
   try {
     await training.saveGoal(goal.value)
     await training.saveProfile(profile.value)
@@ -101,25 +90,15 @@ async function generate() {
     await Promise.all([training.generatePlan(), new Promise((r) => setTimeout(r, 2600))])
     await router.replace('/')
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'La génération a échoué'
+    error.value = errorMessage(e, 'La génération a échoué')
     generating.value = false
-  } finally {
-    window.clearInterval(ticker)
   }
 }
 </script>
 
 <template>
   <div class="onboarding">
-    <div v-if="generating" class="generating topo" role="status" aria-live="polite">
-      <svg class="mountain" viewBox="0 0 200 120" aria-hidden="true">
-        <path class="m-back" d="M0 120 L60 40 L95 80 L130 25 L200 120 Z" />
-        <path class="m-path" d="M10 115 Q 50 100 60 80 T 100 70 T 128 32" />
-        <circle class="m-flag" cx="130" cy="25" r="4" />
-      </svg>
-      <p class="gen-line">{{ GENERATION_LINES[generationLine] }}</p>
-      <p class="muted">{{ goal.name }} · {{ formatLongDate(goal.raceDate) }}</p>
-    </div>
+    <PlanGenerating v-if="generating" :goal="goal" />
 
     <template v-else>
       <header class="head">
@@ -157,36 +136,7 @@ async function generate() {
             <h1>Prêt·e pour {{ goal.name }} ?</h1>
             <p class="lead">Vérifie le récapitulatif : tu pourras tout modifier ensuite dans les réglages.</p>
           </div>
-          <div class="recap">
-            <article class="card recap-card">
-              <Flag :size="22" class="ic" aria-hidden="true" />
-              <h2>{{ goal.name }}</h2>
-              <p class="num big">{{ goal.distanceKm }} km · {{ formatNumber(goal.elevationGainM) }} m D+</p>
-              <p class="text-2">{{ formatLongDate(goal.raceDate) }} — dans {{ weeksToRace }} semaines</p>
-            </article>
-            <article class="card recap-card">
-              <Mountain :size="22" class="ic" aria-hidden="true" />
-              <h2>{{ profile.name }}</h2>
-              <p class="text-2">{{ LEVEL_LABELS[profile.level] }} · terrain {{ TERRAIN_LABELS[profile.terrain].toLowerCase() }}</p>
-              <p class="text-2">
-                {{ profile.availableDays.length }} jours / semaine, jusqu’à {{ profile.maxWeeklyHours }} h · sortie longue le
-                {{ DAYS[profile.longRunDay]?.toLowerCase() }}
-              </p>
-            </article>
-            <article class="card recap-card">
-              <Dumbbell :size="22" class="ic" aria-hidden="true" />
-              <h2>Compléments</h2>
-              <p class="text-2">
-                <Dumbbell :size="14" aria-hidden="true" />
-                {{ profile.crossTraining.strength ? `Renforcement ${profile.crossTraining.strengthSessionsPerWeek}×/sem.` : 'Pas de renforcement' }}
-              </p>
-              <p class="text-2">
-                <Bike :size="14" aria-hidden="true" />
-                {{ profile.crossTraining.cycling ? `Vélo ${profile.crossTraining.cyclingSessionsPerWeek}×/sem.` : 'Pas de vélo' }}
-              </p>
-              <button type="button" class="btn btn-sm btn-ghost" @click="step = 1">Modifier</button>
-            </article>
-          </div>
+          <OnboardingRecap :goal="goal" :profile="profile" :weeks-to-race="weeksToRace" @edit="step = 1" />
           <p v-if="weeksToRace < 8" class="alert">
             Moins de 8 semaines avant la course : le plan sera compressé. Écoute bien ton corps.
           </p>
@@ -294,77 +244,6 @@ async function generate() {
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
-}
-.recap {
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-}
-.recap-card {
-  display: grid;
-  gap: var(--space-2);
-  align-content: start;
-}
-.recap-card .ic {
-  color: var(--accent);
-}
-.recap-card p {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.recap-card .btn {
-  justify-self: start;
-}
-.big {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--teal);
-}
-.generating {
-  min-height: 100vh;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: var(--space-4);
-  text-align: center;
-  padding: var(--space-5);
-}
-.mountain {
-  width: min(320px, 80vw);
-}
-.m-back {
-  fill: var(--surface-2);
-  stroke: var(--border-strong);
-}
-.m-path {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-dasharray: 220;
-  stroke-dashoffset: 220;
-  animation: climb 2.4s var(--ease) forwards;
-}
-.m-flag {
-  fill: var(--teal);
-  opacity: 0;
-  animation: flag 0.4s 2.2s forwards;
-}
-@keyframes climb {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-@keyframes flag {
-  to {
-    opacity: 1;
-  }
-}
-.gen-line {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  font-weight: 600;
 }
 @media (max-width: 640px) {
   .progress .label {

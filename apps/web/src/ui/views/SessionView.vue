@@ -1,23 +1,22 @@
 <script setup lang="ts">
-import { Activity, ArrowLeft, Compass, Check, Clock, Lightbulb, Mountain, Play, RotateCcw, Route, Save, Sparkles, Star, X } from 'lucide-vue-next'
+import { Activity, ArrowLeft, Compass, Check, Clock, Lightbulb, Mountain, RotateCcw, Route, Save, Sparkles, Star, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useApi } from '../../application/api-provider'
-import { useContentStore } from '../../application/stores/content'
 import { useTrainingStore } from '../../application/stores/training'
 import { SESSION_TYPE_LABELS, formatDate, formatDuration, formatNumber } from '../../domain/format'
-import type { Activity as ActivityModel, RoutineDetail, SessionStatus, WorkoutAnalysis, WorkoutStep } from '../../domain/models'
+import type { Activity as ActivityModel, SessionStatus, WorkoutAnalysis } from '../../domain/models'
 import AnalysisCard from '../components/AnalysisCard.vue'
-import ExerciseFigure from '../components/ExerciseFigure.vue'
 import WatchExport from '../components/WatchExport.vue'
 import ZoneBadge from '../components/ZoneBadge.vue'
 import { SESSION_ICONS } from '../components/session-icons'
+import { errorMessage } from '../composables/error-message'
+import RoutineCard from './session/RoutineCard.vue'
+import WorkoutSteps from './session/WorkoutSteps.vue'
 
 const props = defineProps<{ id: string }>()
 const training = useTrainingStore()
-const content = useContentStore()
 
 const session = computed(() => training.sessionById(props.id))
-const routine = ref<RoutineDetail>()
 const notes = ref('')
 const saving = ref(false)
 const savedNotes = ref(false)
@@ -43,40 +42,11 @@ watch(
 
 watch(
   session,
-  async (s, previous) => {
-    if (!s) return
-    if (s.id !== previous?.id) notes.value = s.notes ?? ''
-    if (s.routineId && routine.value?.id !== s.routineId) {
-      routine.value = await content.routine(s.routineId).catch(() => undefined)
-    }
+  (s, previous) => {
+    if (s && s.id !== previous?.id) notes.value = s.notes ?? ''
   },
   { immediate: true },
 )
-
-const STEP_LABELS: Record<WorkoutStep['kind'], string> = {
-  ECHAUFFEMENT: 'Échauffement',
-  EFFORT: 'Effort',
-  RECUP: 'Récupération',
-  RETOUR_CALME: 'Retour au calme',
-  CONTINU: 'Continu',
-}
-
-/** Les étapes EFFORT + RECUP répétées sont présentées ensemble. */
-const stepGroups = computed(() => {
-  const steps = session.value?.steps ?? []
-  const groups: Array<{ steps: WorkoutStep[]; repeat?: number }> = []
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i]!
-    const next = steps[i + 1]
-    if (step.repeat && next?.repeat === step.repeat && next.kind === 'RECUP') {
-      groups.push({ steps: [step, next], repeat: step.repeat })
-      i++
-    } else groups.push({ steps: [step], repeat: step.repeat })
-  }
-  return groups
-})
-
-const exerciseOf = (id: string) => routine.value?.exercises.find((e) => e.id === id)
 
 async function setStatus(status: SessionStatus) {
   if (!session.value) return
@@ -85,7 +55,7 @@ async function setStatus(status: SessionStatus) {
   try {
     await training.updateSession(session.value.id, { status })
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Enregistrement impossible'
+    error.value = errorMessage(e, 'Enregistrement impossible')
   } finally {
     saving.value = false
   }
@@ -99,7 +69,7 @@ async function saveNotes() {
     savedNotes.value = true
     setTimeout(() => (savedNotes.value = false), 2000)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Enregistrement impossible'
+    error.value = errorMessage(e, 'Enregistrement impossible')
   } finally {
     saving.value = false
   }
@@ -167,60 +137,9 @@ async function saveNotes() {
 
       <AnalysisCard v-if="done" :analysis="done.analysis" :actual="done.activity" @profile-updated="reloadAnalysis" />
 
-      <section v-if="session.routineId" class="card routine" aria-labelledby="routine-title">
-        <div class="card-title">
-          <div>
-            <h2 id="routine-title">{{ routine?.name ?? 'Routine de renforcement' }}</h2>
-            <p v-if="routine" class="text-2 sub">{{ routine.focus }} · {{ formatDuration(routine.durationMin) }}</p>
-          </div>
-        </div>
-        <RouterLink :to="`/renfo/${session.routineId}/guidee?seance=${session.id}`" class="btn btn-primary launch">
-          <Play :size="20" aria-hidden="true" /> Lancer la séance guidée
-        </RouterLink>
-        <p v-if="routine" class="text-2 desc">{{ routine.description }}</p>
-        <ol v-if="routine" class="blocks">
-          <li v-for="(block, i) in routine.blocks" :key="i" class="block">
-            <RouterLink :to="`/exercices/${block.exerciseId}`" class="block-figure" :aria-label="`Voir l’exercice ${exerciseOf(block.exerciseId)?.name ?? ''}`">
-              <ExerciseFigure v-if="exerciseOf(block.exerciseId)" :exercise="exerciseOf(block.exerciseId)!" :show-labels="false" />
-            </RouterLink>
-            <div class="block-info">
-              <p class="block-name">{{ exerciseOf(block.exerciseId)?.name ?? block.exerciseId }}</p>
-              <p class="block-dose">
-                <strong class="num">{{ block.sets }} ×
-                  <template v-if="block.reps">{{ block.reps }} rép.</template>
-                  <template v-else-if="block.durationSec">{{ block.durationSec }} s</template>
-                </strong>
-                <span v-if="block.perSide" class="chip">par côté</span>
-                <span v-if="block.tempo" class="chip chip-teal">tempo {{ block.tempo }}</span>
-                <span class="muted">repos {{ block.restSec }} s</span>
-              </p>
-              <p v-if="block.notes" class="muted block-notes">{{ block.notes }}</p>
-            </div>
-          </li>
-        </ol>
-        <div v-else class="muted">Chargement de la routine…</div>
-      </section>
+      <RoutineCard v-if="session.routineId" :routine-id="session.routineId" :session-id="session.id" />
 
-      <section v-if="stepGroups.length" class="card" aria-labelledby="steps-title">
-        <h2 id="steps-title" class="section-title">Déroulé</h2>
-        <ol class="steps">
-          <li v-for="(group, i) in stepGroups" :key="i" class="step-group" :class="{ repeated: group.repeat }">
-            <span v-if="group.repeat" class="repeat-badge num">× {{ group.repeat }}</span>
-            <div v-for="(step, j) in group.steps" :key="j" class="step" :style="{ '--zone': `var(--zone-${step.zone})` }">
-              <span class="step-bar" aria-hidden="true" />
-              <div class="step-body">
-                <p class="step-head">
-                  <span class="step-kind">{{ STEP_LABELS[step.kind] }}</span>
-                  <span class="num step-dur">{{ step.durationMin >= 1 ? formatDuration(step.durationMin) : `${Math.round(step.durationMin * 60)} s` }}</span>
-                  <ZoneBadge :zone="step.zone" compact />
-                </p>
-                <p class="step-label">{{ step.label }}</p>
-                <p v-if="step.terrain" class="muted step-terrain"><Mountain :size="13" aria-hidden="true" /> {{ step.terrain }}</p>
-              </div>
-            </div>
-          </li>
-        </ol>
-      </section>
+      <WorkoutSteps :steps="session.steps" />
 
       <WatchExport v-if="(session.sport === 'RUN' || session.sport === 'BIKE') && session.type !== 'COURSE'" :session="session" />
 
@@ -351,130 +270,8 @@ async function saveNotes() {
 .ok {
   color: var(--success);
 }
-.sub {
-  font-size: 0.9rem;
-  margin-top: 4px;
-}
-.launch {
-  width: 100%;
-  min-height: 56px;
-  font-size: 1.05rem;
-}
-.desc {
-  margin-top: var(--space-4);
-}
-.blocks {
-  list-style: none;
-  margin: var(--space-4) 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  gap: var(--space-3);
-}
-.block {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  padding: var(--space-2);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-}
-.block-figure {
-  flex: none;
-  width: 92px;
-  height: 92px;
-  border-radius: 12px;
-  background: var(--surface);
-  padding: 4px;
-}
-.block-info {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-.block-name {
-  font-weight: 650;
-}
-.block-dose {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  font-size: 0.85rem;
-}
-.block-notes {
-  font-size: 0.8rem;
-}
 .section-title {
   margin-bottom: var(--space-4);
-}
-.steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-2);
-}
-.step-group {
-  position: relative;
-  display: grid;
-  gap: 2px;
-}
-.step-group.repeated {
-  padding: var(--space-2);
-  padding-top: 26px;
-  border-radius: var(--radius);
-  border: 1px dashed var(--border-strong);
-}
-.repeat-badge {
-  position: absolute;
-  top: 6px;
-  left: 12px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--accent);
-}
-.step {
-  display: flex;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: 12px;
-  background: var(--surface-2);
-}
-.step-bar {
-  flex: none;
-  width: 4px;
-  border-radius: 2px;
-  background: var(--zone);
-}
-.step-body {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-.step-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-.step-kind {
-  font-weight: 700;
-}
-.step-dur {
-  color: var(--text-2);
-  font-size: 0.88rem;
-}
-.step-label {
-  color: var(--text-2);
-  font-size: 0.92rem;
-}
-.step-terrain {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.82rem;
 }
 .tips {
   list-style: none;

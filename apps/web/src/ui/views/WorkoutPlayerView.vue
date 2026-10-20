@@ -18,8 +18,11 @@ import { useContentStore } from '../../application/stores/content'
 import { useTrainingStore } from '../../application/stores/training'
 import { CATEGORY_LABELS, formatClock, formatDuration } from '../../domain/format'
 import type { Exercise, RoutineDetail } from '../../domain/models'
-import { PREP_SEC, buildQueue, remainingSec, rhythmOf, type EffortStep, type QueueStep } from '../../domain/workout-queue'
+import { PREP_SEC, buildQueue, remainingSec, rhythmOf, type EffortStep, type QueueStep, type Side } from '../../domain/workout-queue'
 import MotionDemo from '../components/MotionDemo.vue'
+import { errorMessage } from '../composables/error-message'
+import { useVoiceCoach } from '../composables/use-voice-coach'
+import { useWakeLock } from '../composables/use-wake-lock'
 
 const props = defineProps<{ routineId: string; sessionId?: string }>()
 
@@ -39,8 +42,10 @@ const paused = ref(false)
 const activeSec = ref(0)
 const quitting = ref(false)
 const validating = ref(false)
-const announcement = ref('')
-const sound = ref(readSoundPreference())
+
+const inProgress = () => stage.value !== 'INTRO' && stage.value !== 'DONE'
+const { sound, announcement, toggleSound, say, beep, unlockAudio } = useVoiceCoach()
+const wakeLock = useWakeLock(inProgress)
 
 const step = computed(() => queue.value[index.value])
 const effort = computed(() => (step.value?.kind === 'EFFORT' ? step.value : undefined))
@@ -59,9 +64,7 @@ const nextEffort = computed(() => queue.value.slice(index.value + 1).find((s): s
 const stageDuration = computed<number | undefined>(() => {
   const s = step.value
   if (!s) return undefined
-  if (stage.value === 'PREP') return PREP_SEC
-  if (s.kind === 'REPOS') return s.durationSec
-  return s.durationSec
+  return stage.value === 'PREP' ? PREP_SEC : s.durationSec
 })
 const remaining = computed(() => (stageDuration.value === undefined ? undefined : Math.max(stageDuration.value - elapsed.value, 0)))
 const ringProgress = computed(() => (stageDuration.value ? Math.min(elapsed.value / stageDuration.value, 1) : 0))
@@ -99,7 +102,10 @@ const progress = computed(() => (queue.value.length ? (index.value + (stage.valu
 const timeLeft = computed(() => Math.max(remainingSec(queue.value, index.value) - Math.min(elapsed.value, 60), 0))
 const estimatedTotal = computed(() => remainingSec(queue.value, 0))
 
-const sideLabel = computed(() => (effort.value?.side === 'GAUCHE' ? 'Côté gauche' : effort.value?.side === 'DROITE' ? 'Côté droit' : ''))
+function sideName(side: Side | undefined): string {
+  return side === 'GAUCHE' ? 'Côté gauche' : side === 'DROITE' ? 'Côté droit' : ''
+}
+const sideLabel = computed(() => sideName(effort.value?.side))
 
 onMounted(async () => {
   try {
@@ -109,19 +115,14 @@ onMounted(async () => {
       Object.fromEntries(routine.value.exercises.map((e) => [e.id, rhythmOf(e)])),
     )
   } catch (error) {
-    loadError.value = error instanceof Error ? error.message : 'Routine introuvable'
+    loadError.value = errorMessage(error, 'Routine introuvable')
   }
   window.addEventListener('keydown', onKey)
-  document.addEventListener('visibilitychange', onVisibility)
 })
 
 onBeforeUnmount(() => {
   stopClock()
   window.removeEventListener('keydown', onKey)
-  document.removeEventListener('visibilitychange', onVisibility)
-  window.speechSynthesis?.cancel()
-  void releaseWakeLock()
-  void audio?.close().catch(() => {})
 })
 
 let timer: number | undefined
@@ -144,7 +145,7 @@ function tick() {
   const now = performance.now()
   const delta = (now - lastTick) / 1000
   lastTick = now
-  if (paused.value || quitting.value || stage.value === 'INTRO' || stage.value === 'DONE') return
+  if (paused.value || quitting.value || !inProgress()) return
   elapsed.value += delta
   activeSec.value += delta
 
@@ -170,7 +171,7 @@ function resetStageClock() {
 
 function begin() {
   unlockAudio()
-  void requestWakeLock()
+  void wakeLock.request()
   index.value = 0
   activeSec.value = 0
   enterStep()
@@ -184,14 +185,15 @@ function enterStep() {
   if (s.kind === 'REPOS') {
     stage.value = 'RUN'
     const next = exerciseOf(s.nextExerciseId)
-    const changing = queue.value[index.value - 1]?.kind === 'EFFORT' && (queue.value[index.value - 1] as EffortStep).exerciseId !== s.nextExerciseId
+    const previousStep = queue.value[index.value - 1]
+    const changing = previousStep?.kind === 'EFFORT' && previousStep.exerciseId !== s.nextExerciseId
     say(changing && next ? `Repos. Prochain exercice : ${next.name}.` : 'Repos.')
     return
   }
   if (s.needsPrep) {
     stage.value = 'PREP'
     const name = exerciseOf(s.exerciseId)?.name ?? ''
-    const side = s.side === 'GAUCHE' ? 'Côté gauche.' : s.side === 'DROITE' ? 'Côté droit.' : ''
+    const side = s.side ? `${sideName(s.side)}.` : ''
     say(s.firstOfBlock ? `${name}. ${side} Prépare-toi.` : `On change. ${side}`)
     return
   }
@@ -230,7 +232,7 @@ function next() {
 }
 
 function togglePause() {
-  if (stage.value === 'INTRO' || stage.value === 'DONE') return
+  if (!inProgress()) return
   paused.value = !paused.value
   say(paused.value ? 'Pause.' : 'On reprend.')
 }
@@ -242,7 +244,7 @@ function finish() {
   say('Séance terminée. Bravo !')
   beep(660, 0.12)
   window.setTimeout(() => beep(990, 0.2), 160)
-  void releaseWakeLock()
+  void wakeLock.release()
 }
 
 const summary = computed(() => ({
@@ -270,7 +272,7 @@ function exitPath() {
 }
 
 function askQuit() {
-  if (stage.value === 'INTRO' || stage.value === 'DONE') return void router.push(exitPath())
+  if (!inProgress()) return void router.push(exitPath())
   quitting.value = true
   void nextTick(() => document.getElementById('quit-confirm')?.focus())
 }
@@ -288,97 +290,12 @@ function onKey(event: KeyboardEvent) {
     else askQuit()
     return
   }
-  if (quitting.value || stage.value === 'INTRO' || stage.value === 'DONE') return
+  if (quitting.value || !inProgress()) return
   if (event.key === ' ') {
     event.preventDefault()
     togglePause()
   } else if (event.key === 'ArrowRight') next()
   else if (event.key === 'ArrowLeft') previous()
-}
-
-function readSoundPreference(): boolean {
-  try {
-    return localStorage.getItem('kairn-sound') !== 'off'
-  } catch {
-    return true
-  }
-}
-
-function toggleSound() {
-  sound.value = !sound.value
-  if (!sound.value) window.speechSynthesis?.cancel()
-  try {
-    localStorage.setItem('kairn-sound', sound.value ? 'on' : 'off')
-  } catch {
-    /* préférence non mémorisée */
-  }
-}
-
-let frenchVoice: SpeechSynthesisVoice | undefined
-
-function pickVoice() {
-  const voices = window.speechSynthesis?.getVoices() ?? []
-  frenchVoice = voices.find((v) => v.lang === 'fr-FR' && v.localService) ?? voices.find((v) => v.lang.startsWith('fr'))
-}
-
-function say(text: string) {
-  announcement.value = text.trim()
-  if (!sound.value || !('speechSynthesis' in window)) return
-  if (!frenchVoice) pickVoice()
-  window.speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = 'fr-FR'
-  utterance.rate = 1.05
-  if (frenchVoice) utterance.voice = frenchVoice
-  window.speechSynthesis.speak(utterance)
-}
-
-let audio: AudioContext | undefined
-
-function unlockAudio() {
-  try {
-    audio ??= new AudioContext()
-    void audio.resume()
-  } catch {
-    audio = undefined
-  }
-  if ('speechSynthesis' in window) {
-    pickVoice()
-    window.speechSynthesis.onvoiceschanged = pickVoice
-  }
-}
-
-function beep(frequency: number, duration: number) {
-  if (!sound.value || !audio) return
-  const oscillator = audio.createOscillator()
-  const gain = audio.createGain()
-  oscillator.type = 'sine'
-  oscillator.frequency.value = frequency
-  gain.gain.setValueAtTime(0.0001, audio.currentTime)
-  gain.gain.exponentialRampToValueAtTime(0.25, audio.currentTime + 0.01)
-  gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + duration)
-  oscillator.connect(gain).connect(audio.destination)
-  oscillator.start()
-  oscillator.stop(audio.currentTime + duration + 0.02)
-}
-
-let wakeLock: WakeLockSentinel | undefined
-
-async function requestWakeLock() {
-  try {
-    wakeLock = await navigator.wakeLock?.request('screen')
-  } catch {
-    wakeLock = undefined
-  }
-}
-
-async function releaseWakeLock() {
-  await wakeLock?.release().catch(() => {})
-  wakeLock = undefined
-}
-
-function onVisibility() {
-  if (document.visibilityState === 'visible' && stage.value !== 'INTRO' && stage.value !== 'DONE') void requestWakeLock()
 }
 
 watch(quitting, (open) => {
