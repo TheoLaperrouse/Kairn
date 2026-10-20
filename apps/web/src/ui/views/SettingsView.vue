@@ -11,6 +11,7 @@ import ConfirmDialog from '../components/ConfirmDialog.vue'
 import GoalForm from '../components/GoalForm.vue'
 import NotificationSettingsCard from '../components/NotificationSettingsCard.vue'
 import ProfileForm from '../components/ProfileForm.vue'
+import { errorMessage } from '../composables/error-message'
 
 const auth = useAuthStore()
 const training = useTrainingStore()
@@ -41,7 +42,7 @@ async function saveAndRegenerate() {
     await training.generatePlan()
     saved.value = true
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Enregistrement impossible'
+    error.value = errorMessage(e, 'Enregistrement impossible')
   } finally {
     saving.value = false
   }

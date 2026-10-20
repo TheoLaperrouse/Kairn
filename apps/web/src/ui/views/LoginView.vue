@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../application/stores/auth'
 import KairnLogo from '../components/KairnLogo.vue'
+import { errorMessage } from '../composables/error-message'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -46,7 +47,7 @@ async function submit() {
     const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') ? route.query.redirect : '/'
     await router.replace(redirect)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Une erreur est survenue'
+    error.value = errorMessage(e, 'Une erreur est survenue')
   } finally {
     pending.value = false
   }

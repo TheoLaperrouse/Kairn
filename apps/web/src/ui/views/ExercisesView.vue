@@ -5,6 +5,7 @@ import { useContentStore } from '../../application/stores/content'
 import { CATEGORY_LABELS, PHASE_LABELS } from '../../domain/format'
 import type { ExerciseCategory } from '../../domain/models'
 import ExerciseFigure from '../components/ExerciseFigure.vue'
+import { errorMessage } from '../composables/error-message'
 
 const content = useContentStore()
 const loading = ref(true)
@@ -18,7 +19,7 @@ onMounted(async () => {
   try {
     await Promise.all([content.loadExercises(), content.loadRoutines()])
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Chargement impossible'
+    error.value = errorMessage(e, 'Chargement impossible')
   } finally {
     loading.value = false
   }

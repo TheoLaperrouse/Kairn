@@ -1,19 +1,9 @@
 <script setup lang="ts">
-import { ArrowRight, Clock, Flag, History, Mountain, Play, Route, Sparkles, Star, TriangleAlert, X } from 'lucide-vue-next'
+import { ArrowRight, History, Mountain, Play, Sparkles, Star, TriangleAlert, X } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
-import { useAuthStore } from '../../application/stores/auth'
 import { useTrainingStore } from '../../application/stores/training'
-import {
-  DAYS_SHORT,
-  PHASE_LABELS,
-  formatDate,
-  formatDuration,
-  formatLongDate,
-  formatNumber,
-  todayIso,
-  weekdayOf,
-} from '../../domain/format'
-import type { PlanAdjustment, PlannedSession } from '../../domain/models'
+import { formatDate, formatDuration, formatNumber, todayIso } from '../../domain/format'
+import type { PlanAdjustment } from '../../domain/models'
 import AdjustmentLog from '../components/AdjustmentLog.vue'
 import MorningCheckIn from '../components/MorningCheckIn.vue'
 import LoadChart from '../components/LoadChart.vue'
@@ -21,10 +11,11 @@ import SessionCard from '../components/SessionCard.vue'
 import StatTile from '../components/StatTile.vue'
 import VolumeChart from '../components/VolumeChart.vue'
 import WeeklySummaryTeaser from '../components/WeeklySummaryTeaser.vue'
-import { PHASE_COLORS } from '../components/phase-colors'
+import { errorMessage } from '../composables/error-message'
+import GoalHero from './dashboard/GoalHero.vue'
+import WeekStrip from './dashboard/WeekStrip.vue'
 
 const training = useTrainingStore()
-const auth = useAuthStore()
 const loading = ref(!training.dashboard)
 const error = ref<string>()
 
@@ -54,7 +45,7 @@ onMounted(async () => {
     await adaptOncePerDay().catch(() => undefined)
     await training.loadDashboard()
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Impossible de charger le tableau de bord'
+    error.value = errorMessage(e, 'Impossible de charger le tableau de bord')
   } finally {
     loading.value = false
   }
@@ -63,20 +54,7 @@ onMounted(async () => {
 const d = computed(() => training.dashboard)
 const today = todayIso()
 
-const greeting = computed(() => {
-  const hour = new Date().getHours()
-  const name = training.profile?.name ?? auth.user?.displayName ?? ''
-  return `${hour < 6 || hour >= 18 ? 'Bonsoir' : 'Bonjour'} ${name}`.trim()
-})
-
 const todaySessions = computed(() => d.value?.weekSessions.filter((s) => s.date === today) ?? [])
-
-const weekDays = computed(() => {
-  if (!d.value) return []
-  const byDay: PlannedSession[][] = Array.from({ length: 7 }, () => [])
-  for (const s of d.value.weekSessions) byDay[weekdayOf(s.date)]!.push(s)
-  return byDay.map((sessions, i) => ({ label: DAYS_SHORT[i]!, sessions, isToday: weekdayOf(today) === i }))
-})
 
 const weekProgress = computed(() => {
   const sessions = d.value?.weekSessions.filter((s) => s.type !== 'COURSE') ?? []
@@ -101,10 +79,6 @@ const readiness = computed(() => {
   return { label: 'Risque de désentraînement', tone: 'warning' as const }
 })
 
-const countdown = computed(() => {
-  const days = d.value?.goal.daysToRace ?? 0
-  return { weeks: Math.floor(days / 7), days: days % 7 }
-})
 </script>
 
 <template>
@@ -125,44 +99,7 @@ const countdown = computed(() => {
     </div>
 
     <template v-else>
-      <section class="hero topo" aria-labelledby="hero-title">
-        <div class="hero-main">
-          <p class="eyebrow">{{ greeting }} · objectif</p>
-          <h1 id="hero-title">{{ d.goal.name }}</h1>
-          <p class="hero-date">{{ formatLongDate(d.goal.raceDate) }}</p>
-          <div class="hero-facts">
-            <span class="fact"><Route :size="16" aria-hidden="true" /><span class="num">{{ formatNumber(d.goal.distanceKm) }}</span> km</span>
-            <span class="fact"><Mountain :size="16" aria-hidden="true" /><span class="num">{{ formatNumber(d.goal.elevationGainM) }}</span> m D+</span>
-            <span class="fact"><Clock :size="16" aria-hidden="true" />≈ <span class="num">{{ formatNumber(d.goal.estimatedDurationH, 1) }}</span> h</span>
-            <span class="chip chip-accent">{{ d.goal.category }} · {{ d.goal.categoryLabel }}</span>
-            <span class="chip">{{ d.goal.kmEffort }} km-effort</span>
-          </div>
-        </div>
-        <div class="countdown" :aria-label="`Course dans ${d.goal.daysToRace} jours`">
-          <template v-if="d.goal.daysToRace > 0">
-            <span class="cd-label">J −</span>
-            <span class="cd-value num">{{ d.goal.daysToRace }}</span>
-            <span class="cd-sub">{{ countdown.weeks }} sem. {{ countdown.days }} j</span>
-          </template>
-          <template v-else-if="d.goal.daysToRace === 0">
-            <Flag :size="40" />
-            <span class="cd-sub">C’est le jour J !</span>
-          </template>
-          <template v-else>
-            <span class="cd-sub">Course terminée — bravo !</span>
-          </template>
-        </div>
-        <div v-if="d.currentWeek" class="hero-phase">
-          <span class="phase-dot" :style="{ background: PHASE_COLORS[d.currentWeek.phase] }" aria-hidden="true" />
-          <div>
-            <p class="phase-name">
-              Phase {{ PHASE_LABELS[d.currentWeek.phase] }}
-              <span v-if="d.currentWeek.isRecovery" class="chip chip-teal">semaine allégée</span>
-            </p>
-            <p class="text-2">{{ d.currentWeek.focus }}</p>
-          </div>
-        </div>
-      </section>
+      <GoalHero :goal="d.goal" :current-week="d.currentWeek" />
 
       <div v-if="adaptation" class="adapt-banner" role="status">
         <Sparkles :size="20" class="adapt-icon" aria-hidden="true" />
@@ -241,19 +178,7 @@ const countdown = computed(() => {
         <StatTile label="Durée estimée" :value="formatNumber(d.goal.estimatedDurationH, 1)" unit="h" sub="Selon ton niveau et la technicité" tone="accent" />
       </div>
 
-      <section class="card" aria-labelledby="week-title">
-        <div class="card-title">
-          <h2 id="week-title">Cette semaine</h2>
-          <RouterLink to="/plan" class="btn btn-ghost btn-sm">Tout le plan <ArrowRight :size="16" /></RouterLink>
-        </div>
-        <div class="week-grid">
-          <div v-for="day in weekDays" :key="day.label" class="day" :class="{ today: day.isToday }">
-            <p class="day-label">{{ day.label }}</p>
-            <SessionCard v-for="s in day.sessions" :key="s.id" :session="s" compact />
-            <p v-if="!day.sessions.length" class="day-rest">Repos</p>
-          </div>
-        </div>
-      </section>
+      <WeekStrip :sessions="d.weekSessions" />
 
       <section class="card" aria-labelledby="load-title">
         <div class="card-title">
@@ -319,89 +244,6 @@ const countdown = computed(() => {
   align-items: center;
   gap: 8px;
 }
-.hero {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: var(--space-5);
-  padding: var(--space-6);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  background:
-    radial-gradient(600px 300px at 100% 0%, var(--accent-soft), transparent 70%),
-    linear-gradient(160deg, var(--surface), var(--surface-2));
-  box-shadow: var(--shadow);
-}
-.hero h1 {
-  font-size: clamp(2rem, 5vw, 3.2rem);
-  margin-top: var(--space-2);
-}
-.hero-date {
-  color: var(--text-2);
-  margin-top: 4px;
-}
-.hero-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  margin-top: var(--space-4);
-  align-items: center;
-}
-.fact {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-2);
-}
-.fact .num {
-  color: var(--text);
-  font-weight: 600;
-}
-.countdown {
-  display: grid;
-  justify-items: end;
-  align-content: center;
-  text-align: right;
-  color: var(--accent);
-}
-.cd-label {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-.cd-value {
-  font-family: var(--font-display);
-  font-size: clamp(3.5rem, 9vw, 6rem);
-  font-weight: 700;
-  line-height: 0.9;
-  letter-spacing: -0.05em;
-}
-.cd-sub {
-  color: var(--text-2);
-  font-size: 0.9rem;
-  margin-top: 6px;
-}
-.hero-phase {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: var(--space-3);
-  align-items: flex-start;
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border);
-}
-.phase-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-top: 6px;
-  flex: none;
-}
-.phase-name {
-  font-weight: 700;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
 .today-date {
   text-transform: capitalize;
   font-size: 0.9rem;
@@ -449,38 +291,6 @@ const countdown = computed(() => {
   background: var(--accent);
   transition: width 0.6s var(--ease);
 }
-.week-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: var(--space-2);
-}
-.day {
-  display: grid;
-  gap: 6px;
-  align-content: start;
-  padding: var(--space-2);
-  border-radius: var(--radius);
-  min-width: 0;
-}
-.day.today {
-  background: var(--accent-soft);
-  outline: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-}
-.day-label {
-  font-weight: 700;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
-.day.today .day-label {
-  color: var(--accent);
-}
-.day-rest {
-  font-size: 0.8rem;
-  color: var(--muted);
-  padding: var(--space-2) 0;
-}
 .warn-title {
   margin-bottom: var(--space-3);
 }
@@ -522,40 +332,6 @@ const countdown = computed(() => {
 @keyframes shimmer {
   to {
     background-position: -200% 0;
-  }
-}
-
-@media (max-width: 900px) {
-  .week-grid {
-    grid-template-columns: 1fr;
-  }
-  .day {
-    grid-template-columns: 44px 1fr;
-    align-items: start;
-  }
-  .day > :not(.day-label) {
-    grid-column: 2;
-  }
-  .day-label {
-    grid-row: 1 / span 3;
-    padding-top: 8px;
-  }
-}
-@media (max-width: 600px) {
-  .hero {
-    grid-template-columns: 1fr;
-    padding: var(--space-5);
-  }
-  .countdown {
-    justify-items: start;
-    text-align: left;
-    grid-row: 1;
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-  }
-  .cd-value {
-    font-size: 3rem;
   }
 }
 </style>

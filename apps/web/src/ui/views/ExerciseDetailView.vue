@@ -4,6 +4,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useContentStore } from '../../application/stores/content'
 import { CATEGORY_LABELS } from '../../domain/format'
 import MotionDemo from '../components/MotionDemo.vue'
+import { errorMessage } from '../composables/error-message'
 
 const props = defineProps<{ id: string }>()
 const content = useContentStore()
@@ -15,7 +16,7 @@ onMounted(async () => {
   try {
     await Promise.all([content.loadExercises(), content.loadRoutines()])
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Chargement impossible'
+    error.value = errorMessage(e, 'Chargement impossible')
   } finally {
     loading.value = false
   }
