@@ -53,7 +53,7 @@ export class TrainingService {
     return goal
   }
 
-  /** (Re)génère le plan à partir de l'objectif et du profil courants, en conservant les séances déjà faites. */
+  /** (Re)generates the plan from the current goal and profile, keeping sessions already done. */
   regeneratePlan(userId: string): TrainingPlan {
     const profile = this.profiles.get(userId)
     const goal = this.goals.get(userId)
@@ -95,8 +95,8 @@ export class TrainingService {
   }
 
   /**
-   * Rattrape les séances clés manquées récemment. Idempotent : une séance déjà
-   * traitée (déplacée ou abandonnée) ne l'est jamais deux fois.
+   * Catches up on recently missed key sessions. Idempotent: a session already
+   * handled (moved or dropped) is never handled twice.
    */
   adaptPlan(userId: string): PlanAdjustment | undefined {
     const plan = this.plans.get(userId)
@@ -168,8 +168,8 @@ export class TrainingService {
 }
 
 /**
- * Conserve l'historique de l'ancien plan (semaines et séances passées) devant le nouveau,
- * pour ne pas perdre le suivi quand on change d'objectif ou de disponibilités en cours de route.
+ * Keeps the old plan's history (past weeks and sessions) ahead of the new one,
+ * so tracking is not lost when the goal or availability changes along the way.
  */
 function withHistory(plan: TrainingPlan, previous: TrainingPlan | undefined): TrainingPlan {
   if (!previous) return plan

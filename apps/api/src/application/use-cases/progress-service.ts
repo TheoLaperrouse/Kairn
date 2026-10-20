@@ -2,7 +2,7 @@ import { buildVamProgress, type VamProgress } from '../../domain/analysis/vam-cu
 import { toIsoDate } from '../../domain/shared/dates'
 import type { ActivityRepository, Clock } from '../ports'
 
-/** Progression dans le temps, calculée à la demande à partir des traces enregistrées. */
+/** Progress over time, computed on demand from the stored tracks. */
 export class ProgressService {
   constructor(
     private readonly activities: ActivityRepository,

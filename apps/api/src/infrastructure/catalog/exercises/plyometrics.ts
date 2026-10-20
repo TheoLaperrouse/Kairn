@@ -2,16 +2,16 @@ import type { Exercise, Pose } from '../../../domain/strength/exercise'
 import { pose } from './poses'
 import { anchored, swapSides } from './poses-dynamic'
 
-/** Fentes sautées, demi-cycle (jambe proche devant) ; le second demi-cycle est symétrique. */
+/** Jump lunges, half cycle (near leg in front); the second half cycle is symmetrical. */
 const JUMP_LUNGE: Pose[] = [
   pose({ nearThigh: 85, nearShin: 0, farThigh: -15, farShin: -100, nearUpperArm: -35, nearForearm: -10, farUpperArm: 50, farForearm: 80 }),
-  // Poussée : angles résolus pour que la cheville avant et la pointe arrière restent à leur place.
+  // Push-off: angles solved so the front ankle and the back toes stay in place.
   { ...pose({ torso: 4, nearThigh: 60, nearShin: 5, farThigh: -30, farShin: -69, farFoot: 20, nearUpperArm: -10, nearForearm: 20, farUpperArm: 30, farForearm: 60 }), hipX: 0.043 },
   { ...pose({ nearThigh: 25, nearShin: -10, farThigh: 5, farShin: -30, nearFoot: 60, farFoot: 50, nearUpperArm: 10, nearForearm: 40, farUpperArm: 10, farForearm: 40 }), air: 0.38 },
   { ...pose({ nearThigh: -12, nearShin: -48, farThigh: 62, farShin: 4, nearFoot: 30, farFoot: 80, nearUpperArm: 40, nearForearm: 70, farUpperArm: -25, farForearm: 0 }), air: 0.1 },
 ]
 
-/** Foulées bondissantes, demi-cycle : contact (pied proche), amorti, poussée, vol. */
+/** Bounding strides, half cycle: contact (near foot), absorption, push-off, flight. */
 const BOUND: Pose[] = [
   pose({ torso: 8, nearThigh: 22, nearShin: 4, nearFoot: 82, farThigh: -25, farShin: -95, nearUpperArm: -45, nearForearm: -10, farUpperArm: 55, farForearm: 110 }),
   pose({ torso: 10, nearThigh: 0, nearShin: -18, farThigh: 35, farShin: -40, nearUpperArm: -10, nearForearm: 20, farUpperArm: 25, farForearm: 70 }),
@@ -19,7 +19,7 @@ const BOUND: Pose[] = [
   { ...pose({ torso: 10, nearThigh: -30, nearShin: -75, nearFoot: 15, farThigh: 70, farShin: 25, farFoot: 92, nearUpperArm: 55, nearForearm: 110, farUpperArm: -45, farForearm: -10 }), air: 0.35 },
 ]
 
-/** Skipping, demi-cycle : genou proche haut, appui avant-pied éloigné, puis transition aérienne. */
+/** Skipping, half cycle: near knee high, far forefoot contact, then airborne transition. */
 const SKIP: Pose[] = [
   pose({ torso: 6, nearThigh: 88, nearShin: -5, nearFoot: 100, farThigh: -4, farShin: -4, farFoot: 62, nearUpperArm: -35, nearForearm: 30, farUpperArm: 50, farForearm: 140 }),
   { ...pose({ torso: 6, nearThigh: 12, nearShin: 2, nearFoot: 70, farThigh: 35, farShin: -30, farFoot: 45, nearUpperArm: 10, nearForearm: 80, farUpperArm: 10, farForearm: 80 }), air: 0.04 },
@@ -41,7 +41,7 @@ export const PLYOMETRIC_EXERCISES: Exercise[] = [
       'Développe la puissance et la raideur musculo-tendineuse : foulée plus économique et relances plus vives sur les portions roulantes.',
     regression: 'Petits sauts avec pause entre chaque répétition.',
     progression: 'Enchaînement réactif sans pause, ou gilet lesté léger.',
-    // Charge bras en arrière → triple extension sur la pointe, bras au ciel → vol → réception avant-pied → amorti.
+    // Load with arms back → triple extension onto tiptoe, arms to the sky → flight → forefoot landing → absorption.
     animation: {
       durationMs: 2000,
       timing: [0, 0.16, 0.33, 0.5, 0.66],
@@ -69,7 +69,7 @@ export const PLYOMETRIC_EXERCISES: Exercise[] = [
       'Puissance unilatérale et coordination : prépare les cuisses aux appuis dynamiques et alternés des sentiers cassants.',
     regression: 'Fentes alternées sans saut, rapides.',
     progression: 'Enchaînement sans pause, plus d’amplitude.',
-    // Fente → poussée → ciseau en l'air → réception dans la fente opposée, bras opposés aux jambes.
+    // Lunge → push-off → mid-air scissor → landing in the opposite lunge, arms opposite to the legs.
     animation: {
       repsPerCycle: 2,
       durationMs: 2200,
@@ -92,7 +92,7 @@ export const PLYOMETRIC_EXERCISES: Exercise[] = [
       'La séance « magique » des montées : améliore la force réactive des mollets et la poussée de hanche utilisées dans les côtes courantes.',
     regression: 'Skipping amplitude, sans phase de vol marquée.',
     progression: 'En côte légère (5-8 %).',
-    // Course bondissante sur place : contact → amorti → poussée complète → long temps de vol, bras opposé en balancier.
+    // Bounding on the spot: contact → absorption → full push-off → long flight time, opposite arm swinging.
     animation: {
       repsPerCycle: 2,
       durationMs: 1500,
@@ -115,8 +115,8 @@ export const PLYOMETRIC_EXERCISES: Exercise[] = [
       'Explosivité et confiance pour franchir rochers, marches et racines : utile sur les sentiers techniques et pour les relances après un ravito.',
     regression: 'Marche basse (20-30 cm).',
     progression: 'Box plus haute ou saut unipodal sur box basse.',
-    // Apogée du vol juste au-dessus de l'arête de la box (pointes à y < −0,7) pour ne jamais la traverser.
-    // Élan des bras → vol groupé → réception amortie sur la box → debout → redescente en marchant (pas en sautant).
+    // Flight apex just above the box edge (toes at y < −0.7) so the feet never cross through it.
+    // Arm swing → tucked flight → soft landing on the box → stand up → step back down (no jumping down).
     animation: {
       durationMs: 3600,
       timing: [0, 0.13, 0.25, 0.37, 0.48, 0.54, 0.6, 0.618, 0.635, 0.67, 0.76, 0.87],
@@ -127,14 +127,14 @@ export const PLYOMETRIC_EXERCISES: Exercise[] = [
         { ...pose({ torso: 25, nearThigh: 75, nearShin: -25, farThigh: 75, farShin: -25, nearFoot: 80, farFoot: 80, nearUpperArm: 110, nearForearm: 120, farUpperArm: 110, farForearm: 120 }), hipX: -0.33, air: 0.92 },
         { ...anchored(0.75, { torso: 40, nearThigh: 80, nearShin: -30, farThigh: 80, farShin: -30, nearUpperArm: 85, nearForearm: 90, farUpperArm: 85, farForearm: 90 }), groundOffset: 0.7 },
         { ...anchored(0.75, { nearUpperArm: 8, nearForearm: 15, farUpperArm: 8, farForearm: 15 }), groundOffset: 0.7 },
-        // Pied proche levé et ramené au-dessus de la box avant de reculer (aucun frottement sur l'arête).
+        // Near foot lifted and brought back above the box before stepping back (no scraping on the edge).
         { ...pose({ torso: 4, nearThigh: 20, nearShin: -50, nearUpperArm: 12, nearForearm: 20, farUpperArm: 12, farForearm: 20 }), hipX: 0.75, groundOffset: 0.7 },
-        // Pied proche passé derrière la box, encore au-dessus de son niveau : le pied éloigné porte seul (y = −0,7).
+        // Near foot moved behind the box, still above its level: the far foot carries the weight alone (y = −0.7).
         { ...pose({ torso: 6, farThigh: 10, farShin: -8, nearThigh: -10, nearShin: -45, nearUpperArm: 18, nearForearm: 28, farUpperArm: 18, farForearm: 28 }), hipX: 0.715, groundOffset: 0.7 },
         { ...pose({ torso: 8.25, farThigh: 19.5, farShin: -15, nearThigh: -12.5, nearShin: -37.5, nearFoot: 63, nearUpperArm: 21, nearForearm: 31, farUpperArm: 21, farForearm: 31 }), hipX: 0.685, groundOffset: 0.7 },
-        // Intermédiaire calculé : la hauteur garde la cheville éloignée sur la box pendant que le pied proche descend.
+        // Computed in-between: the height keeps the far ankle on the box while the near foot comes down.
         { ...pose({ torso: 10.5, farThigh: 29, farShin: -22, nearThigh: -15, nearShin: -30, nearFoot: 52, nearUpperArm: 24, nearForearm: 34, farUpperArm: 24, farForearm: 34 }), hipX: 0.655, groundOffset: 0.485 },
-        // Pied proche posé au sol pointe en premier, pied éloigné encore sur la box (genou fléchi).
+        // Near foot set down toes first, far foot still on the box (knee bent).
         { ...pose({ torso: 15, farThigh: 48, farShin: -36, nearThigh: -20, nearShin: -15, nearFoot: 30, nearUpperArm: 30, nearForearm: 40, farUpperArm: 30, farForearm: 40 }), hipX: 0.595 },
         { ...anchored(-0.16, { torso: 6, nearThigh: 5, farThigh: 70, farShin: -45, nearUpperArm: 15, nearForearm: 25, farUpperArm: 15, farForearm: 25 }) },
         anchored(-0.16, {}),
@@ -156,7 +156,7 @@ export const PLYOMETRIC_EXERCISES: Exercise[] = [
       'Améliore la fréquence de foulée et la levée de genou : on accroche moins les racines et cailloux, surtout quand la fatigue arrive en fin d’ultra.',
     regression: 'Montées de genou marchées.',
     progression: 'En côte, ou enchaîné avec 20 m d’accélération.',
-    // Genou à l'horizontale, appuis brefs sur l'avant-pied, petite phase de vol, bras opposé fléchi à 90°.
+    // Knee horizontal, brief forefoot contacts, short flight phase, opposite arm bent at 90°.
     animation: {
       repsPerCycle: 2,
       durationMs: 760,

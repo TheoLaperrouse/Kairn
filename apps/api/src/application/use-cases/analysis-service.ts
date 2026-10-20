@@ -6,8 +6,8 @@ import type { ActivityRepository, PlanRepository, ProfileRepository } from '../p
 type AnalysisContext = Omit<Parameters<typeof analyzeWorkout>[1], 'session'>
 
 /**
- * Analyse d'une sortie, recalculée à la demande : elle suit les changements de profil
- * (FC max / repos) et du plan, sans rien stocker de plus que la trace.
+ * Analysis of an outing, recomputed on demand: it follows changes to the profile
+ * (max / resting HR) and to the plan, without storing anything beyond the track.
  */
 export class AnalysisService {
   constructor(
@@ -22,7 +22,7 @@ export class AnalysisService {
     return this.analyzeActivity(userId, activity)
   }
 
-  /** Verdict de chaque sortie, pour la liste : une seule lecture des traces, partagée par toutes les analyses. */
+  /** Verdict of each outing, for the list: tracks are read once and shared by every analysis. */
   verdicts(userId: string): Record<string, { verdict: Verdict; score?: number }> {
     const context = this.context(userId)
     return Object.fromEntries(

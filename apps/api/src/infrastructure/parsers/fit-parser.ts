@@ -4,8 +4,8 @@ import { downsampleProfile, resampleTrack, sportFromLabel, type ImportedActivity
 import { fileExternalId, round2 } from './parser-utils'
 
 /**
- * Fichiers .FIT natifs des montres Garmin (et Coros, Suunto, Wahoo…).
- * On lit le message « session » pour les totaux, et les « records » pour le profil.
+ * Native .FIT files from Garmin watches (and Coros, Suunto, Wahoo…).
+ * The "session" message gives the totals, and the "records" the profile.
  */
 export class FitActivityParser implements ActivityFileParser {
   readonly extension = '.fit'

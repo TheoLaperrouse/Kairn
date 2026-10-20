@@ -1,6 +1,6 @@
 import type { Pose } from '../../../domain/strength/exercise'
 
-/** Debout, bras le long du corps : base dont dérivent toutes les poses. */
+/** Standing, arms by the sides: the base every pose derives from. */
 export const STAND: Pose = {
   torso: 0,
   nearUpperArm: 0,
@@ -15,7 +15,7 @@ export const STAND: Pose = {
 
 export const pose = (overrides: Partial<Pose>): Pose => ({ ...STAND, ...overrides })
 
-/** Inverse jambes et bras near/far (pour alterner les côtés). */
+/** Swaps near/far legs and arms (to alternate sides). */
 export const mirror = (p: Pose): Pose => ({
   ...p,
   nearThigh: p.farThigh,
@@ -74,7 +74,7 @@ export const PLANK = pose({
   farThigh: -84,
   farShin: -84,
 })
-// Allongé sur le dos : tête à gauche (torse ≈ -90), face vers le haut.
+// Lying on the back: head on the left (torso ≈ -90), face up.
 export const SUPINE_TABLETOP = pose({
   torso: -84,
   nearUpperArm: 180,

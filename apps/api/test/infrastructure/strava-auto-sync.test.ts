@@ -44,7 +44,7 @@ const run = (id: number, startTime = '2027-03-03T06:00:00Z'): ImportedActivity =
   profile: [],
 })
 
-const VERIFY_TOKEN = 'secret-de-verification'
+const VERIFY_TOKEN = 'verification-secret'
 const tokens = (accessToken: string, athleteId?: string): IntegrationTokens => ({
   accessToken,
   refreshToken: 'r',

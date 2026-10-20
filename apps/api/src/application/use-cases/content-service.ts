@@ -26,7 +26,7 @@ export class ContentService {
     return this.catalog.routines()
   }
 
-  /** Routine accompagnée des exercices qu'elle référence, pour le lecteur de séance guidée. */
+  /** Routine together with the exercises it references, for the guided session player. */
   routine(id: string): RoutineDetail {
     const routine = this.catalog.routines().find((r) => r.id === id)
     if (!routine) throw new NotFoundError('Routine', id)

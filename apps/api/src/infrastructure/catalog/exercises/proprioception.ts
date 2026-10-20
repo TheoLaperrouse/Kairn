@@ -26,7 +26,7 @@ export const PROPRIOCEPTION_EXERCISES: Exercise[] = [
     regression: 'Sur sol dur.',
     progression: 'Yeux fermés, ou en lançant/rattrapant une balle.',
     animation: {
-      // Genou levé, petites corrections, puis la jambe libre explore devant et derrière.
+      // Knee raised, small corrections, then the free leg explores in front and behind.
       durationMs: 5200,
       props: [{ kind: 'CUSHION', x: 0.12, width: 0.7, height: 0.12 }],
       keyframes: [BALANCE_KNEE, BALANCE_WOBBLE, BALANCE_KNEE, BALANCE_FRONT, BALANCE_KNEE, BALANCE_BACK],
@@ -49,7 +49,7 @@ export const PROPRIOCEPTION_EXERCISES: Exercise[] = [
     regression: 'Mains sur un mur, amplitude réduite.',
     progression: 'Yeux fermés ou haltère léger.',
     animation: {
-      // En charnière tenue : ouverture (bras proche vers le ciel), retour, fermeture, 2 s par sens.
+      // In a held hinge: open up (near arm to the sky), return, close, 2 s each way.
       durationMs: 6000,
       keyframes: [AIRPLANE_NEUTRAL, AIRPLANE_OPEN, AIRPLANE_OPEN, AIRPLANE_NEUTRAL, AIRPLANE_CLOSED, AIRPLANE_CLOSED],
       timing: [0, 0.18, 0.3, 0.5, 0.68, 0.8],

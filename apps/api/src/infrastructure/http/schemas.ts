@@ -1,4 +1,4 @@
-/** Schémas JSON des corps de requête : Fastify rejette en 400 tout ce qui ne correspond pas. */
+/** JSON schemas for request bodies: Fastify rejects anything that does not match with a 400. */
 
 const day = { type: 'integer', minimum: 0, maximum: 6 } as const
 const scale = { enum: [1, 2, 3, 4, 5] } as const

@@ -1,4 +1,4 @@
-# Image unique : le serveur Fastify sert l'API et le front compilé.
+# Single image: the Fastify server serves the API and the built front end.
 FROM node:24-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./

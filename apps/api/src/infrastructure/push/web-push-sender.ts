@@ -3,12 +3,12 @@ import type { PushSender, PushSubscription } from '../../application/ports'
 import type { PushMessage } from '../../domain/notifications/notification'
 
 /**
- * Web Push sans dépendance : chiffrement du message (RFC 8291, aes128gcm) et
- * identification du serveur auprès du service de push du navigateur (VAPID, RFC 8292).
- * Fonctionne avec Chrome / Android (FCM), Firefox (Mozilla) et Safari / iOS 16.4+ (Apple).
+ * Dependency-free Web Push: message encryption (RFC 8291, aes128gcm) and
+ * server identification with the browser's push service (VAPID, RFC 8292).
+ * Works with Chrome / Android (FCM), Firefox (Mozilla) and Safari / iOS 16.4+ (Apple).
  */
 
-/** Taille d'enregistrement annoncée ; le message chiffré doit tenir dans un seul enregistrement. */
+/** Advertised record size; the encrypted message must fit in a single record. */
 const RECORD_SIZE = 4096
 const MAX_PAYLOAD_BYTES = 3000
 const TTL_SECONDS = 24 * 3600
@@ -18,18 +18,18 @@ function base64url(buffer: Buffer | Uint8Array): string {
   return Buffer.from(buffer).toString('base64url')
 }
 
-/** Paire de clés VAPID, sérialisée en JWK (clé privée P-256) pour être stockée. */
+/** VAPID key pair, serialised as a JWK (P-256 private key) for storage. */
 export function generateVapidKeys(): string {
   const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
   return JSON.stringify(privateKey.export({ format: 'jwk' }))
 }
 
-/** Clé publique au format attendu par `pushManager.subscribe` : point non compressé, base64url. */
+/** Public key in the format expected by `pushManager.subscribe`: uncompressed point, base64url. */
 export function vapidPublicKey(privateJwk: JsonWebKey): string {
   return base64url(Buffer.concat([Buffer.from([4]), Buffer.from(privateJwk.x!, 'base64url'), Buffer.from(privateJwk.y!, 'base64url')]))
 }
 
-/** Chiffre `payload` pour l'abonnement (clé publique `p256dh` et secret `auth` du navigateur). */
+/** Encrypts `payload` for the subscription (the browser's `p256dh` public key and `auth` secret). */
 export function encryptPayload(payload: Buffer, subscription: PushSubscription, salt = randomBytes(16)): Buffer {
   const userAgentPublic = Buffer.from(subscription.keys.p256dh, 'base64url')
   const authSecret = Buffer.from(subscription.keys.auth, 'base64url')
@@ -44,7 +44,7 @@ export function encryptPayload(payload: Buffer, subscription: PushSubscription, 
   const nonce = Buffer.from(hkdfSync('sha256', ikm, salt, Buffer.from('Content-Encoding: nonce\0'), 12))
 
   const cipher = createCipheriv('aes-128-gcm', contentKey, nonce)
-  // 0x02 : délimiteur du dernier (et unique) enregistrement.
+  // 0x02: delimiter of the last (and only) record.
   const encrypted = Buffer.concat([cipher.update(Buffer.concat([payload, Buffer.from([2])])), cipher.final(), cipher.getAuthTag()])
   const header = Buffer.alloc(16 + 4 + 1)
   salt.copy(header, 0)
@@ -54,9 +54,9 @@ export function encryptPayload(payload: Buffer, subscription: PushSubscription, 
 }
 
 export interface WebPushOptions {
-  /** JWK de la clé privée VAPID (voir `generateVapidKeys`). */
+  /** JWK of the VAPID private key (see `generateVapidKeys`). */
   privateKey: string
-  /** Contact de l'administrateur : `mailto:` ou URL https (exigé par Apple). */
+  /** Administrator contact: `mailto:` or https URL (required by Apple). */
   subject: string
   http?: typeof fetch
   now?: () => Date
@@ -91,7 +91,7 @@ export class WebPushSender implements PushSender {
       body: new Uint8Array(encryptPayload(payload, subscription)),
     })
     if (response.status === 404 || response.status === 410) return 'GONE'
-    if (!response.ok) throw new Error(`Service de push : ${response.status} ${await response.text().catch(() => '')}`.trim())
+    if (!response.ok) throw new Error(`Push service: ${response.status} ${await response.text().catch(() => '')}`.trim())
     return 'SENT'
   }
 
@@ -105,7 +105,7 @@ export class WebPushSender implements PushSender {
   }
 }
 
-/** Raccourcit le texte si besoin : un message chiffré doit tenir dans un enregistrement. */
+/** Shortens the text if needed: an encrypted message must fit in one record. */
 function fit(message: PushMessage): PushMessage {
   let body = message.body
   while (Buffer.byteLength(JSON.stringify({ ...message, body })) > MAX_PAYLOAD_BYTES) body = `${body.slice(0, Math.floor(body.length * 0.8))}…`

@@ -1,6 +1,6 @@
 /**
- * Racine de composition : le seul endroit qui connaît à la fois les cas d'usage
- * et les adaptateurs concrets. Tout le câblage de l'hexagone se fait ici.
+ * Composition root: the only place that knows both the use cases
+ * and the concrete adapters. All of the hexagon's wiring happens here.
  */
 import { randomBytes } from 'node:crypto'
 import { resolve } from 'node:path'
@@ -72,8 +72,8 @@ const strava = new StravaActivityProvider({
   clientSecret: env.STRAVA_CLIENT_SECRET,
   redirectUri: `${publicUrl}/api/integrations/strava/callback`,
 })
-// Strava n'appelle que des URL publiques en HTTPS. Le jeton ne sert qu'à la vérification de l'abonnement :
-// un nouveau à chaque démarrage suffit.
+// Strava only calls public HTTPS URLs. The token is only used to verify the subscription:
+// a fresh one on every start is enough.
 const stravaWebhook =
   strava.isConfigured() && https && env.STRAVA_WEBHOOK !== 'off'
     ? { verifyToken: randomBytes(16).toString('hex') }
@@ -81,7 +81,7 @@ const stravaWebhook =
 
 const analyses = new AnalysisService(activityRepository, plans, profiles)
 const summaries = new SummaryService(profiles, goals, plans, activityRepository, checkIns, clock)
-// Clés VAPID générées au premier démarrage et conservées en base : les abonnements des téléphones en dépendent.
+// VAPID keys generated on first start and kept in the database: the phones' subscriptions depend on them.
 const pushSender = new WebPushSender({
   privateKey: new SqliteSecretStore(db).getOrCreate('vapid', generateVapidKeys),
   subject: env.VAPID_SUBJECT ?? (https ? publicUrl : 'mailto:kairn@localhost'),
@@ -142,14 +142,14 @@ if (env.GARMIN_WATCH_DIR && env.GARMIN_WATCH_EMAIL) {
       log: (message) => app.log.info(message),
     }).start()
   } else {
-    app.log.warn(`GARMIN_WATCH_EMAIL : aucun compte ${env.GARMIN_WATCH_EMAIL}, surveillance désactivée`)
+    app.log.warn(`GARMIN_WATCH_EMAIL: no account ${env.GARMIN_WATCH_EMAIL}, folder watching disabled`)
   }
 }
 
-// 0.0.0.0 : accessible depuis les autres appareils du réseau (téléphone, tablette).
+// 0.0.0.0: reachable from other devices on the network (phone, tablet).
 await app.listen({ port, host: env.HOST ?? '0.0.0.0' })
 
-// Rappels du matin et bilans du dimanche : vérifiés chaque minute, dans le fuseau de chaque utilisateur.
+// Morning reminders and Sunday summaries: checked every minute, in each user's time zone.
 setInterval(() => void services.notifications.tick(), 60_000)
 
 if (strava.isConfigured()) {
@@ -164,6 +164,6 @@ if (stravaWebhook) {
   const callbackUrl = `${publicUrl}/api/webhooks/strava`
   strava
     .ensureWebhookSubscription(callbackUrl, stravaWebhook.verifyToken)
-    .then((id) => app.log.info(`Notifications Strava actives (abonnement ${id}) → ${callbackUrl}`))
-    .catch((error: Error) => app.log.warn(`Notifications Strava indisponibles, synchro périodique seule : ${error.message}`))
+    .then((id) => app.log.info(`Strava notifications active (subscription ${id}) → ${callbackUrl}`))
+    .catch((error: Error) => app.log.warn(`Strava notifications unavailable, periodic sync only: ${error.message}`))
 }

@@ -10,13 +10,13 @@ export interface FolderWatcherOptions {
 }
 
 /**
- * Import automatique « sans API » : surveille un dossier contenant des .FIT.
+ * API-free automatic import: watches a folder containing .FIT files.
  *
- * Usages typiques :
- * - la montre branchée en USB expose `GARMIN/Activity/` (montage stockage de masse) ;
- * - un dossier synchronisé (Garmin Express, Syncthing, rclone…) recevant les fichiers.
+ * Typical uses:
+ * - the watch plugged in over USB exposes `GARMIN/Activity/` (mass storage mount);
+ * - a synced folder (Garmin Express, Syncthing, rclone…) receiving the files.
  *
- * Le dédoublonnage par empreinte rend les passages répétés sans effet.
+ * Fingerprint-based deduplication makes repeated scans harmless.
  */
 export class GarminFolderWatcher {
   private readonly seen = new Map<string, number>()
@@ -28,7 +28,7 @@ export class GarminFolderWatcher {
   ) {}
 
   start(): void {
-    this.options.log(`Surveillance du dossier Garmin : ${this.options.directory}`)
+    this.options.log(`Watching Garmin folder: ${this.options.directory}`)
     void this.scan()
     setInterval(() => void this.scan(), this.options.intervalMs)
   }
@@ -44,8 +44,8 @@ export class GarminFolderWatcher {
         if (this.seen.get(path) === mtimeMs) continue
         this.seen.set(path, mtimeMs)
         const outcome = await this.activities.importFile(this.options.userId, name, await readFile(path), true)
-        if (outcome.status === 'IMPORTED') this.options.log(`Activité importée depuis ${name}`)
-        if (outcome.status === 'FAILED') this.options.log(`Import impossible de ${name} : ${outcome.reason}`)
+        if (outcome.status === 'IMPORTED') this.options.log(`Activity imported from ${name}`)
+        if (outcome.status === 'FAILED') this.options.log(`Could not import ${name}: ${outcome.reason}`)
       }
     } finally {
       this.running = false

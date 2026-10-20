@@ -7,7 +7,7 @@ function scryptAsync(password: string, salt: Buffer, keylen: number, options: Sc
   )
 }
 
-/** Format : `scrypt$N$r$p$selHex$hashHex`. */
+/** Format: `scrypt$N$r$p$saltHex$hashHex`. */
 export class ScryptPasswordHasher implements PasswordHasher {
   private static readonly N = 16_384
   private static readonly R = 8

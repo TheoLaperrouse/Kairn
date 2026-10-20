@@ -40,7 +40,7 @@ export interface Dashboard {
   warnings: string[]
 }
 
-/** Historique de charge affiché avant aujourd'hui. */
+/** Load history shown before today. */
 const LOAD_HISTORY_DAYS = 42
 
 export class DashboardService {
@@ -66,8 +66,8 @@ export class DashboardService {
 
     const loadStart = addDays(today, -LOAD_HISTORY_DAYS)
     const loadEnd = goal.raceDate > today ? goal.raceDate : today
-    // On amorce la série plus tôt pour que la forme de fond ne parte pas de zéro.
-    // La course elle-même est exclue : on veut la fraîcheur au départ, pas après 20 h d'effort.
+    // Seed the series earlier so that fitness does not start from zero.
+    // The race itself is excluded: we want freshness at the start, not after 20 h of effort.
     const trainingSessions = plan.sessions.filter((s) => s.type !== 'RACE')
     const load = computeLoadSeries(activities, trainingSessions, profile, addDays(loadStart, -84), loadEnd, today).filter(
       (p) => p.date >= loadStart,

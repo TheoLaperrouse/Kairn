@@ -26,7 +26,7 @@ export interface DeviceView {
 }
 
 const INVALID_CREDENTIALS = 'E-mail ou mot de passe incorrect'
-/** On ne réécrit `lastSeenAt` qu'au plus une fois par minute. */
+/** `lastSeenAt` is rewritten at most once per minute. */
 const TOUCH_INTERVAL_MS = 60_000
 
 export class AccountService {
@@ -56,13 +56,13 @@ export class AccountService {
 
   async login(email: string, password: string, userAgent?: string): Promise<AuthenticatedSession> {
     const user = this.users.findByEmail(normalizeEmail(email))
-    // On vérifie un hash même si le compte n'existe pas, pour ne pas révéler son existence par le temps de réponse.
+    // Verify a hash even when the account does not exist, so response time does not reveal whether it does.
     const valid = await this.hasher.verify(password, user?.passwordHash ?? DUMMY_HASH)
     if (!user || !valid) throw new DomainError(INVALID_CREDENTIALS)
     return this.openSession(user, userAgent)
   }
 
-  /** Résout le jeton d'un cookie en utilisateur, ou `undefined` si la session est invalide/expirée. */
+  /** Resolves a cookie token to a user, or `undefined` if the session is invalid/expired. */
   authenticate(token: string): { user: PublicUser; sessionId: string } | undefined {
     const session = this.sessions.findByTokenHash(this.tokens.digest(token))
     const now = this.clock.now()
@@ -115,7 +115,7 @@ export class AccountService {
   }
 }
 
-/** Hash scrypt d'un mot de passe aléatoire : sert uniquement à égaliser les temps de réponse. */
+/** Scrypt hash of a random password: only used to equalise response times. */
 const DUMMY_HASH = 'scrypt$16384$8$1$0000000000000000$' + '0'.repeat(128)
 
 function toPublic(user: User): PublicUser {

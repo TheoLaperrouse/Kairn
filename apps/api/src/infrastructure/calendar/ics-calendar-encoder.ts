@@ -4,9 +4,9 @@ import { addDays } from '../../domain/shared/dates'
 import { formatInt, formatKm, formatMinutes } from '../../domain/shared/format'
 
 /**
- * Abonnement iCalendar (RFC 5545) au plan : une journée entière par séance, mise à jour
- * à chaque relecture par l'agenda (Google, Apple, Outlook). Les séances annulées disparaissent,
- * les séances déplacées changent de jour (même UID).
+ * iCalendar subscription (RFC 5545) to the plan: one all-day event per session, refreshed
+ * whenever the calendar re-reads it (Google, Apple, Outlook). Cancelled sessions disappear,
+ * moved sessions change day (same UID).
  */
 const SPORT_EMOJI = { RUN: '🏃', BIKE: '🚴', STRENGTH: '💪' } as const
 
@@ -79,12 +79,12 @@ function utcStamp(date: Date): string {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
 }
 
-/** Échappement des valeurs texte (RFC 5545 §3.3.11). */
+/** Escaping of text values (RFC 5545 §3.3.11). */
 export function escape(text: string): string {
   return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
 }
 
-/** Repli des lignes à 75 octets sans couper un caractère UTF-8 (RFC 5545 §3.1). */
+/** Folds lines at 75 octets without splitting a UTF-8 character (RFC 5545 §3.1). */
 export function fold(line: string): string {
   const parts: string[] = []
   let current = ''
