@@ -1,16 +1,12 @@
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { migrateToEnglishVocabulary } from './english-vocabulary-migration'
 
 /**
  * Migrations versioned through `PRAGMA user_version`. A published migration is never
  * modified: a new one is appended to the end of the list instead.
- * A migration is either a SQL script or a function, for data rewrites SQL cannot express.
  */
-type Migration = string | ((db: DatabaseSync) => void)
-
-const MIGRATIONS: Migration[] = [
+const MIGRATIONS: string[] = [
   `
   CREATE TABLE users (
     id TEXT PRIMARY KEY,
@@ -63,8 +59,6 @@ const MIGRATIONS: Migration[] = [
     data TEXT NOT NULL,
     PRIMARY KEY (user_id, provider)
   );
-  `,
-  `
   CREATE TABLE race_courses (
     user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     data TEXT NOT NULL
@@ -75,8 +69,6 @@ const MIGRATIONS: Migration[] = [
     data TEXT NOT NULL,
     PRIMARY KEY (user_id, date)
   );
-  `,
-  `
   CREATE TABLE push_subscriptions (
     endpoint TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -97,7 +89,6 @@ const MIGRATIONS: Migration[] = [
     value TEXT NOT NULL
   );
   `,
-  migrateToEnglishVocabulary,
 ]
 
 export function openDatabase(path: string): DatabaseSync {
@@ -108,14 +99,11 @@ export function openDatabase(path: string): DatabaseSync {
   return db
 }
 
-/** Applies the pending migrations, optionally stopping at version `target` (used by tests). */
-export function migrate(db: DatabaseSync, target = MIGRATIONS.length): void {
+function migrate(db: DatabaseSync): void {
   const { user_version: version } = db.prepare('PRAGMA user_version').get() as { user_version: number }
-  for (let i = version; i < target; i++) {
-    const migration = MIGRATIONS[i]!
+  for (let i = version; i < MIGRATIONS.length; i++) {
     transaction(db, () => {
-      if (typeof migration === 'string') db.exec(migration)
-      else migration(db)
+      db.exec(MIGRATIONS[i]!)
       db.exec(`PRAGMA user_version = ${i + 1}`)
     })
   }
