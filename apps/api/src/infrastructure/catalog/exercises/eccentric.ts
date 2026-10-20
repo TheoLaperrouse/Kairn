@@ -1,6 +1,6 @@
 import type { Exercise, Pose } from '../../../domain/strength/exercise'
 import { STAND, pose, KNEEL_SHIN } from './poses'
-import { anchored } from './poses-dynamiques'
+import { anchored } from './poses-dynamic'
 
 /** Nordic : corps rectiligne basculé de `lean` degrés autour des genoux, fixés au sol à x = −0,5. */
 const nordic = (lean: number, arms: Partial<Pose>): Pose =>
@@ -37,11 +37,11 @@ const calfStep = (foot: number, overrides: Partial<Pose>): Pose => {
   })
 }
 
-export const EXCENTRIQUE: Exercise[] = [
+export const ECCENTRIC_EXERCISES: Exercise[] = [
   {
     id: 'squat-excentrique',
     name: 'Squat excentrique lent',
-    category: 'EXCENTRIQUE',
+    category: 'ECCENTRIC',
     muscles: ['Quadriceps (excentrique)', 'Grand fessier'],
     equipment: ['Poids du corps', 'Haltères (option)'],
     difficulty: 2,
@@ -74,7 +74,7 @@ export const EXCENTRIQUE: Exercise[] = [
   {
     id: 'step-down-excentrique',
     name: 'Step-down excentrique',
-    category: 'EXCENTRIQUE',
+    category: 'ECCENTRIC',
     muscles: ['Quadriceps (excentrique)', 'Moyen fessier', 'Stabilisateurs du genou'],
     equipment: ['Marche ou box basse'],
     difficulty: 2,
@@ -108,7 +108,7 @@ export const EXCENTRIQUE: Exercise[] = [
   {
     id: 'nordic-hamstring',
     name: 'Nordic hamstring',
-    category: 'EXCENTRIQUE',
+    category: 'ECCENTRIC',
     muscles: ['Ischio-jambiers (excentrique)', 'Fessiers'],
     equipment: ['Tapis', 'Partenaire ou point d’ancrage pour les chevilles'],
     difficulty: 3,
@@ -142,7 +142,7 @@ export const EXCENTRIQUE: Exercise[] = [
   {
     id: 'mollets-excentriques',
     name: 'Mollets excentriques (protocole Alfredson)',
-    category: 'EXCENTRIQUE',
+    category: 'ECCENTRIC',
     muscles: ['Gastrocnémiens', 'Soléaire', 'Tendon d’Achille'],
     equipment: ['Marche'],
     difficulty: 2,

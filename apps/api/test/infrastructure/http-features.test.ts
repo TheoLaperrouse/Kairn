@@ -54,10 +54,10 @@ describe('morning check-in and adaptation', () => {
     const checkIn = { date: today, sleepHours: 5.5, sleepQuality: 2, soreness: 3, fatigue: 3, motivation: 3, stress: 3, illnessSymptoms: false }
     const result = (await app.inject({ method: 'POST', url: '/api/wellness/check-in', headers: { cookie }, payload: checkIn })).json()
     expect(result.readiness.level).toBe('ORANGE')
-    expect(result.readiness.action).toBe('ALLEGER')
+    expect(result.readiness.action).toBe('LIGHTEN')
 
     const session = result.affectedSessions[0] ?? (await plan()).sessions.find((s: { date: string }) => s.date >= today)
-    const lightened = (await app.inject({ method: 'POST', url: `/api/sessions/${session.id}/lighten`, headers: { cookie }, payload: { mode: 'ALLEGER' } })).json()
+    const lightened = (await app.inject({ method: 'POST', url: `/api/sessions/${session.id}/lighten`, headers: { cookie }, payload: { mode: 'LIGHTEN' } })).json()
     expect(lightened.adjustment).toMatch(/bilan du matin/)
     expect((await plan()).adjustments[0].reason).toBe('FATIGUE')
 
@@ -70,16 +70,16 @@ describe('morning check-in and adaptation', () => {
       method: 'POST',
       url: '/api/plan/unavailability',
       headers: { cookie },
-      payload: { from: '2027-03-15', to: '2027-03-19', reason: 'MALADIE', crossTrainingOk: false },
+      payload: { from: '2027-03-15', to: '2027-03-19', reason: 'ILLNESS', crossTrainingOk: false },
     })
     expect(response.statusCode).toBe(200)
-    expect(response.json().adjustments[0].reason).toBe('MALADIE')
+    expect(response.json().adjustments[0].reason).toBe('ILLNESS')
   })
 })
 
 describe('sessions to the watch', () => {
   it('downloads a session as FIT and drops the week into the watch folder', async () => {
-    const run = (await plan()).sessions.find((s: { sport: string; type: string; status: string }) => s.sport === 'RUN' && s.type !== 'COURSE' && s.status === 'PLANNED')
+    const run = (await plan()).sessions.find((s: { sport: string; type: string; status: string }) => s.sport === 'RUN' && s.type !== 'RACE' && s.status === 'PLANNED')
     const fit = await app.inject({ method: 'GET', url: `/api/sessions/${run.id}/workout.fit`, headers: { cookie } })
     expect(fit.statusCode).toBe(200)
     expect(fit.headers['content-disposition']).toMatch(/kairn-.*\.fit/)

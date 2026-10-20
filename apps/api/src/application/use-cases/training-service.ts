@@ -122,7 +122,7 @@ export class TrainingService {
       id: this.ids.next(),
       createdAt: this.clock.now().toISOString(),
       reason: 'FATIGUE',
-      summary: mode === 'REPOS' ? `Repos à la place de « ${session.title} »` : `« ${session.title} » allégée`,
+      summary: mode === 'REST' ? `Repos à la place de « ${session.title} »` : `« ${session.title} » allégée`,
       details: [lightened.adjustment ?? ''],
     }
     this.plans.save(userId, {

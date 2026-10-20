@@ -18,11 +18,11 @@ describe('race goal', () => {
 
   it('estimates a longer race time for a beginner and technical terrain', () => {
     const goal = aGoal()
-    expect(estimateRaceDurationH(goal, 'DEBUTANT')).toBeGreaterThan(estimateRaceDurationH(goal, 'EXPERT'))
-    expect(estimateRaceDurationH({ ...goal, technicity: 5 }, 'INTERMEDIAIRE')).toBeGreaterThan(
-      estimateRaceDurationH(goal, 'INTERMEDIAIRE'),
+    expect(estimateRaceDurationH(goal, 'BEGINNER')).toBeGreaterThan(estimateRaceDurationH(goal, 'EXPERT'))
+    expect(estimateRaceDurationH({ ...goal, technicity: 5 }, 'INTERMEDIATE')).toBeGreaterThan(
+      estimateRaceDurationH(goal, 'INTERMEDIATE'),
     )
-    expect(estimateRaceDurationH({ ...goal, targetTimeH: 24 }, 'INTERMEDIAIRE')).toBe(24)
+    expect(estimateRaceDurationH({ ...goal, targetTimeH: 24 }, 'INTERMEDIATE')).toBe(24)
   })
 })
 
@@ -42,8 +42,8 @@ describe('activities', () => {
     const base = { weekIndex: 0, objective: '', zone: 2 as const, keySession: false, steps: [], tips: [], status: 'PLANNED' as const }
     const sessions: PlannedSession[] = [
       { ...base, id: 'a', date: '2027-03-02', type: 'ENDURANCE', sport: 'RUN', title: 'EF', durationMin: 45 },
-      { ...base, id: 'b', date: '2027-03-02', type: 'SORTIE_LONGUE', sport: 'RUN', title: 'SL', durationMin: 150 },
-      { ...base, id: 'c', date: '2027-03-02', type: 'VELO_ENDURANCE', sport: 'BIKE', title: 'Vélo', durationMin: 140 },
+      { ...base, id: 'b', date: '2027-03-02', type: 'LONG_RUN', sport: 'RUN', title: 'SL', durationMin: 150 },
+      { ...base, id: 'c', date: '2027-03-02', type: 'BIKE_ENDURANCE', sport: 'BIKE', title: 'Vélo', durationMin: 140 },
     ]
     const assignment = assignDay([{ id: 'run', sport: 'RUN', durationSec: 2.2 * 3600 }], sessions)
     expect(assignment.get('run')).toBe('b')
@@ -53,7 +53,7 @@ describe('activities', () => {
     const base = { weekIndex: 0, objective: '', zone: 2 as const, keySession: false, steps: [], tips: [], status: 'PLANNED' as const }
     const sessions: PlannedSession[] = [
       { ...base, id: 'morning', date: '2027-03-02', type: 'ENDURANCE', sport: 'RUN', title: 'EF', durationMin: 60 },
-      { ...base, id: 'evening', date: '2027-03-02', type: 'RECUPERATION', sport: 'RUN', title: 'Récup', durationMin: 30 },
+      { ...base, id: 'evening', date: '2027-03-02', type: 'RECOVERY', sport: 'RUN', title: 'Récup', durationMin: 30 },
     ]
     // The 45-min run came first and took the 60-min session; with the 65-min run in, the best fit is 65 → 60 and 45 → 30.
     const assignment = assignDay(
@@ -95,7 +95,7 @@ describe('training load', () => {
 
 describe('race fueling', () => {
   it('targets 90 g/h for a trained gut and adds caffeine and salty food on an ultra', () => {
-    const plan = computeFuelingPlan({ durationH: 20, temperatureC: 25, weightKg: 70, sweat: 'MOYEN', gut: 'ENTRAINE' })
+    const plan = computeFuelingPlan({ durationH: 20, temperatureC: 25, weightKg: 70, sweat: 'MEDIUM', gut: 'TRAINED' })
     expect(plan.carbsPerHourG).toBe(90)
     expect(plan.hours).toHaveLength(20)
     expect(plan.caffeineMg).toBeGreaterThan(0)
@@ -104,7 +104,7 @@ describe('race fueling', () => {
   })
 
   it('prorates the last partial hour', () => {
-    const plan = computeFuelingPlan({ durationH: 2.5, temperatureC: 10, weightKg: 70, sweat: 'FAIBLE', gut: 'AUCUN' })
+    const plan = computeFuelingPlan({ durationH: 2.5, temperatureC: 10, weightKg: 70, sweat: 'LOW', gut: 'NONE' })
     expect(plan.hours.at(-1)!.carbsG).toBe(30)
   })
 })

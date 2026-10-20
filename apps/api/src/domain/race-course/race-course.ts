@@ -46,7 +46,7 @@ export interface RaceCourse {
   settings: RaceCourseSettings
 }
 
-export type SegmentKind = 'MONTEE' | 'DESCENTE' | 'ROULANT'
+export type SegmentKind = 'UPHILL' | 'DOWNHILL' | 'FLAT'
 
 export interface CourseSegment {
   kind: SegmentKind
@@ -336,7 +336,7 @@ function segment(points: CoursePoint[], timeAt: (km: number) => number): CourseS
     if (length <= 0) continue
     const net = b.altitudeM - a.altitudeM
     const grade = (net / (length * 1000)) * 100
-    const kind: SegmentKind = Math.abs(grade) < FLAT_GRADE_PCT ? 'ROULANT' : net > 0 ? 'MONTEE' : 'DESCENTE'
+    const kind: SegmentKind = Math.abs(grade) < FLAT_GRADE_PCT ? 'FLAT' : net > 0 ? 'UPHILL' : 'DOWNHILL'
     const stats = legStats(points, a.distanceKm, b.distanceKm)
     raw.push({
       kind,

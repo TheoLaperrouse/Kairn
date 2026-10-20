@@ -21,13 +21,13 @@ import {
   WALL_SIT,
   WALL_SIT_BREATH,
   mirrorFull,
-} from './poses-force'
+} from './poses-strength'
 
-export const FORCE: Exercise[] = [
+export const STRENGTH_EXERCISES: Exercise[] = [
   {
     id: 'squat',
     name: 'Squat',
-    category: 'FORCE',
+    category: 'STRENGTH',
     muscles: ['Quadriceps', 'Grand fessier', 'Adducteurs'],
     equipment: ['Poids du corps', 'Haltères (option)'],
     difficulty: 1,
@@ -54,7 +54,7 @@ export const FORCE: Exercise[] = [
   {
     id: 'fente-avant',
     name: 'Fente avant',
-    category: 'FORCE',
+    category: 'STRENGTH',
     muscles: ['Quadriceps', 'Grand fessier', 'Moyen fessier'],
     equipment: ['Poids du corps', 'Haltères (option)'],
     difficulty: 1,
@@ -95,7 +95,7 @@ export const FORCE: Exercise[] = [
   {
     id: 'fente-bulgare',
     name: 'Fente bulgare',
-    category: 'FORCE',
+    category: 'STRENGTH',
     muscles: ['Quadriceps', 'Grand fessier', 'Fléchisseurs de hanche (étirement)'],
     equipment: ['Banc ou chaise'],
     difficulty: 2,
@@ -123,7 +123,7 @@ export const FORCE: Exercise[] = [
   {
     id: 'step-up',
     name: 'Montée sur box (step-up)',
-    category: 'FORCE',
+    category: 'STRENGTH',
     muscles: ['Quadriceps', 'Grand fessier', 'Mollets'],
     equipment: ['Box, marche ou banc stable'],
     difficulty: 1,
@@ -151,7 +151,7 @@ export const FORCE: Exercise[] = [
   {
     id: 'souleve-de-terre-unipodal',
     name: 'Soulevé de terre jambe tendue unipodal',
-    category: 'FORCE',
+    category: 'STRENGTH',
     muscles: ['Ischio-jambiers', 'Grand fessier', 'Stabilisateurs de cheville'],
     equipment: ['Haltère ou kettlebell (option)'],
     difficulty: 2,
@@ -178,7 +178,7 @@ export const FORCE: Exercise[] = [
   {
     id: 'mollets-marche',
     name: 'Élévations des mollets sur marche',
-    category: 'FORCE',
+    category: 'STRENGTH',
     muscles: ['Gastrocnémiens', 'Soléaire', 'Tendon d’Achille'],
     equipment: ['Marche ou step'],
     difficulty: 1,
@@ -206,7 +206,7 @@ export const FORCE: Exercise[] = [
   {
     id: 'chaise',
     name: 'Chaise contre le mur',
-    category: 'FORCE',
+    category: 'STRENGTH',
     muscles: ['Quadriceps', 'Fessiers'],
     equipment: ['Mur'],
     difficulty: 1,

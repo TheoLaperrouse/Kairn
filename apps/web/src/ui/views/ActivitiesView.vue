@@ -164,7 +164,7 @@ const totals = computed(() => {
                 <template v-if="sessionTitle(a.plannedSessionId) && sessionTitle(a.plannedSessionId) !== a.name">
                   · <span class="linked">✓ {{ sessionTitle(a.plannedSessionId) }}</span>
                 </template>
-                <span v-if="store.verdicts[a.id] && store.verdicts[a.id]!.verdict !== 'HORS_PLAN'" class="verdict" :class="VERDICT_TONES[store.verdicts[a.id]!.verdict]">
+                <span v-if="store.verdicts[a.id] && store.verdicts[a.id]!.verdict !== 'UNPLANNED'" class="verdict" :class="VERDICT_TONES[store.verdicts[a.id]!.verdict]">
                   {{ VERDICT_LABELS[store.verdicts[a.id]!.verdict] }}
                 </span>
               </span>

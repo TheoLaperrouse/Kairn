@@ -5,7 +5,7 @@ import type { PlannedSession, WorkoutStep, Zone } from './training-plan'
  * Séance structurée, indépendante de tout format de fichier : c'est ce que
  * l'adaptateur FIT encode pour l'envoyer sur une montre Garmin.
  */
-export type StepIntensity = 'ECHAUFFEMENT' | 'ACTIF' | 'RECUP' | 'RETOUR_CALME'
+export type StepIntensity = 'WARMUP' | 'ACTIVE' | 'RECOVERY' | 'COOLDOWN'
 
 export interface TimedStep {
   kind: 'STEP'
@@ -30,32 +30,32 @@ export interface WorkoutDefinition {
 }
 
 const INTENSITY: Record<WorkoutStep['kind'], StepIntensity> = {
-  ECHAUFFEMENT: 'ECHAUFFEMENT',
-  EFFORT: 'ACTIF',
-  CONTINU: 'ACTIF',
-  RECUP: 'RECUP',
-  RETOUR_CALME: 'RETOUR_CALME',
+  WARMUP: 'WARMUP',
+  EFFORT: 'ACTIVE',
+  CONTINUOUS: 'ACTIVE',
+  RECOVERY: 'RECOVERY',
+  COOLDOWN: 'COOLDOWN',
 }
 
 /** Les montres tronquent les noms : on reste court. */
 const NAME_MAX = 30
 
 export function isExportable(session: PlannedSession): boolean {
-  return (session.sport === 'RUN' || session.sport === 'BIKE') && session.type !== 'COURSE' && session.durationMin > 0
+  return (session.sport === 'RUN' || session.sport === 'BIKE') && session.type !== 'RACE' && session.durationMin > 0
 }
 
 export function toWorkoutDefinition(session: PlannedSession): WorkoutDefinition {
   assertDomain(isExportable(session), 'Seules les séances de course et de vélo peuvent être envoyées sur la montre')
   const steps = session.steps.length
     ? session.steps
-    : [{ kind: 'CONTINU' as const, label: session.title, durationMin: session.durationMin, zone: session.zone }]
+    : [{ kind: 'CONTINUOUS' as const, label: session.title, durationMin: session.durationMin, zone: session.zone }]
 
   const items: WorkoutDefinition['items'] = []
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i]!
     const next = steps[i + 1]
     // Effort + récup répétés n fois → un bloc de répétition.
-    if (step.repeat && step.repeat > 1 && next?.repeat === step.repeat && next.kind === 'RECUP') {
+    if (step.repeat && step.repeat > 1 && next?.repeat === step.repeat && next.kind === 'RECOVERY') {
       items.push({ kind: 'REPEAT', times: step.repeat, steps: [toTimed(step), toTimed(next)] })
       i++
     } else if (step.repeat && step.repeat > 1) {

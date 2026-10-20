@@ -6,20 +6,20 @@ import { clockAt, formatHours } from '../../../domain/race-time'
 
 const props = defineProps<{ course: RaceCourse; plan: RacePlan }>()
 
-const KIND_LABEL: Record<CourseSegment['kind'], string> = { MONTEE: 'Montée', DESCENTE: 'Descente', ROULANT: 'Portion roulante' }
+const KIND_LABEL: Record<CourseSegment['kind'], string> = { UPHILL: 'Montée', DOWNHILL: 'Descente', FLAT: 'Portion roulante' }
 
 /** Seules les vraies difficultés : au moins 250 m (ou 8 % du dénivelé total) de montée ou de descente. */
 const keySegments = computed(() => {
   const threshold = Math.max(250, props.course.elevationGainM * 0.08)
   return props.plan.segments.filter(
-    (s) => (s.kind === 'MONTEE' && s.gainM >= threshold) || (s.kind === 'DESCENTE' && s.lossM >= threshold) || (s.kind === 'ROULANT' && s.endKm - s.startKm >= 5),
+    (s) => (s.kind === 'UPHILL' && s.gainM >= threshold) || (s.kind === 'DOWNHILL' && s.lossM >= threshold) || (s.kind === 'FLAT' && s.endKm - s.startKm >= 5),
   )
 })
 
 function segmentText(s: CourseSegment): string {
   const length = formatNumber(s.endKm - s.startKm, 1)
-  if (s.kind === 'ROULANT') return `${KIND_LABEL[s.kind]} de ${length} km`
-  const drop = s.kind === 'MONTEE' ? s.gainM : s.lossM
+  if (s.kind === 'FLAT') return `${KIND_LABEL[s.kind]} de ${length} km`
+  const drop = s.kind === 'UPHILL' ? s.gainM : s.lossM
   return `${KIND_LABEL[s.kind]} de ${formatNumber(drop)} m à ${formatNumber(Math.abs(s.avgGradePct), 0)} % sur ${length} km`
 }
 </script>
@@ -66,10 +66,10 @@ function segmentText(s: CourseSegment): string {
   border-radius: 3px;
   background: var(--border-strong);
 }
-.kind-MONTEE .bar {
+.kind-UPHILL .bar {
   background: var(--accent);
 }
-.kind-DESCENTE .bar {
+.kind-DOWNHILL .bar {
   background: var(--teal);
 }
 .duration {

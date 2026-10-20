@@ -114,7 +114,7 @@ async function lighten(mode: LightenMode) {
     const titles: string[] = []
     for (const session of pendingSessions.value) {
       const updated = await training.lightenSession(session.id, mode)
-      titles.push(mode === 'REPOS' ? `« ${session.title} » annulée` : `« ${session.title} » → ${updated.title}, ${formatDuration(updated.durationMin)}`)
+      titles.push(mode === 'REST' ? `« ${session.title} » annulée` : `« ${session.title} » → ${updated.title}, ${formatDuration(updated.durationMin)}`)
     }
     applied.value = titles.join(' · ')
     lastResult.value = result.value ? { ...result.value, affectedSessions: [] } : undefined
@@ -225,16 +225,16 @@ async function lighten(mode: LightenMode) {
         </ul>
         <p v-for="a in result.readiness.alerts" :key="a" class="alert"><TriangleAlert :size="18" aria-hidden="true" class="warn" /> {{ a }}</p>
 
-        <div v-if="result.readiness.action !== 'AUCUNE' && pendingSessions.length && !applied" class="actions">
+        <div v-if="result.readiness.action !== 'NONE' && pendingSessions.length && !applied" class="actions">
           <p class="text-2 small">
             Séance{{ pendingSessions.length > 1 ? 's' : '' }} du jour :
             <strong>{{ pendingSessions.map((s) => s.title).join(', ') }}</strong>
           </p>
           <div class="row">
-            <button type="button" class="btn" :class="{ 'btn-primary': result.readiness.action === 'ALLEGER' }" :disabled="acting" @click="lighten('ALLEGER')">
+            <button type="button" class="btn" :class="{ 'btn-primary': result.readiness.action === 'LIGHTEN' }" :disabled="acting" @click="lighten('LIGHTEN')">
               Alléger la séance
             </button>
-            <button type="button" class="btn" :class="{ 'btn-primary': result.readiness.action === 'REPOS' }" :disabled="acting" @click="lighten('REPOS')">
+            <button type="button" class="btn" :class="{ 'btn-primary': result.readiness.action === 'REST' }" :disabled="acting" @click="lighten('REST')">
               Prendre du repos
             </button>
           </div>

@@ -262,13 +262,13 @@ export function bodyShapes(s: Skeleton, regions: MuscleRegion[]): BodyShape[] {
     shapes.push(shape('muscle', 'muscle', outline(a, b, profile, sign), { region, anchor: anchorOf(a, b, profile, sign) }))
   for (const region of regions) {
     if (region === 'QUADRICEPS') muscle(region, hip, near.knee, QUAD, 1)
-    if (region === 'ISCHIOS') muscle(region, hip, near.knee, HAMSTRING, 1)
-    if (region === 'MOLLETS') muscle(region, near.knee, near.ankle, CALF, 1)
-    if (region === 'CHEVILLES') muscle(region, near.knee, near.ankle, [[0.72, 0.05, 0.06], [0.9, 0.05, 0.055], [1.02, 0.05, 0.05]], 1)
-    if (region === 'ABDOS') muscle(region, hip, neck, ABS, -1)
-    if (region === 'DOS') muscle(region, hip, neck, ERECTORS, -1)
-    if (region === 'FESSIERS') muscle(region, hip, neck, GLUTE, -1)
-    if (region === 'EPAULES') muscle(region, shoulder, near.elbow, DELTOID, 1)
+    if (region === 'HAMSTRINGS') muscle(region, hip, near.knee, HAMSTRING, 1)
+    if (region === 'CALVES') muscle(region, near.knee, near.ankle, CALF, 1)
+    if (region === 'ANKLES') muscle(region, near.knee, near.ankle, [[0.72, 0.05, 0.06], [0.9, 0.05, 0.055], [1.02, 0.05, 0.05]], 1)
+    if (region === 'ABS') muscle(region, hip, neck, ABS, -1)
+    if (region === 'LOWER_BACK') muscle(region, hip, neck, ERECTORS, -1)
+    if (region === 'GLUTES') muscle(region, hip, neck, GLUTE, -1)
+    if (region === 'SHOULDERS') muscle(region, shoulder, near.elbow, DELTOID, 1)
   }
   return shapes
 }

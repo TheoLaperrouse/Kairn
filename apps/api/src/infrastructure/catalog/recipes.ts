@@ -10,7 +10,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'pates-parmesan-veille',
     name: 'Pâtes blanches parmesan & huile d’olive',
-    category: 'VEILLE',
+    category: 'DAY_BEFORE',
     moment: 'Dîner de la veille (ou midi J-1 pour un départ très matinal) : recharge glycogène sans surcharger le transit.',
     prepMinutes: 15,
     servings: 1,
@@ -37,7 +37,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'risotto-safran',
     name: 'Risotto au safran & parmesan',
-    category: 'VEILLE',
+    category: 'DAY_BEFORE',
     moment: 'Dîner J-1 ou J-2 : riz très digeste, bouillon salé pour arriver bien hydraté et chargé en sodium.',
     prepMinutes: 30,
     servings: 2,
@@ -65,7 +65,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'riz-au-lait-vanille',
     name: 'Riz au lait vanille',
-    category: 'VEILLE',
+    category: 'DAY_BEFORE',
     moment: 'Dessert ou collation des jours de charge glucidique : beaucoup de glucides, peu de volume.',
     prepMinutes: 40,
     servings: 4,
@@ -92,7 +92,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'porridge-banane-miel',
     name: 'Porridge banane, miel & pincée de sel',
-    category: 'AVANT',
+    category: 'BEFORE',
     moment: '3 h avant le départ d’une sortie longue ou d’une course : glucides à diffusion progressive.',
     prepMinutes: 8,
     servings: 1,
@@ -118,7 +118,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'gateau-sport-maison',
     name: 'Gâteau sport maison amande-miel',
-    category: 'AVANT',
+    category: 'BEFORE',
     moment: 'Petit-déjeuner de course 3 h avant le départ, ou en première heure d’ultra.',
     prepMinutes: 45,
     servings: 8,
@@ -148,7 +148,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'pancakes-banane-avoine',
     name: 'Pancakes banane-avoine',
-    category: 'AVANT',
+    category: 'BEFORE',
     moment: '2-3 h avant une séance de qualité (côtes, seuil) ou une sortie longue matinale.',
     prepMinutes: 15,
     servings: 1,
@@ -175,7 +175,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'creme-de-riz-confiture',
     name: 'Crème de riz vanille-confiture',
-    category: 'AVANT',
+    category: 'BEFORE',
     moment: 'Petit-déjeuner ultra-digeste pour les estomacs sensibles, 2-3 h avant le départ.',
     prepMinutes: 5,
     servings: 1,
@@ -203,7 +203,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'rice-cakes-oeuf-bacon',
     name: 'Rice cakes œuf-bacon (façon Feed Zone)',
-    category: 'PENDANT',
+    category: 'DURING',
     moment: 'Sorties longues > 3 h et ultras : le salé qui sauve quand le sucré écœure.',
     prepMinutes: 40,
     servings: 12,
@@ -232,7 +232,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'rice-cakes-tamari-cacahuete',
     name: 'Rice cakes tamari-cacahuète (végé)',
-    category: 'PENDANT',
+    category: 'DURING',
     moment: 'Version végétale des rice cakes pour les sorties longues et les ravitos d’ultra.',
     prepMinutes: 30,
     servings: 12,
@@ -260,7 +260,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'barres-dattes-cajou',
     name: 'Barres dattes-cajou-citron',
-    category: 'PENDANT',
+    category: 'DURING',
     moment: 'Toutes les 30-45 min sur sortie longue, ou en ravito perso.',
     prepMinutes: 15,
     servings: 8,
@@ -287,7 +287,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'pate-de-fruits-abricot',
     name: 'Pâtes de fruits abricot (pectine)',
-    category: 'PENDANT',
+    category: 'DURING',
     moment: 'Glucides rapides en côte ou en fin de course, quand mâcher devient pénible.',
     prepMinutes: 35,
     servings: 30,
@@ -315,7 +315,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'puree-patate-douce-gourde',
     name: 'Purée patate douce salée en gourde souple',
-    category: 'PENDANT',
+    category: 'DURING',
     moment: 'Ultra, seconde moitié de course : un « repas » liquide salé quand l’estomac sature.',
     prepMinutes: 30,
     servings: 2,
@@ -341,7 +341,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'mini-wraps-jambon',
     name: 'Mini-wraps jambon-fromage frais',
-    category: 'PENDANT',
+    category: 'DURING',
     moment: 'Ravito perso d’ultra ou sortie longue de 4 h et plus : un vrai goût salé et un peu de protéines.',
     prepMinutes: 5,
     servings: 1,
@@ -365,7 +365,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'boules-cacao-figue',
     name: 'Boules énergétiques cacao-figue',
-    category: 'PENDANT',
+    category: 'DURING',
     moment: 'Petit en-cas toutes les 20-30 min sur sortie longue, en complément de la boisson.',
     prepMinutes: 20,
     servings: 15,
@@ -392,7 +392,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'bouillon-vermicelles-nuit',
     name: 'Bouillon vermicelles de ravito de nuit',
-    category: 'PENDANT',
+    category: 'DURING',
     moment: 'Ravitos nocturnes et froids d’ultra : réchauffe, réhydrate et recharge en sodium.',
     prepMinutes: 10,
     servings: 1,
@@ -417,7 +417,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'gel-maison-miel-erable',
     name: 'Gel maison miel-érable-citron-sel',
-    category: 'PENDANT',
+    category: 'DURING',
     moment: 'En course, toutes les 20-30 min, accompagné d’eau.',
     prepMinutes: 5,
     servings: 3,
@@ -443,7 +443,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'grenailles-salees',
     name: 'Pommes de terre grenaille au sel',
-    category: 'PENDANT',
+    category: 'DURING',
     moment: 'Ravito salé incontournable d’ultra, surtout la nuit et après 8 h d’effort.',
     prepMinutes: 25,
     servings: 4,
@@ -468,7 +468,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'boisson-isotonique-maison',
     name: 'Boisson isotonique maison 2:1',
-    category: 'BOISSON',
+    category: 'DRINK',
     moment: 'En course et sur sorties longues : 400-800 mL/h selon chaleur et transpiration.',
     prepMinutes: 3,
     servings: 2,
@@ -494,7 +494,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'chocolat-recup',
     name: 'Chocolat au lait de récupération',
-    category: 'BOISSON',
+    category: 'DRINK',
     moment: 'Dans les 30 min après une sortie longue ou une séance intense.',
     prepMinutes: 2,
     servings: 1,
@@ -517,7 +517,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'eau-gazeuse-citron-sel',
     name: 'Eau gazeuse citron-sel (ultra chaud)',
-    category: 'BOISSON',
+    category: 'DRINK',
     moment: 'Par forte chaleur et en fin d’ultra quand les boissons sucrées écœurent.',
     prepMinutes: 2,
     servings: 1,
@@ -543,7 +543,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'bowl-recup-poulet',
     name: 'Bowl récup poulet, riz & avocat',
-    category: 'APRES',
+    category: 'AFTER',
     moment: 'Repas dans les 2 h après une sortie longue ou un back-to-back.',
     prepMinutes: 25,
     servings: 1,
@@ -570,7 +570,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'smoothie-skyr-fruits-rouges',
     name: 'Smoothie skyr-fruits rouges',
-    category: 'APRES',
+    category: 'AFTER',
     moment: 'Collation rapide après une séance de renforcement ou de côtes.',
     prepMinutes: 5,
     servings: 1,
@@ -592,7 +592,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'omelette-patate-feta',
     name: 'Omelette pommes de terre & feta',
-    category: 'APRES',
+    category: 'AFTER',
     moment: 'Déjeuner ou dîner après une sortie longue du week-end.',
     prepMinutes: 25,
     servings: 1,
@@ -618,7 +618,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'soupe-miso-soba-tofu',
     name: 'Soupe miso, soba & tofu',
-    category: 'APRES',
+    category: 'AFTER',
     moment: 'Dîner de récupération après un ultra ou une longue journée en montagne.',
     prepMinutes: 15,
     servings: 1,

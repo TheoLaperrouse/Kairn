@@ -26,7 +26,7 @@ export class IcsCalendarEncoder implements CalendarEncoder {
     ]
     for (const session of feed.sessions) {
       if (session.status === 'SKIPPED') continue
-      const url = `${feed.baseUrl}${session.type === 'COURSE' ? '/course' : `/seance/${session.id}`}`
+      const url = `${feed.baseUrl}${session.type === 'RACE' ? '/course' : `/seance/${session.id}`}`
       lines.push(
         'BEGIN:VEVENT',
         `UID:${session.id}@kairn`,
@@ -47,7 +47,7 @@ export class IcsCalendarEncoder implements CalendarEncoder {
 }
 
 function summary(session: PlannedSession, feed: CalendarFeed): string {
-  if (session.type === 'COURSE') return `🏁 ${feed.goal?.name ?? session.title}`
+  if (session.type === 'RACE') return `🏁 ${feed.goal?.name ?? session.title}`
   const done = session.status === 'DONE' ? '✓ ' : ''
   const key = session.keySession ? ' ★' : ''
   return `${done}${SPORT_EMOJI[session.sport]} ${session.title} · ${formatMinutes(session.durationMin)}${key}`

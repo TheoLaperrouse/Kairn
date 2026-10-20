@@ -112,13 +112,13 @@ export interface LatestReadiness {
   action: Readiness['action']
 }
 
-const LEVEL_WORDS: Record<Readiness['level'], string> = { VERT: 'au vert', ORANGE: 'à l’orange', ROUGE: 'au rouge' }
+const LEVEL_WORDS: Record<Readiness['level'], string> = { GREEN: 'au vert', ORANGE: 'à l’orange', RED: 'au rouge' }
 
 /** Rappel du matin, s'il reste au moins une séance prévue aujourd'hui. */
 export function morningMessage(sessions: PlannedSession[], options: { date: IsoDate; latest?: LatestReadiness }): PushMessage | undefined {
   const today = sessions.filter((s) => s.date === options.date && s.status === 'PLANNED')
   if (today.length === 0) return undefined
-  const race = today.find((s) => s.type === 'COURSE')
+  const race = today.find((s) => s.type === 'RACE')
   if (race) {
     return { title: 'Jour de course 🏔️', body: `${race.title} : fais-toi confiance, tout le travail est fait. Bonne course !`, url: '/course', tag: 'morning' }
   }
@@ -126,11 +126,11 @@ export function morningMessage(sessions: PlannedSession[], options: { date: IsoD
   const lines = today.map(describeSession)
   const latest = options.latest
   const checkedToday = latest?.date === options.date
-  const toAdapt = checkedToday && latest.action !== 'AUCUNE'
+  const toAdapt = checkedToday && latest.action !== 'NONE'
   if (key && key.objective && !toAdapt) lines.push(key.objective)
   if (toAdapt) {
-    lines.push(`Ton bilan du matin conseille ${latest.action === 'REPOS' ? 'le repos' : 'd’alléger'} : ouvre la séance pour l’adapter en un clic.`)
-  } else if (!checkedToday && latest && latest.date === addDays(options.date, -1) && latest.level !== 'VERT') {
+    lines.push(`Ton bilan du matin conseille ${latest.action === 'REST' ? 'le repos' : 'd’alléger'} : ouvre la séance pour l’adapter en un clic.`)
+  } else if (!checkedToday && latest && latest.date === addDays(options.date, -1) && latest.level !== 'GREEN') {
     lines.push(`Ta forme était ${LEVEL_WORDS[latest.level]} hier : fais ton bilan avant de partir, Kairn allégera la séance si besoin.`)
   } else if (!checkedToday) {
     lines.push('Fais ton bilan du matin : Kairn ajuste la séance si besoin.')
@@ -145,7 +145,7 @@ export function morningMessage(sessions: PlannedSession[], options: { date: IsoD
 
 /** Rappel du bilan du matin, les jours où une séance est prévue. */
 export function checkInReminderMessage(sessions: PlannedSession[], date: IsoDate): PushMessage | undefined {
-  if (!sessions.some((s) => s.date === date && s.status === 'PLANNED' && s.type !== 'COURSE')) return undefined
+  if (!sessions.some((s) => s.date === date && s.status === 'PLANNED' && s.type !== 'RACE')) return undefined
   return {
     title: 'Ton bilan du matin',
     body: 'Sommeil, courbatures, fatigue : 20 secondes pour que Kairn adapte ta séance du jour.',
@@ -169,7 +169,7 @@ export function weeklyMessage(summary: WeeklySummary): PushMessage {
 
 export function analysisMessage(activity: { id: string; name: string }, analysis: WorkoutAnalysis): PushMessage {
   const lines = [analysis.headline]
-  const key = analysis.insights.find((i) => i.topic === 'MONTEE' || i.topic === 'ENDURANCE')
+  const key = analysis.insights.find((i) => i.topic === 'UPHILL' || i.topic === 'ENDURANCE')
   if (key) lines.push(key.text.split('. ')[0]!.replace(/\.$/, '') + '.')
   return { title: `${activity.name} analysée`, body: lines.join('\n'), url: `/activites/${activity.id}`, tag: `analysis-${activity.id}` }
 }

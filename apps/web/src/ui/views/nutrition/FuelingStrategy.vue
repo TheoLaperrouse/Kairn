@@ -9,7 +9,7 @@ import type { FuelingInput, FuelingPlan } from '../../../domain/models'
 const content = useContentStore()
 const training = useTrainingStore()
 
-const fueling = ref<FuelingInput>({ durationH: 12, temperatureC: 18, weightKg: 70, sweat: 'MOYEN', gut: 'PARTIEL' })
+const fueling = ref<FuelingInput>({ durationH: 12, temperatureC: 18, weightKg: 70, sweat: 'MEDIUM', gut: 'PARTIAL' })
 const plan = ref<FuelingPlan>()
 const computing = ref(false)
 const fuelingError = ref('')
@@ -35,14 +35,14 @@ async function compute() {
 }
 
 const SWEAT = [
-  { value: 'FAIBLE', label: 'Faible' },
-  { value: 'MOYEN', label: 'Moyenne' },
-  { value: 'FORT', label: 'Forte (traces de sel)' },
+  { value: 'LOW', label: 'Faible' },
+  { value: 'MEDIUM', label: 'Moyenne' },
+  { value: 'HIGH', label: 'Forte (traces de sel)' },
 ] as const
 const GUT = [
-  { value: 'AUCUN', label: 'Pas entraîné', hint: '≈ 60 g/h' },
-  { value: 'PARTIEL', label: 'En cours', hint: '≈ 75 g/h' },
-  { value: 'ENTRAINE', label: 'Entraîné', hint: '≈ 90 g/h' },
+  { value: 'NONE', label: 'Pas entraîné', hint: '≈ 60 g/h' },
+  { value: 'PARTIAL', label: 'En cours', hint: '≈ 75 g/h' },
+  { value: 'TRAINED', label: 'Entraîné', hint: '≈ 90 g/h' },
 ] as const
 
 const maxCarbs = computed(() => Math.max(...(plan.value?.hours.map((h) => h.carbsG) ?? [1])))

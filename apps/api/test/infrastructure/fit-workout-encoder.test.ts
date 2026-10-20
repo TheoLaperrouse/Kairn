@@ -8,7 +8,7 @@ const hills: PlannedSession = {
   id: 's1',
   weekIndex: 0,
   date: '2027-03-02',
-  type: 'COTES_COURTES',
+  type: 'HILL_REPEATS',
   sport: 'RUN',
   title: 'Côtes courtes (VMA en montée)',
   objective: '',
@@ -18,10 +18,10 @@ const hills: PlannedSession = {
   tips: [],
   status: 'PLANNED',
   steps: [
-    { kind: 'ECHAUFFEMENT', label: 'Footing progressif', durationMin: 15, zone: 2 },
+    { kind: 'WARMUP', label: 'Footing progressif', durationMin: 15, zone: 2 },
     { kind: 'EFFORT', label: '30" vif en côte', durationMin: 0.5, zone: 5, repeat: 10 },
-    { kind: 'RECUP', label: 'Redescente en trottinant', durationMin: 1.5, zone: 1, repeat: 10 },
-    { kind: 'RETOUR_CALME', label: 'Retour au calme', durationMin: 10, zone: 1 },
+    { kind: 'RECOVERY', label: 'Redescente en trottinant', durationMin: 1.5, zone: 1, repeat: 10 },
+    { kind: 'COOLDOWN', label: 'Retour au calme', durationMin: 10, zone: 1 },
   ],
 }
 
@@ -54,7 +54,7 @@ describe('session export to the watch (FIT workout)', () => {
   })
 
   it('rejects race day and strength sessions', () => {
-    expect(() => toWorkoutDefinition({ ...hills, type: 'COURSE' })).toThrow()
-    expect(() => toWorkoutDefinition({ ...hills, sport: 'STRENGTH', type: 'RENFORCEMENT' })).toThrow()
+    expect(() => toWorkoutDefinition({ ...hills, type: 'RACE' })).toThrow()
+    expect(() => toWorkoutDefinition({ ...hills, sport: 'STRENGTH', type: 'STRENGTH' })).toThrow()
   })
 })

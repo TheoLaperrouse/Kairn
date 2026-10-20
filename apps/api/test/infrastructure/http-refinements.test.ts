@@ -182,7 +182,7 @@ describe('check-in reminder', () => {
       headers: { cookie },
       payload: { ...status.settings, morning: { enabled: false, time: '07:00' }, checkIn: { enabled: true, time: '09:00' } },
     })
-    const day = (await sessions()).find((s) => s.date > '2027-03-07' && s.status === 'PLANNED' && s.type !== 'COURSE')!.date
+    const day = (await sessions()).find((s) => s.date > '2027-03-07' && s.status === 'PLANNED' && s.type !== 'RACE')!.date
     push.sent.length = 0
     // 09:05 in Paris.
     clock.set(new Date(`${day}T08:05:00Z`))

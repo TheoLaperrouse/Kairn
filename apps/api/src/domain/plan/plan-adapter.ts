@@ -21,18 +21,18 @@ export interface AdaptationContext {
   newId: () => string
 }
 
-const INTENSE_TYPES: SessionType[] = ['COTES_COURTES', 'SEUIL_MONTEE', 'DESCENTE', 'FARTLEK', 'SIMULATION', 'RANDO_COURSE']
-const LONG_TYPES: SessionType[] = ['SORTIE_LONGUE', 'SIMULATION', 'BACK_TO_BACK']
+const INTENSE_TYPES: SessionType[] = ['HILL_REPEATS', 'UPHILL_THRESHOLD', 'DOWNHILL', 'FARTLEK', 'SIMULATION', 'HIKE_RUN']
+const LONG_TYPES: SessionType[] = ['LONG_RUN', 'SIMULATION', 'BACK_TO_BACK']
 /** Une séance clé manquée n'est rattrapée que si elle date de moins de 3 jours. */
 const CATCH_UP_WINDOW_DAYS = 3
 /** Pas de rattrapage dans les 10 derniers jours avant la course : l'affûtage prime. */
 const RACE_PROTECTION_DAYS = 10
 
 const REASON_LABELS: Record<AdjustmentReason, string> = {
-  SEANCE_MANQUEE: 'séance manquée',
-  MALADIE: 'maladie',
-  BLESSURE: 'blessure',
-  INDISPONIBLE: 'indisponibilité',
+  MISSED_SESSION: 'séance manquée',
+  ILLNESS: 'maladie',
+  INJURY: 'blessure',
+  UNAVAILABLE: 'indisponibilité',
   FATIGUE: 'fatigue',
 }
 
@@ -53,7 +53,7 @@ function withSessions(plan: TrainingPlan, sessions: PlannedSession[], adjustment
 }
 
 function raceDate(plan: TrainingPlan): IsoDate | undefined {
-  return plan.sessions.find((s) => s.type === 'COURSE')?.date
+  return plan.sessions.find((s) => s.type === 'RACE')?.date
 }
 
 /**
@@ -68,7 +68,7 @@ export function rescheduleMissedSessions(plan: TrainingPlan, ctx: AdaptationCont
       s.status === 'PLANNED' &&
       s.keySession &&
       s.sport === 'RUN' &&
-      s.type !== 'COURSE' &&
+      s.type !== 'RACE' &&
       !s.originalDate &&
       s.date < ctx.today &&
       daysBetween(s.date, ctx.today) <= CATCH_UP_WINDOW_DAYS,
@@ -110,7 +110,7 @@ export function rescheduleMissedSessions(plan: TrainingPlan, ctx: AdaptationCont
   return withSessions(plan, sessions, {
     id: ctx.newId(),
     createdAt: ctx.now,
-    reason: 'SEANCE_MANQUEE',
+    reason: 'MISSED_SESSION',
     summary: missed.length === 1 ? 'Une séance clé manquée a été prise en compte' : `${missed.length} séances clés manquées ont été prises en compte`,
     details,
   })
@@ -124,7 +124,7 @@ function findCatchUpSlot(
 ): IsoDate | undefined {
   const isLong = LONG_TYPES.includes(missed.type)
   const hardOn = (date: IsoDate) =>
-    sessions.some((s) => s.date === date && s.id !== missed.id && s.status !== 'SKIPPED' && (s.keySession || s.type === 'VELO_FORCE'))
+    sessions.some((s) => s.date === date && s.id !== missed.id && s.status !== 'SKIPPED' && (s.keySession || s.type === 'BIKE_STRENGTH'))
   for (let offset = 0; offset < 6; offset++) {
     const date = addDays(ctx.today, offset)
     if (race && daysBetween(date, race) < RACE_PROTECTION_DAYS) return undefined
@@ -138,7 +138,7 @@ function findCatchUpSlot(
 export interface Unavailability {
   from: IsoDate
   to: IsoDate
-  reason: Exclude<AdjustmentReason, 'SEANCE_MANQUEE' | 'FATIGUE'>
+  reason: Exclude<AdjustmentReason, 'MISSED_SESSION' | 'FATIGUE'>
   /** Blessure : le vélo, la natation ou l'elliptique restent possibles. */
   crossTrainingOk: boolean
 }
@@ -154,16 +154,16 @@ export function applyUnavailability(plan: TrainingPlan, period: Unavailability, 
   assertDomain(days <= 120, 'Période trop longue : régénère plutôt le plan depuis les réglages')
 
   const label = REASON_LABELS[period.reason]
-  const injury = period.reason === 'BLESSURE'
+  const injury = period.reason === 'INJURY'
   const crossTrain = injury && period.crossTrainingOk
-  const reprise = period.reason === 'INDISPONIBLE' && days < 5 ? 0 : Math.min(Math.round(days * (injury ? 1.5 : 1)), 21)
+  const reprise = period.reason === 'UNAVAILABLE' && days < 5 ? 0 : Math.min(Math.round(days * (injury ? 1.5 : 1)), 21)
   const repriseEnd = addDays(period.to, reprise)
 
   let skipped = 0
   let converted = 0
   let eased = 0
   const sessions = plan.sessions.map((s): PlannedSession => {
-    if (s.status !== 'PLANNED' || s.type === 'COURSE') return s
+    if (s.status !== 'PLANNED' || s.type === 'RACE') return s
     if (s.date >= period.from && s.date <= period.to) {
       if (crossTrain && s.sport === 'RUN') {
         converted++
@@ -201,13 +201,13 @@ export function applyUnavailability(plan: TrainingPlan, period: Unavailability, 
   })
 }
 
-export type LightenMode = 'ALLEGER' | 'REPOS'
+export type LightenMode = 'LIGHTEN' | 'REST'
 
 /** Allège (ou annule) une séance suite au bilan du matin. */
 export function lightenSession(session: PlannedSession, mode: LightenMode): PlannedSession {
   assertDomain(session.status === 'PLANNED', 'Seule une séance prévue peut être allégée')
-  assertDomain(session.type !== 'COURSE', 'On ne touche pas au jour de course')
-  if (mode === 'REPOS') {
+  assertDomain(session.type !== 'RACE', 'On ne touche pas au jour de course')
+  if (mode === 'REST') {
     return { ...session, status: 'SKIPPED', adjustment: 'Repos conseillé par le bilan du matin.' }
   }
   return easeSession(session, 0.7, 'Allégée suite au bilan du matin : endurance facile, 70 % de la durée.')
@@ -221,7 +221,7 @@ function easeSession(session: PlannedSession, factor: number, adjustment: string
   const run = session.sport === 'RUN'
   return {
     ...session,
-    type: intense ? (run ? 'ENDURANCE' : 'VELO_ENDURANCE') : session.type,
+    type: intense ? (run ? 'ENDURANCE' : 'BIKE_ENDURANCE') : session.type,
     title: intense ? (run ? 'Endurance facile' : 'Vélo en endurance') : session.title,
     objective: intense ? 'Entretenir le moteur sans ajouter de fatigue.' : session.objective,
     durationMin,
@@ -229,7 +229,7 @@ function easeSession(session: PlannedSession, factor: number, adjustment: string
     elevationGainM: session.elevationGainM ? roundTo(session.elevationGainM * ratio, 10) : undefined,
     zone: 2,
     keySession: false,
-    steps: [{ kind: 'CONTINU', label: run ? 'Footing en aisance respiratoire' : 'Pédalage souple', durationMin, zone: 2 }],
+    steps: [{ kind: 'CONTINUOUS', label: run ? 'Footing en aisance respiratoire' : 'Pédalage souple', durationMin, zone: 2 }],
     adjustment,
   }
 }
@@ -238,7 +238,7 @@ function toCrossTraining(session: PlannedSession, adjustment: string): PlannedSe
   const durationMin = Math.max(30, roundTo(Math.min(session.durationMin, 90) * 0.8, 5))
   return {
     ...session,
-    type: 'VELO_ENDURANCE',
+    type: 'BIKE_ENDURANCE',
     sport: 'BIKE',
     title: 'Entretien sans impact',
     objective: 'Garder le moteur aérobie sans solliciter la zone blessée : vélo, natation, aquajogging ou elliptique.',
@@ -247,7 +247,7 @@ function toCrossTraining(session: PlannedSession, adjustment: string): PlannedSe
     elevationGainM: undefined,
     zone: 2,
     keySession: false,
-    steps: [{ kind: 'CONTINU', label: 'Effort continu facile, sans douleur', durationMin, zone: 2 }],
+    steps: [{ kind: 'CONTINUOUS', label: 'Effort continu facile, sans douleur', durationMin, zone: 2 }],
     tips: ['Arrête immédiatement si la douleur se réveille.'],
     adjustment,
   }

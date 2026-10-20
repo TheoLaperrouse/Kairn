@@ -1,6 +1,6 @@
 import type { Exercise, Pose } from '../../../domain/strength/exercise'
 import { pose } from './poses'
-import { anchored, swapSides } from './poses-dynamiques'
+import { anchored, swapSides } from './poses-dynamic'
 
 /** Fentes sautées, demi-cycle (jambe proche devant) ; le second demi-cycle est symétrique. */
 const JUMP_LUNGE: Pose[] = [
@@ -25,11 +25,11 @@ const SKIP: Pose[] = [
   { ...pose({ torso: 6, nearThigh: 12, nearShin: 2, nearFoot: 70, farThigh: 35, farShin: -30, farFoot: 45, nearUpperArm: 10, nearForearm: 80, farUpperArm: 10, farForearm: 80 }), air: 0.04 },
 ]
 
-export const PLIOMETRIE: Exercise[] = [
+export const PLYOMETRIC_EXERCISES: Exercise[] = [
   {
     id: 'squat-jump',
     name: 'Squat jump',
-    category: 'PLIOMETRIE',
+    category: 'PLYOMETRICS',
     muscles: ['Quadriceps', 'Fessiers', 'Mollets'],
     equipment: ['Poids du corps'],
     difficulty: 2,
@@ -57,7 +57,7 @@ export const PLIOMETRIE: Exercise[] = [
   {
     id: 'fentes-sautees',
     name: 'Fentes sautées',
-    category: 'PLIOMETRIE',
+    category: 'PLYOMETRICS',
     muscles: ['Quadriceps', 'Fessiers', 'Fléchisseurs de hanche'],
     equipment: ['Poids du corps'],
     difficulty: 3,
@@ -80,7 +80,7 @@ export const PLIOMETRIE: Exercise[] = [
   {
     id: 'bondissements',
     name: 'Foulées bondissantes',
-    category: 'PLIOMETRIE',
+    category: 'PLYOMETRICS',
     muscles: ['Mollets', 'Fessiers', 'Quadriceps', 'Fléchisseurs de hanche'],
     equipment: ['Ligne droite de 30-50 m (idéalement légère montée)'],
     difficulty: 3,
@@ -103,7 +103,7 @@ export const PLIOMETRIE: Exercise[] = [
   {
     id: 'sauts-sur-box',
     name: 'Sauts sur box',
-    category: 'PLIOMETRIE',
+    category: 'PLYOMETRICS',
     muscles: ['Quadriceps', 'Fessiers', 'Mollets'],
     equipment: ['Box stable (40-60 cm)'],
     difficulty: 2,
@@ -144,7 +144,7 @@ export const PLIOMETRIE: Exercise[] = [
   {
     id: 'skipping',
     name: 'Skipping haut',
-    category: 'PLIOMETRIE',
+    category: 'PLYOMETRICS',
     muscles: ['Fléchisseurs de hanche', 'Mollets', 'Abdominaux'],
     equipment: ['Aucun'],
     difficulty: 1,

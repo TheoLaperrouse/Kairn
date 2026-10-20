@@ -4,28 +4,28 @@
  */
 
 export type IsoDate = string
-export type ExperienceLevel = 'DEBUTANT' | 'INTERMEDIAIRE' | 'CONFIRME' | 'EXPERT'
-export type TerrainAccess = 'MONTAGNE' | 'COLLINES' | 'PLAT'
-export type TrainingPhase = 'FONCIER' | 'DEVELOPPEMENT' | 'SPECIFIQUE' | 'AFFUTAGE' | 'COURSE'
+export type ExperienceLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT'
+export type TerrainAccess = 'MOUNTAINS' | 'HILLS' | 'FLAT'
+export type TrainingPhase = 'BASE' | 'BUILD' | 'SPECIFIC' | 'TAPER' | 'RACE'
 export type TrailCategory = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL'
 export type Sport = 'RUN' | 'BIKE' | 'STRENGTH'
 export type Zone = 1 | 2 | 3 | 4 | 5
 export type SessionStatus = 'PLANNED' | 'DONE' | 'SKIPPED'
 export type SessionType =
   | 'ENDURANCE'
-  | 'RECUPERATION'
-  | 'SORTIE_LONGUE'
+  | 'RECOVERY'
+  | 'LONG_RUN'
   | 'BACK_TO_BACK'
   | 'SIMULATION'
-  | 'COTES_COURTES'
-  | 'SEUIL_MONTEE'
-  | 'RANDO_COURSE'
-  | 'DESCENTE'
+  | 'HILL_REPEATS'
+  | 'UPHILL_THRESHOLD'
+  | 'HIKE_RUN'
+  | 'DOWNHILL'
   | 'FARTLEK'
-  | 'RENFORCEMENT'
-  | 'VELO_ENDURANCE'
-  | 'VELO_FORCE'
-  | 'COURSE'
+  | 'STRENGTH'
+  | 'BIKE_ENDURANCE'
+  | 'BIKE_STRENGTH'
+  | 'RACE'
 
 export interface User {
   id: string
@@ -83,7 +83,7 @@ export interface RacePreset extends Omit<RaceGoal, 'id' | 'raceDate' | 'targetTi
 }
 
 export interface WorkoutStep {
-  kind: 'ECHAUFFEMENT' | 'EFFORT' | 'RECUP' | 'RETOUR_CALME' | 'CONTINU'
+  kind: 'WARMUP' | 'EFFORT' | 'RECOVERY' | 'COOLDOWN' | 'CONTINUOUS'
   label: string
   durationMin: number
   repeat?: number
@@ -182,14 +182,14 @@ export interface Climb {
   avgHeartRate?: number
 }
 
-export type Verdict = 'CONFORME' | 'TROP_INTENSE' | 'PAS_ASSEZ_INTENSE' | 'ECOURTEE' | 'PROLONGEE' | 'HORS_PLAN'
+export type Verdict = 'ON_TARGET' | 'TOO_HARD' | 'TOO_EASY' | 'CUT_SHORT' | 'EXTENDED' | 'UNPLANNED'
 export interface ActivityVerdict {
   verdict: Verdict
   score?: number
 }
 
 export type InsightTone = 'POSITIVE' | 'ATTENTION' | 'INFO'
-export type InsightTopic = 'INTENSITE' | 'DUREE' | 'DENIVELE' | 'MONTEE' | 'DESCENTE' | 'ENDURANCE' | 'NUTRITION' | 'DONNEES' | 'CHARGE'
+export type InsightTopic = 'INTENSITY' | 'DURATION' | 'ELEVATION' | 'UPHILL' | 'DOWNHILL' | 'ENDURANCE' | 'NUTRITION' | 'DATA' | 'LOAD'
 
 export interface Insight {
   tone: InsightTone
@@ -383,7 +383,7 @@ export interface Dashboard {
   warnings: string[]
 }
 
-export type ExerciseCategory = 'GAINAGE' | 'FORCE' | 'EXCENTRIQUE' | 'PLIOMETRIE' | 'PROPRIOCEPTION' | 'MOBILITE'
+export type ExerciseCategory = 'CORE' | 'STRENGTH' | 'ECCENTRIC' | 'PLYOMETRICS' | 'PROPRIOCEPTION' | 'MOBILITY'
 
 export interface Pose {
   torso: number
@@ -464,7 +464,7 @@ export interface RoutineDetail extends StrengthRoutine {
   exercises: Exercise[]
 }
 
-export type RecipeCategory = 'VEILLE' | 'AVANT' | 'PENDANT' | 'BOISSON' | 'APRES'
+export type RecipeCategory = 'DAY_BEFORE' | 'BEFORE' | 'DURING' | 'DRINK' | 'AFTER'
 
 export interface Recipe {
   id: string
@@ -487,8 +487,8 @@ export interface FuelingInput {
   durationH: number
   temperatureC: number
   weightKg: number
-  sweat: 'FAIBLE' | 'MOYEN' | 'FORT'
-  gut: 'AUCUN' | 'PARTIEL' | 'ENTRAINE'
+  sweat: 'LOW' | 'MEDIUM' | 'HIGH'
+  gut: 'NONE' | 'PARTIAL' | 'TRAINED'
 }
 
 export interface FuelingPlan {
@@ -501,7 +501,7 @@ export interface FuelingPlan {
   advice: string[]
 }
 
-export type AdjustmentReason = 'SEANCE_MANQUEE' | 'MALADIE' | 'BLESSURE' | 'INDISPONIBLE' | 'FATIGUE'
+export type AdjustmentReason = 'MISSED_SESSION' | 'ILLNESS' | 'INJURY' | 'UNAVAILABLE' | 'FATIGUE'
 
 export interface PlanAdjustment {
   id: string
@@ -514,11 +514,11 @@ export interface PlanAdjustment {
 export interface Unavailability {
   from: IsoDate
   to: IsoDate
-  reason: 'MALADIE' | 'BLESSURE' | 'INDISPONIBLE'
+  reason: 'ILLNESS' | 'INJURY' | 'UNAVAILABLE'
   crossTrainingOk: boolean
 }
 
-export type LightenMode = 'ALLEGER' | 'REPOS'
+export type LightenMode = 'LIGHTEN' | 'REST'
 
 export type Scale = 1 | 2 | 3 | 4 | 5
 
@@ -536,14 +536,14 @@ export interface CheckIn {
   notes?: string
 }
 
-export type ReadinessLevel = 'VERT' | 'ORANGE' | 'ROUGE'
+export type ReadinessLevel = 'GREEN' | 'ORANGE' | 'RED'
 
 export interface Readiness {
   score: number
   level: ReadinessLevel
   factors: Array<{ label: string; impact: number }>
   message: string
-  action: 'AUCUNE' | 'ALLEGER' | 'REPOS'
+  action: 'NONE' | 'LIGHTEN' | 'REST'
   alerts: string[]
 }
 
@@ -573,8 +573,8 @@ export interface AidStation {
 export interface RaceCourseSettings {
   startTime: string
   temperatureC: number
-  sweat: 'FAIBLE' | 'MOYEN' | 'FORT'
-  gut: 'AUCUN' | 'PARTIEL' | 'ENTRAINE'
+  sweat: 'LOW' | 'MEDIUM' | 'HIGH'
+  gut: 'NONE' | 'PARTIAL' | 'TRAINED'
   weightKg: number
 }
 
@@ -591,7 +591,7 @@ export interface RaceCourse {
 }
 
 export interface CourseSegment {
-  kind: 'MONTEE' | 'DESCENTE' | 'ROULANT'
+  kind: 'UPHILL' | 'DOWNHILL' | 'FLAT'
   startKm: number
   endKm: number
   gainM: number

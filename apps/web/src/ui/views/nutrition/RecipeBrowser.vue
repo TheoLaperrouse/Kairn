@@ -10,7 +10,7 @@ const content = useContentStore()
 
 const CATEGORIES = Object.keys(RECIPE_CATEGORY_LABELS) as RecipeCategory[]
 
-const category = ref<RecipeCategory | 'TOUTES'>('TOUTES')
+const category = ref<RecipeCategory | 'ALL'>('ALL')
 const activeTags = ref<string[]>([])
 const query = ref('')
 const dialog = ref<InstanceType<typeof RecipeDialog>>()
@@ -25,14 +25,14 @@ const filtered = computed(() => {
   const q = normalize(query.value.trim())
   return content.recipes.filter(
     (r) =>
-      (category.value === 'TOUTES' || r.category === category.value) &&
+      (category.value === 'ALL' || r.category === category.value) &&
       activeTags.value.every((t) => r.tags.includes(t)) &&
       (!q || normalize(`${r.name} ${r.moment} ${r.ingredients.map((i) => i.name).join(' ')}`).includes(q)),
   )
 })
 
 const countByCategory = computed(() => {
-  const counts: Record<string, number> = { TOUTES: content.recipes.length }
+  const counts: Record<string, number> = { ALL: content.recipes.length }
   for (const r of content.recipes) counts[r.category] = (counts[r.category] ?? 0) + 1
   return counts
 })
@@ -46,8 +46,8 @@ function toggleTag(tag: string) {
   <section class="stack-lg" aria-label="Recettes">
     <div class="filters">
       <div class="cats" role="group" aria-label="Moment">
-        <button type="button" class="chip chip-toggle" :aria-pressed="category === 'TOUTES'" @click="category = 'TOUTES'">
-          Toutes <span class="count">{{ countByCategory.TOUTES }}</span>
+        <button type="button" class="chip chip-toggle" :aria-pressed="category === 'ALL'" @click="category = 'ALL'">
+          Toutes <span class="count">{{ countByCategory.ALL }}</span>
         </button>
         <button v-for="c in CATEGORIES" :key="c" type="button" class="chip chip-toggle" :aria-pressed="category === c" @click="category = c">
           {{ RECIPE_CATEGORY_LABELS[c] }} <span class="count">{{ countByCategory[c] ?? 0 }}</span>

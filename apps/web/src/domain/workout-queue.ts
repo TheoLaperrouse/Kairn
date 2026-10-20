@@ -4,7 +4,7 @@ import type { Exercise, RoutineBlock } from './models'
  * File d'étapes d'une séance guidée : chaque série (et chaque côté pour l'unilatéral)
  * devient une étape d'effort, suivie d'un repos — sauf après la toute dernière.
  */
-export type Side = 'GAUCHE' | 'DROITE'
+export type Side = 'LEFT' | 'RIGHT'
 
 export interface EffortStep {
   kind: 'EFFORT'
@@ -29,7 +29,7 @@ export interface EffortStep {
 }
 
 export interface RestStep {
-  kind: 'REPOS'
+  kind: 'REST'
   blockIndex: number
   durationSec: number
   nextExerciseId: string
@@ -72,7 +72,7 @@ function repSecFor(tempo: string | undefined, rhythm: ExerciseRhythm | undefined
 export function buildQueue(blocks: RoutineBlock[], rhythms: Record<string, ExerciseRhythm> = {}): QueueStep[] {
   const efforts: EffortStep[] = []
   blocks.forEach((block, blockIndex) => {
-    const sides: Array<Side | undefined> = block.perSide ? ['GAUCHE', 'DROITE'] : [undefined]
+    const sides: Array<Side | undefined> = block.perSide ? ['LEFT', 'RIGHT'] : [undefined]
     const sets = Math.max(1, block.sets)
     for (let set = 1; set <= sets; set++) {
       for (const side of sides) {
@@ -88,8 +88,8 @@ export function buildQueue(blocks: RoutineBlock[], rhythms: Record<string, Exerc
           tempo: block.tempo,
           repSec: repSecFor(block.tempo, rhythms[block.exerciseId]),
           animationCycleMs: repSecFor(block.tempo, rhythms[block.exerciseId]) * (rhythms[block.exerciseId]?.repsPerCycle ?? 1) * 1000,
-          firstOfBlock: set === 1 && side !== 'DROITE',
-          needsPrep: (set === 1 && side !== 'DROITE') || side === 'DROITE',
+          firstOfBlock: set === 1 && side !== 'RIGHT',
+          needsPrep: (set === 1 && side !== 'RIGHT') || side === 'RIGHT',
           lastSet: set === sets,
           notes: block.notes,
         })
@@ -103,16 +103,16 @@ export function buildQueue(blocks: RoutineBlock[], rhythms: Record<string, Exerc
     const next = efforts[i + 1]
     if (!next) return
     // Entre les deux côtés d'une même série, pas de repos : on enchaîne après la préparation.
-    if (effort.side === 'GAUCHE' && next.side === 'DROITE' && next.blockIndex === effort.blockIndex) return
+    if (effort.side === 'LEFT' && next.side === 'RIGHT' && next.blockIndex === effort.blockIndex) return
     const rest = blocks[effort.blockIndex]!.restSec
-    if (rest > 0) queue.push({ kind: 'REPOS', blockIndex: effort.blockIndex, durationSec: rest, nextExerciseId: next.exerciseId })
+    if (rest > 0) queue.push({ kind: 'REST', blockIndex: effort.blockIndex, durationSec: rest, nextExerciseId: next.exerciseId })
   })
   return queue
 }
 
 /** Durée estimée d'une étape, préparation comprise. */
 export function stepDurationSec(step: QueueStep): number {
-  if (step.kind === 'REPOS') return step.durationSec
+  if (step.kind === 'REST') return step.durationSec
   const work = step.durationSec ?? (step.reps ?? 10) * step.repSec
   return work + (step.needsPrep ? PREP_SEC : 0)
 }

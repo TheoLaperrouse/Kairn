@@ -63,17 +63,17 @@ async function saveStations(stations: AidStation[]) {
       <label class="field">
         <span>Transpiration</span>
         <select v-model="settings.sweat" class="select">
-          <option value="FAIBLE">Faible</option>
-          <option value="MOYEN">Moyenne</option>
-          <option value="FORT">Forte</option>
+          <option value="LOW">Faible</option>
+          <option value="MEDIUM">Moyenne</option>
+          <option value="HIGH">Forte</option>
         </select>
       </label>
       <label class="field">
         <span>Intestin entraîné</span>
         <select v-model="settings.gut" class="select">
-          <option value="AUCUN">Pas encore (60 g/h)</option>
-          <option value="PARTIEL">En partie (75 g/h)</option>
-          <option value="ENTRAINE">Oui (90 g/h)</option>
+          <option value="NONE">Pas encore (60 g/h)</option>
+          <option value="PARTIAL">En partie (75 g/h)</option>
+          <option value="TRAINED">Oui (90 g/h)</option>
         </select>
       </label>
       <label class="field">

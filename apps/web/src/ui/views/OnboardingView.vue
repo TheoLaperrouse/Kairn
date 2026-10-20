@@ -36,13 +36,13 @@ function defaultGoal(): RaceGoal {
 function defaultProfile(): AthleteProfile {
   return {
     name: auth.user?.displayName ?? '',
-    level: 'INTERMEDIAIRE',
+    level: 'INTERMEDIATE',
     currentWeeklyKm: 30,
     currentWeeklyElevationM: 600,
     availableDays: [1, 3, 5, 6],
     longRunDay: 5,
     maxWeeklyHours: 10,
-    terrain: 'COLLINES',
+    terrain: 'HILLS',
     crossTraining: { cycling: false, cyclingSessionsPerWeek: 1, strength: true, strengthSessionsPerWeek: 1 },
   }
 }

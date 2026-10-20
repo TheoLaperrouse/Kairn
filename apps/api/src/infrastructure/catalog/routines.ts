@@ -4,7 +4,7 @@ export const ROUTINES: StrengthRoutine[] = [
   {
     id: 'fondations-trail',
     name: 'Fondations trail',
-    phases: ['FONCIER'],
+    phases: ['BASE'],
     durationMin: 35,
     focus: 'Force générale et gainage',
     description:
@@ -22,7 +22,7 @@ export const ROUTINES: StrengthRoutine[] = [
   {
     id: 'chevilles-proprio',
     name: 'Chevilles & proprioception',
-    phases: ['FONCIER', 'DEVELOPPEMENT'],
+    phases: ['BASE', 'BUILD'],
     durationMin: 20,
     focus: 'Prévention des entorses et du tendon d’Achille',
     description:
@@ -39,7 +39,7 @@ export const ROUTINES: StrengthRoutine[] = [
   {
     id: 'force-excentrique',
     name: 'Force excentrique « spécial descente »',
-    phases: ['DEVELOPPEMENT', 'SPECIFIQUE'],
+    phases: ['BUILD', 'SPECIFIC'],
     durationMin: 45,
     focus: 'Quadriceps et ischios en freinage',
     description:
@@ -57,7 +57,7 @@ export const ROUTINES: StrengthRoutine[] = [
   {
     id: 'pliometrie-trail',
     name: 'Pliométrie & réactivité',
-    phases: ['SPECIFIQUE'],
+    phases: ['SPECIFIC'],
     durationMin: 35,
     focus: 'Puissance, raideur tendineuse, économie de course',
     description:
@@ -74,7 +74,7 @@ export const ROUTINES: StrengthRoutine[] = [
   {
     id: 'gainage-express',
     name: 'Gainage express',
-    phases: ['FONCIER', 'DEVELOPPEMENT', 'SPECIFIQUE', 'AFFUTAGE'],
+    phases: ['BASE', 'BUILD', 'SPECIFIC', 'TAPER'],
     durationMin: 15,
     focus: 'Tronc solide pour porter le sac',
     description:
@@ -90,7 +90,7 @@ export const ROUTINES: StrengthRoutine[] = [
   {
     id: 'entretien-affutage',
     name: 'Entretien affûtage',
-    phases: ['AFFUTAGE', 'COURSE'],
+    phases: ['TAPER', 'RACE'],
     durationMin: 20,
     focus: 'Garder le tonus sans fatigue',
     description:

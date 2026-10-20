@@ -58,7 +58,7 @@ const PLANK_NEAR_UP_HOLD: Pose = { ...PLANK_NEAR_UP, nearThigh: -95, nearShin: -
 const PLANK_FAR_UP: Pose = { ...PLANK, farThigh: -94, farShin: -94, farFoot: 8 }
 const PLANK_FAR_UP_HOLD: Pose = { ...PLANK_FAR_UP, farThigh: -95, farShin: -95, torso: 82.6 }
 
-export const PLANCHE_ANIMATION: ExerciseAnimation = {
+export const PLANK_ANIMATION: ExerciseAnimation = {
   durationMs: 7000,
   props: [{ kind: 'MAT', x: -0.2, width: 4.2 }],
   keyframes: [PLANK, PLANK_EXHALE, PLANK_NEAR_UP, PLANK_NEAR_UP_HOLD, PLANK, PLANK_EXHALE, PLANK_FAR_UP, PLANK_FAR_UP_HOLD],
@@ -88,7 +88,7 @@ const SIDE_DIP = side(72, -87)
 const SIDE_TOP = side(88, -77)
 const SIDE_TOP_HOLD: Pose = { ...SIDE_TOP, farUpperArm: 183, farForearm: 183 }
 
-export const PLANCHE_LATERALE_ANIMATION: ExerciseAnimation = {
+export const SIDE_PLANK_ANIMATION: ExerciseAnimation = {
   durationMs: 3600,
   props: [{ kind: 'MAT', x: -0.2, width: 4.2 }],
   keyframes: [SIDE_LINE, SIDE_DIP, SIDE_TOP, SIDE_TOP_HOLD],
@@ -180,7 +180,7 @@ const BRIDGE_UP: Pose = {
 }
 const BRIDGE_UP_HOLD: Pose = { ...BRIDGE_UP, torso: -101.2, nearThigh: 101.2, farThigh: 102, farShin: 102 }
 
-export const PONT_FESSIER_ANIMATION: ExerciseAnimation = {
+export const GLUTE_BRIDGE_ANIMATION: ExerciseAnimation = {
   durationMs: 3200,
   props: [{ kind: 'MAT', x: -0.3, width: 4 }],
   keyframes: [BRIDGE_DOWN, BRIDGE_UP, BRIDGE_UP_HOLD],
@@ -214,7 +214,7 @@ const PSOAS_START = halfKneel(0, 0, 0, 0, 176)
 const PSOAS_STRETCH = halfKneel(-20, -20, 0.34, -5, 184)
 const PSOAS_EXHALE = halfKneel(-22, -22, 0.37, -7, 188)
 
-export const FENTE_PSOAS_ANIMATION: ExerciseAnimation = {
+export const HIP_FLEXOR_LUNGE_ANIMATION: ExerciseAnimation = {
   durationMs: 5000,
   props: [{ kind: 'MAT', x: 0.4, width: 3.2 }],
   keyframes: [PSOAS_START, PSOAS_STRETCH, PSOAS_EXHALE, PSOAS_STRETCH],
@@ -252,7 +252,7 @@ const ANKLE_BACK = ankle(0, 0, 1.09, 26)
 const ANKLE_FORWARD = ankle(35, 0.574, 0.909, 16)
 const ANKLE_FORWARD_HOLD = ankle(36, 0.588, 0.899, 15)
 
-export const MOBILITE_CHEVILLE_ANIMATION: ExerciseAnimation = {
+export const ANKLE_MOBILITY_ANIMATION: ExerciseAnimation = {
   durationMs: 3000,
   props: [{ kind: 'WALL', x: WALL_X }, { kind: 'MAT', x: 0.4, width: 3 }],
   keyframes: [ANKLE_BACK, ANKLE_FORWARD, ANKLE_FORWARD_HOLD],

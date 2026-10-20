@@ -53,9 +53,9 @@ export class WellnessService {
       checkIn,
       readiness,
       affectedSessions:
-        readiness.action === 'AUCUNE'
+        readiness.action === 'NONE'
           ? []
-          : sessions.filter((s) => s.date === checkIn.date && s.status === 'PLANNED' && s.type !== 'COURSE'),
+          : sessions.filter((s) => s.date === checkIn.date && s.status === 'PLANNED' && s.type !== 'RACE'),
     }
   }
 }

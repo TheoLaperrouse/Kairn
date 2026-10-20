@@ -1,8 +1,8 @@
 import { assertDomain } from '../shared/errors'
 import { clamp } from '../shared/math'
 
-export type SweatProfile = 'FAIBLE' | 'MOYEN' | 'FORT'
-export type GutTraining = 'AUCUN' | 'PARTIEL' | 'ENTRAINE'
+export type SweatProfile = 'LOW' | 'MEDIUM' | 'HIGH'
+export type GutTraining = 'NONE' | 'PARTIAL' | 'TRAINED'
 
 export interface FuelingInput {
   durationH: number
@@ -30,8 +30,8 @@ export interface FuelingPlan {
   advice: string[]
 }
 
-const CARBS_BY_GUT: Record<GutTraining, number> = { AUCUN: 60, PARTIEL: 75, ENTRAINE: 90 }
-const SODIUM_BY_SWEAT: Record<SweatProfile, number> = { FAIBLE: 500, MOYEN: 600, FORT: 700 }
+const CARBS_BY_GUT: Record<GutTraining, number> = { NONE: 60, PARTIAL: 75, TRAINED: 90 }
+const SODIUM_BY_SWEAT: Record<SweatProfile, number> = { LOW: 500, MEDIUM: 600, HIGH: 700 }
 
 /**
  * Plan de ravitaillement heure par heure. Repères : 60-90 g de glucides/h (jusqu'à 120 g
@@ -44,7 +44,7 @@ export function computeFuelingPlan(input: FuelingInput): FuelingPlan {
 
   const carbs = input.durationH < 1.5 ? 30 : CARBS_BY_GUT[input.gut]
   const heat = clamp((input.temperatureC - 15) / 15, 0, 1)
-  const sweatBonus = input.sweat === 'FORT' ? 150 : input.sweat === 'FAIBLE' ? -100 : 0
+  const sweatBonus = input.sweat === 'HIGH' ? 150 : input.sweat === 'LOW' ? -100 : 0
   const fluid = Math.round((450 + heat * 300 + sweatBonus) * (input.weightKg / 70) / 50) * 50
   const sodiumPerLitre = SODIUM_BY_SWEAT[input.sweat] + Math.round(heat * 100)
   const sodium = Math.round((fluid / 1000) * sodiumPerLitre / 10) * 10
@@ -66,7 +66,7 @@ export function computeFuelingPlan(input: FuelingInput): FuelingPlan {
     'Commence à manger dans les 30 premières minutes, puis toutes les 20-30 min.',
     'Teste ce plan à l’identique lors de tes sorties longues : jamais de nouveauté le jour J.',
   ]
-  if (input.gut === 'AUCUN') advice.push('Entraîne ton intestin : augmente de 10 g/h chaque semaine pendant les sorties longues.')
+  if (input.gut === 'NONE') advice.push('Entraîne ton intestin : augmente de 10 g/h chaque semaine pendant les sorties longues.')
   if (heat > 0.5) advice.push('Chaleur : mouille casquette et nuque à chaque point d’eau, et augmente le sel.')
   if (input.durationH > 6) advice.push('Au-delà de 6 h, alterne sucré et salé pour éviter l’écœurement.')
   if (caffeine > 0) advice.push(`Caféine : ${caffeine} mg max, plutôt en 2e partie de course ou avant la nuit.`)

@@ -62,7 +62,7 @@ describe('HTTP API', () => {
     const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'theo@example.com', password: 'ultra-trail-2027' } })
     const cookie = cookieOf(login)
     const plan = (await app.inject({ method: 'GET', url: '/api/plan', headers: { cookie } })).json()
-    const run = plan.sessions.find((s: { sport: string; type: string }) => s.sport === 'RUN' && s.type !== 'COURSE')
+    const run = plan.sessions.find((s: { sport: string; type: string }) => s.sport === 'RUN' && s.type !== 'RACE')
     const gpx = buildGpx(run.date)
 
     const upload = (name: string) => {

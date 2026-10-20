@@ -1,9 +1,9 @@
 import { assertDomain } from '../shared/errors'
 
-export type ExperienceLevel = 'DEBUTANT' | 'INTERMEDIAIRE' | 'CONFIRME' | 'EXPERT'
+export type ExperienceLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT'
 
 /** Terrain d'entraînement accessible : conditionne les substituts (escaliers, tapis incliné…). */
-export type TerrainAccess = 'MONTAGNE' | 'COLLINES' | 'PLAT'
+export type TerrainAccess = 'MOUNTAINS' | 'HILLS' | 'FLAT'
 
 export interface CrossTrainingPreferences {
   cycling: boolean
@@ -44,16 +44,16 @@ export function validateProfile(profile: AthleteProfile): void {
 
 /** Nombre de séances de course par semaine conseillé selon le niveau. */
 export const RUNNING_SESSIONS_BY_LEVEL: Record<ExperienceLevel, number> = {
-  DEBUTANT: 3,
-  INTERMEDIAIRE: 4,
-  CONFIRME: 5,
+  BEGINNER: 3,
+  INTERMEDIATE: 4,
+  ADVANCED: 5,
   EXPERT: 6,
 }
 
 /** Vitesse d'entraînement moyenne en km-effort/h (footings, sorties longues). */
 export const TRAINING_SPEED_KME: Record<ExperienceLevel, number> = {
-  DEBUTANT: 7,
-  INTERMEDIAIRE: 8,
-  CONFIRME: 9,
+  BEGINNER: 7,
+  INTERMEDIATE: 8,
+  ADVANCED: 9,
   EXPERT: 10.5,
 }

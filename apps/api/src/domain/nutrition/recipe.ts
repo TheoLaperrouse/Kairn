@@ -1,9 +1,9 @@
 export type RecipeCategory =
-  | 'VEILLE' // charge glucidique la veille / les jours précédents
-  | 'AVANT' // petit-déjeuner / repas pré-effort
-  | 'PENDANT' // à emporter dans le sac / sur les ravitos
-  | 'BOISSON' // boissons d'effort et de récupération
-  | 'APRES' // récupération
+  | 'DAY_BEFORE' // charge glucidique la veille / les jours précédents
+  | 'BEFORE' // petit-déjeuner / repas pré-effort
+  | 'DURING' // à emporter dans le sac / sur les ravitos
+  | 'DRINK' // boissons d'effort et de récupération
+  | 'AFTER' // récupération
 
 export interface Ingredient {
   name: string

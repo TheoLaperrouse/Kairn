@@ -13,7 +13,7 @@ function course(): RaceCourse {
     points,
     ...courseStats(points),
     aidStations: file.waypoints.map((w) => ({ name: w.name, km: snapToTrack(file.track, w), major: /base de vie/i.test(w.name) })),
-    settings: { startTime: '05:00', temperatureC: 15, sweat: 'MOYEN', gut: 'PARTIEL', weightKg: 70 },
+    settings: { startTime: '05:00', temperatureC: 15, sweat: 'MEDIUM', gut: 'PARTIAL', weightKg: 70 },
   }
 }
 
@@ -30,13 +30,13 @@ describe('race plan from the official GPX', () => {
   })
 
   it('splits the profile into climb, descent and runnable section', () => {
-    const plan = planRace(course(), goal, 'INTERMEDIAIRE')
-    expect(plan.segments.map((s) => s.kind)).toEqual(['MONTEE', 'DESCENTE', 'ROULANT'])
+    const plan = planRace(course(), goal, 'INTERMEDIATE')
+    expect(plan.segments.map((s) => s.kind)).toEqual(['UPHILL', 'DOWNHILL', 'FLAT'])
     expect(plan.segments[0]!.avgGradePct).toBeCloseTo(10, 0)
   })
 
   it('computes increasing split times, slower uphill than on the flat', () => {
-    const plan = planRace(course(), goal, 'INTERMEDIAIRE')
+    const plan = planRace(course(), goal, 'INTERMEDIATE')
     expect(plan.splits.map((s) => s.name)).toEqual(['Ravito du sommet', 'Base de vie', 'Arrivée'])
     const [climb, , flat] = plan.splits
     expect(climb!.legDurationH).toBeGreaterThan(flat!.legDurationH)
@@ -46,7 +46,7 @@ describe('race plan from the official GPX', () => {
   })
 
   it('plans the food to carry on each section', () => {
-    const plan = planRace(course(), goal, 'INTERMEDIAIRE')
+    const plan = planRace(course(), goal, 'INTERMEDIATE')
     for (const split of plan.splits) {
       expect(split.nutrition.carbsG).toBeGreaterThan(0)
       expect(split.nutrition.carry.length).toBeGreaterThan(0)
@@ -56,7 +56,7 @@ describe('race plan from the official GPX', () => {
   it('warns when a cutoff time is at risk', () => {
     const c = course()
     c.aidStations[0]!.cutoffH = 0.5
-    const plan = planRace(c, goal, 'INTERMEDIAIRE')
+    const plan = planRace(c, goal, 'INTERMEDIATE')
     expect(plan.splits[0]!.marginH).toBeLessThan(0)
     expect(plan.warnings.join(' ')).toMatch(/Barrière horaire/)
   })

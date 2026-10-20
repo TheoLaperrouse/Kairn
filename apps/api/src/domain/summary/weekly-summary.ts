@@ -100,7 +100,7 @@ export function buildWeeklySummary(input: SummaryInput): WeeklySummary {
   const weekEnd = addDays(weekStart, 6)
   const within = inWeek(weekStart)
   const activities = input.activities.filter((a) => within(activityDay(a))).sort((a, b) => a.startTime.localeCompare(b.startTime))
-  const sessions = (plan?.sessions ?? []).filter((s) => within(s.date) && s.type !== 'COURSE')
+  const sessions = (plan?.sessions ?? []).filter((s) => within(s.date) && s.type !== 'RACE')
   const planWeek = plan?.weeks.find((w) => w.startDate === weekStart)
 
   const analyses = new Map<string, WorkoutAnalysis>()
@@ -137,7 +137,7 @@ export function buildWeeklySummary(input: SummaryInput): WeeklySummary {
   const asOf = today < weekEnd ? today : weekEnd
   const series = computeLoadSeries(
     input.activities,
-    (plan?.sessions ?? []).filter((s) => s.type !== 'COURSE'),
+    (plan?.sessions ?? []).filter((s) => s.type !== 'RACE'),
     profile,
     addDays(weekStart, -126),
     weekEnd,
@@ -158,7 +158,7 @@ export function buildWeeklySummary(input: SummaryInput): WeeklySummary {
     ? {
         average: Math.round(readinessScores.reduce((s, r) => s + r.score, 0) / readinessScores.length),
         days: readinessScores.length,
-        redDays: readinessScores.filter((r) => r.level === 'ROUGE').length,
+        redDays: readinessScores.filter((r) => r.level === 'RED').length,
       }
     : undefined
 
@@ -168,7 +168,7 @@ export function buildWeeklySummary(input: SummaryInput): WeeklySummary {
         ...weekInfo(nextPlanWeek),
         targets: weekTargets(nextPlanWeek),
         keySessions: plan!.sessions
-          .filter((s) => s.weekIndex === nextPlanWeek.index && (s.keySession || s.type === 'COURSE'))
+          .filter((s) => s.weekIndex === nextPlanWeek.index && (s.keySession || s.type === 'RACE'))
           .map((s) => ({ id: s.id, title: s.title, date: s.date })),
       }
     : undefined
@@ -273,23 +273,23 @@ function insights(summary: WeeklySummary, input: SummaryInput, analyses: Map<str
     if (week?.isRecovery && ratio > 1.1) {
       list.push({
         tone: 'ATTENTION',
-        topic: 'CHARGE',
+        topic: 'LOAD',
         title: 'Semaine allégée non respectée',
         text: `${formatPercent(ratio)} du volume prévu sur une semaine de récupération. C’est pendant ces semaines que le corps assimile le travail : la prochaine fois, lève le pied.`,
       })
     } else if (ratio > 1.15) {
       list.push({
         tone: 'ATTENTION',
-        topic: 'CHARGE',
+        topic: 'LOAD',
         title: 'Au-delà du volume prévu',
         text: `${formatPercent(ratio)} du volume horaire prévu. Plus n’est pas mieux : le risque de blessure grimpe avec les hausses brutales.`,
       })
     } else if (ratio >= 0.9) {
-      list.push({ tone: 'POSITIVE', topic: 'CHARGE', title: 'Volume tenu', text: `${formatPercent(ratio)} du volume horaire prévu (${formatMinutes(totals.hours * 60)} sur ${formatMinutes(targets.hours * 60)}).` })
+      list.push({ tone: 'POSITIVE', topic: 'LOAD', title: 'Volume tenu', text: `${formatPercent(ratio)} du volume horaire prévu (${formatMinutes(totals.hours * 60)} sur ${formatMinutes(targets.hours * 60)}).` })
     } else if (finished && ratio < 0.75) {
       list.push({
         tone: 'ATTENTION',
-        topic: 'CHARGE',
+        topic: 'LOAD',
         title: 'Volume en retrait',
         text: `${formatPercent(ratio)} du volume horaire prévu (${formatMinutes(totals.hours * 60)} sur ${formatMinutes(targets.hours * 60)}).`,
       })
@@ -303,7 +303,7 @@ function insights(summary: WeeklySummary, input: SummaryInput, analyses: Map<str
     if (ratios.every((r) => r !== undefined && r < 0.8)) {
       list.push({
         tone: 'ATTENTION',
-        topic: 'DUREE',
+        topic: 'DURATION',
         title: 'Plan trop ambitieux ?',
         text: 'Deux semaines de suite sous 80 % du volume prévu. Si ton emploi du temps ne suit pas, baisse tes heures disponibles dans ton profil puis régénère le plan : mieux vaut un plan tenu qu’un plan subi.',
       })
@@ -314,14 +314,14 @@ function insights(summary: WeeklySummary, input: SummaryInput, analyses: Map<str
   if (missedKeys.length) {
     list.push({
       tone: 'ATTENTION',
-      topic: 'INTENSITE',
+      topic: 'INTENSITY',
       title: missedKeys.length > 1 ? 'Séances clés manquées' : 'Séance clé manquée',
       text: `${missedKeys.map((s) => `« ${s.title} »`).join(', ')} : ce sont elles qui font progresser. Kairn les décale quand c’est possible sans risque.`,
     })
   } else if (summary.keySessions.length && summary.keySessions.every((s) => s.status === 'DONE')) {
     list.push({
       tone: 'POSITIVE',
-      topic: 'INTENSITE',
+      topic: 'INTENSITY',
       title: 'Séances clés réalisées',
       text: `${summary.keySessions.length === 1 ? 'La séance clé est faite' : `Les ${summary.keySessions.length} séances clés sont faites`} : l’essentiel de la semaine est dans les jambes.`,
     })
@@ -329,16 +329,16 @@ function insights(summary: WeeklySummary, input: SummaryInput, analyses: Map<str
 
   if (summary.zones) {
     const easy = 1 - shareAtOrAbove(summary.zones, 3)
-    const tooIntense = summary.verdicts.TROP_INTENSE ?? 0
+    const tooIntense = summary.verdicts.TOO_HARD ?? 0
     if (easy < 0.7 || tooIntense >= 2) {
       list.push({
         tone: 'ATTENTION',
-        topic: 'INTENSITE',
+        topic: 'INTENSITY',
         title: 'Trop d’intensité',
         text: `${formatPercent(easy)} du temps en Z1-Z2${tooIntense >= 2 ? `, et ${tooIntense} séances faciles courues trop vite` : ''}. En ultra, 75 à 80 % du temps en endurance fondamentale est la base : ralentis les footings pour mieux réussir les séances dures.`,
       })
     } else if (easy >= 0.75) {
-      list.push({ tone: 'POSITIVE', topic: 'INTENSITE', title: 'Bonne répartition', text: `${formatPercent(easy)} du temps en Z1-Z2 : l’intensité est concentrée là où elle compte.` })
+      list.push({ tone: 'POSITIVE', topic: 'INTENSITY', title: 'Bonne répartition', text: `${formatPercent(easy)} du temps en Z1-Z2 : l’intensité est concentrée là où elle compte.` })
     }
   }
 
@@ -347,7 +347,7 @@ function insights(summary: WeeklySummary, input: SummaryInput, analyses: Map<str
   if (top && top.vam / top.baseline - 1 >= 0.05) {
     list.push({
       tone: 'POSITIVE',
-      topic: 'MONTEE',
+      topic: 'UPHILL',
       title: 'Progression en montée',
       text: `Meilleure VAM à ${formatInt(top.vam)} m/h, ${formatPercent(top.vam / top.baseline - 1)} au-dessus de ta référence des 8 dernières semaines.`,
     })
@@ -358,14 +358,14 @@ function insights(summary: WeeklySummary, input: SummaryInput, analyses: Map<str
   } else if (summary.form.freshness <= -25) {
     list.push({
       tone: 'ATTENTION',
-      topic: 'CHARGE',
+      topic: 'LOAD',
       title: 'Fatigue élevée',
       text: `Fraîcheur à ${summary.form.freshness}.${summary.nextWeek?.isRecovery ? ' La semaine allégée qui arrive tombe à pic : respecte-la.' : ' Soigne sommeil et alimentation, et n’hésite pas à alléger une séance si le bilan du matin passe à l’orange.'}`,
     })
   } else if (summary.form.fitnessChange > 0 && finished) {
     list.push({
       tone: 'POSITIVE',
-      topic: 'CHARGE',
+      topic: 'LOAD',
       title: 'Forme en hausse',
       text: `Forme de fond à ${summary.form.fitness} (+${summary.form.fitnessChange.toLocaleString('fr-FR')} sur la semaine).`,
     })
@@ -374,7 +374,7 @@ function insights(summary: WeeklySummary, input: SummaryInput, analyses: Map<str
   if (summary.readiness && (summary.readiness.redDays >= 2 || summary.readiness.average < 50)) {
     list.push({
       tone: 'ATTENTION',
-      topic: 'CHARGE',
+      topic: 'LOAD',
       title: 'Récupération difficile',
       text: `Score de forme moyen de ${summary.readiness.average}/100 au réveil${summary.readiness.redDays ? `, dont ${summary.readiness.redDays} jour(s) au rouge` : ''}. Le sommeil est ton meilleur allié.`,
     })

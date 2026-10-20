@@ -23,8 +23,8 @@ const MAJOR_STATION = /base de vie|bdv|ravitaillement complet|ravito complet|lif
 const DEFAULT_SETTINGS: Omit<RaceCourseSettings, 'weightKg'> = {
   startTime: '06:00',
   temperatureC: 15,
-  sweat: 'MOYEN',
-  gut: 'PARTIEL',
+  sweat: 'MEDIUM',
+  gut: 'PARTIAL',
 }
 
 export class RaceCourseService {

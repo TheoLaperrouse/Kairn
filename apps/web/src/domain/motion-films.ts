@@ -21,7 +21,7 @@ interface MotionFilm {
 
 const MOTION_FILMS: MotionFilm[] = [
   {
-    category: 'GAINAGE',
+    category: 'CORE',
     title: 'Kairn — Gainage',
     url: 'https://claude.ai/artifact/5MMudwcT8cWzYXMAVgEem2',
     file: 'gainage.mp4',
@@ -34,7 +34,7 @@ const MOTION_FILMS: MotionFilm[] = [
     },
   },
   {
-    category: 'FORCE',
+    category: 'STRENGTH',
     title: 'Kairn — Force',
     url: 'https://claude.ai/artifact/Ax8D1boxSsPnqw75vCZE4T',
     file: 'force.mp4',
@@ -49,7 +49,7 @@ const MOTION_FILMS: MotionFilm[] = [
     },
   },
   {
-    category: 'EXCENTRIQUE',
+    category: 'ECCENTRIC',
     title: 'Kairn — Excentrique',
     url: 'https://claude.ai/artifact/8wmqqRaWd2fs5RHAG4abh8',
     file: 'excentrique.mp4',
@@ -61,7 +61,7 @@ const MOTION_FILMS: MotionFilm[] = [
     },
   },
   {
-    category: 'PLIOMETRIE',
+    category: 'PLYOMETRICS',
     title: 'Kairn — Pliométrie',
     url: 'https://claude.ai/artifact/THQFzFMdyjmCfgCEGFKBST',
     file: 'pliometrie.mp4',
@@ -84,7 +84,7 @@ const MOTION_FILMS: MotionFilm[] = [
     },
   },
   {
-    category: 'MOBILITE',
+    category: 'MOBILITY',
     title: 'Kairn — Mobilité',
     url: 'https://claude.ai/artifact/9r7kxSbcWWvG52sMiPfe6v',
     file: 'mobilite.mp4',

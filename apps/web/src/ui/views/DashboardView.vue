@@ -56,7 +56,7 @@ const today = todayIso()
 const todaySessions = computed(() => d.value?.weekSessions.filter((s) => s.date === today) ?? [])
 
 const weekProgress = computed(() => {
-  const sessions = d.value?.weekSessions.filter((s) => s.type !== 'COURSE') ?? []
+  const sessions = d.value?.weekSessions.filter((s) => s.type !== 'RACE') ?? []
   const done = sessions.filter((s) => s.status === 'DONE')
   const plannedMin = sessions.reduce((sum, s) => sum + s.durationMin, 0)
   const doneMin = done.reduce((sum, s) => sum + s.durationMin, 0)

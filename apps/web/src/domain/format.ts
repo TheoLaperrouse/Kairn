@@ -14,43 +14,43 @@ export const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'
 export const DAYS_SHORT = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] as const
 
 export const PHASE_LABELS: Record<TrainingPhase, string> = {
-  FONCIER: 'Foncier',
-  DEVELOPPEMENT: 'Développement',
-  SPECIFIQUE: 'Spécifique',
-  AFFUTAGE: 'Affûtage',
-  COURSE: 'Course',
+  BASE: 'Foncier',
+  BUILD: 'Développement',
+  SPECIFIC: 'Spécifique',
+  TAPER: 'Affûtage',
+  RACE: 'Course',
 }
 
 export const LEVEL_LABELS: Record<ExperienceLevel, string> = {
-  DEBUTANT: 'Débutant',
-  INTERMEDIAIRE: 'Intermédiaire',
-  CONFIRME: 'Confirmé',
+  BEGINNER: 'Débutant',
+  INTERMEDIATE: 'Intermédiaire',
+  ADVANCED: 'Confirmé',
   EXPERT: 'Expert',
 }
 
 export const TERRAIN_LABELS: Record<TerrainAccess, string> = {
-  MONTAGNE: 'Montagne',
-  COLLINES: 'Collines',
-  PLAT: 'Plat',
+  MOUNTAINS: 'Montagne',
+  HILLS: 'Collines',
+  FLAT: 'Plat',
 }
 
 export const SPORT_LABELS: Record<Sport, string> = { RUN: 'Course', BIKE: 'Vélo', STRENGTH: 'Renfo' }
 
 export const SESSION_TYPE_LABELS: Record<SessionType, string> = {
   ENDURANCE: 'Endurance',
-  RECUPERATION: 'Récupération',
-  SORTIE_LONGUE: 'Sortie longue',
+  RECOVERY: 'Récupération',
+  LONG_RUN: 'Sortie longue',
   BACK_TO_BACK: 'Back-to-back',
   SIMULATION: 'Simulation',
-  COTES_COURTES: 'Côtes',
-  SEUIL_MONTEE: 'Seuil en montée',
-  RANDO_COURSE: 'Rando-course',
-  DESCENTE: 'Descente',
+  HILL_REPEATS: 'Côtes',
+  UPHILL_THRESHOLD: 'Seuil en montée',
+  HIKE_RUN: 'Rando-course',
+  DOWNHILL: 'Descente',
   FARTLEK: 'Fartlek',
-  RENFORCEMENT: 'Renforcement',
-  VELO_ENDURANCE: 'Vélo endurance',
-  VELO_FORCE: 'Vélo force',
-  COURSE: 'Course',
+  STRENGTH: 'Renforcement',
+  BIKE_ENDURANCE: 'Vélo endurance',
+  BIKE_STRENGTH: 'Vélo force',
+  RACE: 'Course',
 }
 
 export const ZONE_LABELS: Record<Zone, string> = {
@@ -62,20 +62,20 @@ export const ZONE_LABELS: Record<Zone, string> = {
 }
 
 export const CATEGORY_LABELS: Record<ExerciseCategory, string> = {
-  GAINAGE: 'Gainage',
-  FORCE: 'Force',
-  EXCENTRIQUE: 'Excentrique',
-  PLIOMETRIE: 'Pliométrie',
+  CORE: 'Gainage',
+  STRENGTH: 'Force',
+  ECCENTRIC: 'Excentrique',
+  PLYOMETRICS: 'Pliométrie',
   PROPRIOCEPTION: 'Proprioception',
-  MOBILITE: 'Mobilité',
+  MOBILITY: 'Mobilité',
 }
 
 export const RECIPE_CATEGORY_LABELS: Record<RecipeCategory, string> = {
-  VEILLE: 'La veille',
-  AVANT: 'Avant l’effort',
-  PENDANT: 'Pendant l’effort',
-  BOISSON: 'Boissons',
-  APRES: 'Récupération',
+  DAY_BEFORE: 'La veille',
+  BEFORE: 'Avant l’effort',
+  DURING: 'Pendant l’effort',
+  DRINK: 'Boissons',
+  AFTER: 'Récupération',
 }
 
 export function formatDuration(minutes: number): string {
@@ -141,22 +141,22 @@ export function weekdayOf(iso: string): number {
 }
 
 export const VERDICT_LABELS: Record<Verdict, string> = {
-  CONFORME: 'Conforme au plan',
-  TROP_INTENSE: 'Trop intense',
-  PAS_ASSEZ_INTENSE: 'Pas assez intense',
-  ECOURTEE: 'Écourtée',
-  PROLONGEE: 'Prolongée',
-  HORS_PLAN: 'Sortie libre',
+  ON_TARGET: 'Conforme au plan',
+  TOO_HARD: 'Trop intense',
+  TOO_EASY: 'Pas assez intense',
+  CUT_SHORT: 'Écourtée',
+  EXTENDED: 'Prolongée',
+  UNPLANNED: 'Sortie libre',
 }
 
 /** Ton d'un verdict : réussi, à surveiller, ou neutre (sortie hors plan). */
 export const VERDICT_TONES: Record<Verdict, 'success' | 'warning' | 'neutral'> = {
-  CONFORME: 'success',
-  TROP_INTENSE: 'warning',
-  PAS_ASSEZ_INTENSE: 'warning',
-  ECOURTEE: 'warning',
-  PROLONGEE: 'warning',
-  HORS_PLAN: 'neutral',
+  ON_TARGET: 'success',
+  TOO_HARD: 'warning',
+  TOO_EASY: 'warning',
+  CUT_SHORT: 'warning',
+  EXTENDED: 'warning',
+  UNPLANNED: 'neutral',
 }
 
 export function addDaysIso(iso: string, days: number): string {

@@ -19,15 +19,15 @@ describe('buildQueue', () => {
       { exerciseId: 'squat', sets: 2, reps: 12, restSec: 45 },
       { exerciseId: 'planche', sets: 1, durationSec: 40, restSec: 30 },
     ])
-    expect(queue.map((s) => s.kind)).toEqual(['EFFORT', 'REPOS', 'EFFORT', 'REPOS', 'EFFORT'])
+    expect(queue.map((s) => s.kind)).toEqual(['EFFORT', 'REST', 'EFFORT', 'REST', 'EFFORT'])
     expect(queue.at(-1)).toMatchObject({ kind: 'EFFORT', exerciseId: 'planche', durationSec: 40 })
-    expect(queue[3]).toMatchObject({ kind: 'REPOS', nextExerciseId: 'planche', durationSec: 45 })
+    expect(queue[3]).toMatchObject({ kind: 'REST', nextExerciseId: 'planche', durationSec: 45 })
   })
 
   it('chains left then right without rest for unilateral exercises', () => {
     const queue = buildQueue([{ exerciseId: 'fente-bulgare', sets: 2, reps: 8, restSec: 60, perSide: true }])
-    const shape = queue.map((s) => (s.kind === 'EFFORT' ? `${s.set}${s.side![0]}` : 'R'))
-    expect(shape).toEqual(['1G', '1D', 'R', '2G', '2D'])
+    const shape = queue.map((s) => (s.kind === 'EFFORT' ? `${s.set}${s.side![0]}` : 'rest'))
+    expect(shape).toEqual(['1L', '1R', 'rest', '2L', '2R'])
     const efforts = queue.filter((s): s is EffortStep => s.kind === 'EFFORT')
     expect(efforts.map((e) => e.needsPrep)).toEqual([true, true, false, true])
     expect(efforts.map((e) => e.lastSet)).toEqual([false, false, true, true])

@@ -1,12 +1,16 @@
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import { migrateToEnglishVocabulary } from './english-vocabulary-migration'
 
 /**
  * Migrations versionnées via `PRAGMA user_version`. On n'en modifie jamais une
  * déjà publiée : on en ajoute une nouvelle à la fin de la liste.
+ * A migration is either a SQL script or a function, for data rewrites SQL cannot express.
  */
-const MIGRATIONS: string[] = [
+type Migration = string | ((db: DatabaseSync) => void)
+
+const MIGRATIONS: Migration[] = [
   `
   CREATE TABLE users (
     id TEXT PRIMARY KEY,
@@ -93,6 +97,7 @@ const MIGRATIONS: string[] = [
     value TEXT NOT NULL
   );
   `,
+  migrateToEnglishVocabulary,
 ]
 
 export function openDatabase(path: string): DatabaseSync {
@@ -103,11 +108,14 @@ export function openDatabase(path: string): DatabaseSync {
   return db
 }
 
-function migrate(db: DatabaseSync): void {
+/** Applies the pending migrations, optionally stopping at version `target` (used by tests). */
+export function migrate(db: DatabaseSync, target = MIGRATIONS.length): void {
   const { user_version: version } = db.prepare('PRAGMA user_version').get() as { user_version: number }
-  for (let i = version; i < MIGRATIONS.length; i++) {
+  for (let i = version; i < target; i++) {
+    const migration = MIGRATIONS[i]!
     transaction(db, () => {
-      db.exec(MIGRATIONS[i]!)
+      if (typeof migration === 'string') db.exec(migration)
+      else migration(db)
       db.exec(`PRAGMA user_version = ${i + 1}`)
     })
   }

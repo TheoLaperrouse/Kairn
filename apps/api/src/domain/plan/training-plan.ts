@@ -5,26 +5,26 @@ export type Sport = 'RUN' | 'BIKE' | 'STRENGTH'
 
 export type SessionType =
   | 'ENDURANCE'
-  | 'RECUPERATION'
-  | 'SORTIE_LONGUE'
+  | 'RECOVERY'
+  | 'LONG_RUN'
   | 'BACK_TO_BACK'
   | 'SIMULATION'
-  | 'COTES_COURTES'
-  | 'SEUIL_MONTEE'
-  | 'RANDO_COURSE'
-  | 'DESCENTE'
+  | 'HILL_REPEATS'
+  | 'UPHILL_THRESHOLD'
+  | 'HIKE_RUN'
+  | 'DOWNHILL'
   | 'FARTLEK'
-  | 'RENFORCEMENT'
-  | 'VELO_ENDURANCE'
-  | 'VELO_FORCE'
-  | 'COURSE'
+  | 'STRENGTH'
+  | 'BIKE_ENDURANCE'
+  | 'BIKE_STRENGTH'
+  | 'RACE'
 
 export type Zone = 1 | 2 | 3 | 4 | 5
 
 export type SessionStatus = 'PLANNED' | 'DONE' | 'SKIPPED'
 
 export interface WorkoutStep {
-  kind: 'ECHAUFFEMENT' | 'EFFORT' | 'RECUP' | 'RETOUR_CALME' | 'CONTINU'
+  kind: 'WARMUP' | 'EFFORT' | 'RECOVERY' | 'COOLDOWN' | 'CONTINUOUS'
   label: string
   durationMin: number
   repeat?: number
@@ -82,7 +82,7 @@ export interface TrainingPlan {
   adjustments?: PlanAdjustment[]
 }
 
-export type AdjustmentReason = 'SEANCE_MANQUEE' | 'MALADIE' | 'BLESSURE' | 'INDISPONIBLE' | 'FATIGUE'
+export type AdjustmentReason = 'MISSED_SESSION' | 'ILLNESS' | 'INJURY' | 'UNAVAILABLE' | 'FATIGUE'
 
 export interface PlanAdjustment {
   id: string
@@ -94,17 +94,17 @@ export interface PlanAdjustment {
 
 export const SESSION_SPORT: Record<SessionType, Sport> = {
   ENDURANCE: 'RUN',
-  RECUPERATION: 'RUN',
-  SORTIE_LONGUE: 'RUN',
+  RECOVERY: 'RUN',
+  LONG_RUN: 'RUN',
   BACK_TO_BACK: 'RUN',
   SIMULATION: 'RUN',
-  COTES_COURTES: 'RUN',
-  SEUIL_MONTEE: 'RUN',
-  RANDO_COURSE: 'RUN',
-  DESCENTE: 'RUN',
+  HILL_REPEATS: 'RUN',
+  UPHILL_THRESHOLD: 'RUN',
+  HIKE_RUN: 'RUN',
+  DOWNHILL: 'RUN',
   FARTLEK: 'RUN',
-  RENFORCEMENT: 'STRENGTH',
-  VELO_ENDURANCE: 'BIKE',
-  VELO_FORCE: 'BIKE',
-  COURSE: 'RUN',
+  STRENGTH: 'STRENGTH',
+  BIKE_ENDURANCE: 'BIKE',
+  BIKE_STRENGTH: 'BIKE',
+  RACE: 'RUN',
 }

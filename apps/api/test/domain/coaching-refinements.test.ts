@@ -103,11 +103,11 @@ describe('session purpose', () => {
 
   it('explains each session in light of the phase and the race', () => {
     for (const session of plan.sessions) expect(sessionPurpose(session, plan, goal, aProfile()).length).toBeGreaterThan(30)
-    const longRun = plan.sessions.find((s) => s.type === 'SORTIE_LONGUE' && plan.weeks[s.weekIndex]!.phase === 'SPECIFIQUE')!
+    const longRun = plan.sessions.find((s) => s.type === 'LONG_RUN' && plan.weeks[s.weekIndex]!.phase === 'SPECIFIC')!
     expect(sessionPurpose(longRun, plan, goal, aProfile())).toContain('frontale')
-    const hike = plan.sessions.find((s) => s.type === 'RANDO_COURSE')
+    const hike = plan.sessions.find((s) => s.type === 'HIKE_RUN')
     if (hike) expect(sessionPurpose(hike, plan, goal, aProfile())).toContain('avec bâtons')
-    const race = plan.sessions.find((s) => s.type === 'COURSE')!
+    const race = plan.sessions.find((s) => s.type === 'RACE')!
     expect(sessionPurpose(race, plan, goal, aProfile())).toBe('CCC, c’est aujourd’hui : tout le travail est fait, fais-toi confiance.')
   })
 })
@@ -117,17 +117,17 @@ describe('readiness-aware reminders', () => {
   const sessions = [aSession({ id: 's', date: today, status: 'PLANNED', title: 'Footing', durationMin: 60 })]
 
   it('suggests adapting the session when this morning’s check-in advises it', () => {
-    const message = morningMessage(sessions, { date: today, latest: { date: today, level: 'ORANGE', action: 'ALLEGER' } })!
+    const message = morningMessage(sessions, { date: today, latest: { date: today, level: 'ORANGE', action: 'LIGHTEN' } })!
     expect(message.title).toBe('Séance du jour, à adapter')
     expect(message.body).toContain('conseille d’alléger')
   })
 
   it('asks for a check-in when yesterday was orange or red', () => {
-    const message = morningMessage(sessions, { date: today, latest: { date: '2027-03-02', level: 'ROUGE', action: 'REPOS' } })!
+    const message = morningMessage(sessions, { date: today, latest: { date: '2027-03-02', level: 'RED', action: 'REST' } })!
     expect(message.body).toContain('Ta forme était au rouge hier')
-    const green = morningMessage(sessions, { date: today, latest: { date: '2027-03-02', level: 'VERT', action: 'AUCUNE' } })!
+    const green = morningMessage(sessions, { date: today, latest: { date: '2027-03-02', level: 'GREEN', action: 'NONE' } })!
     expect(green.body).toContain('Fais ton bilan du matin')
-    const checked = morningMessage(sessions, { date: today, latest: { date: today, level: 'VERT', action: 'AUCUNE' } })!
+    const checked = morningMessage(sessions, { date: today, latest: { date: today, level: 'GREEN', action: 'NONE' } })!
     expect(checked.body).not.toContain('bilan')
   })
 

@@ -20,11 +20,11 @@ const ctx = (today: string): AdaptationContext => ({
 describe('plan adaptation', () => {
   it('moves a missed key session to a safe slot, only once', () => {
     const plan = basePlan()
-    const missed = plan.sessions.find((s) => s.keySession && s.sport === 'RUN' && s.date >= '2027-03-08' && s.type !== 'SORTIE_LONGUE')!
+    const missed = plan.sessions.find((s) => s.keySession && s.sport === 'RUN' && s.date >= '2027-03-08' && s.type !== 'LONG_RUN')!
     const today = addDays(missed.date, 1)
     const { plan: adapted, adjustment } = rescheduleMissedSessions(plan, ctx(today))
     const moved = adapted.sessions.find((s) => s.id === missed.id)!
-    expect(adjustment?.reason).toBe('SEANCE_MANQUEE')
+    expect(adjustment?.reason).toBe('MISSED_SESSION')
     expect(moved.originalDate).toBe(missed.date)
     expect(moved.date > missed.date || moved.status === 'SKIPPED').toBe(true)
     // Idempotent: a second pass changes nothing.
@@ -44,7 +44,7 @@ describe('plan adaptation', () => {
     const plan = basePlan()
     const { plan: adapted, adjustment } = applyUnavailability(
       plan,
-      { from: '2027-04-05', to: '2027-04-11', reason: 'MALADIE', crossTrainingOk: false },
+      { from: '2027-04-05', to: '2027-04-11', reason: 'ILLNESS', crossTrainingOk: false },
       ctx('2027-04-05'),
     )
     const during = adapted.sessions.filter((s) => s.date >= '2027-04-05' && s.date <= '2027-04-11')
@@ -53,24 +53,24 @@ describe('plan adaptation', () => {
     expect(reprise.length).toBeGreaterThan(0)
     expect(reprise.every((s) => s.zone <= 2 && !s.keySession)).toBe(true)
     expect(adjustment?.details.join(' ')).toMatch(/annulée/)
-    expect(adapted.adjustments?.[0]?.reason).toBe('MALADIE')
+    expect(adapted.adjustments?.[0]?.reason).toBe('ILLNESS')
   })
 
   it('replaces running with low-impact training during an injury when possible', () => {
-    const { plan } = applyUnavailability(basePlan(), { from: '2027-04-05', to: '2027-04-11', reason: 'BLESSURE', crossTrainingOk: true }, ctx('2027-04-05'))
-    const during = plan.sessions.filter((s) => s.date >= '2027-04-05' && s.date <= '2027-04-11' && s.type !== 'RENFORCEMENT')
+    const { plan } = applyUnavailability(basePlan(), { from: '2027-04-05', to: '2027-04-11', reason: 'INJURY', crossTrainingOk: true }, ctx('2027-04-05'))
+    const during = plan.sessions.filter((s) => s.date >= '2027-04-05' && s.date <= '2027-04-11' && s.type !== 'STRENGTH')
     expect(during.some((s) => s.title === 'Entretien sans impact')).toBe(true)
     expect(during.filter((s) => s.status === 'PLANNED').every((s) => s.sport !== 'RUN')).toBe(true)
   })
 
   it('lightens or cancels a session after the morning check-in, never on race day', () => {
     const plan = basePlan()
-    const hard = plan.sessions.find((s) => s.type === 'SEUIL_MONTEE')!
-    const eased = lightenSession(hard, 'ALLEGER')
+    const hard = plan.sessions.find((s) => s.type === 'UPHILL_THRESHOLD')!
+    const eased = lightenSession(hard, 'LIGHTEN')
     expect(eased).toMatchObject({ type: 'ENDURANCE', zone: 2, keySession: false })
     expect(eased.durationMin).toBeLessThan(hard.durationMin)
-    expect(lightenSession(hard, 'REPOS').status).toBe('SKIPPED')
-    expect(() => lightenSession(plan.sessions.find((s) => s.type === 'COURSE')!, 'REPOS')).toThrow()
+    expect(lightenSession(hard, 'REST').status).toBe('SKIPPED')
+    expect(() => lightenSession(plan.sessions.find((s) => s.type === 'RACE')!, 'REST')).toThrow()
   })
 })
 
@@ -78,20 +78,20 @@ const good: CheckIn = { date: '2027-03-10', sleepHours: 8, sleepQuality: 5, sore
 
 describe('morning check-in', () => {
   it('gives the green light when everything is fine', () => {
-    expect(computeReadiness(good, [])).toMatchObject({ level: 'VERT', action: 'AUCUNE', score: 100 })
+    expect(computeReadiness(good, [])).toMatchObject({ level: 'GREEN', action: 'NONE', score: 100 })
   })
 
   it('detects a resting HR abnormally high compared with the personal average', () => {
     const history = [1, 2, 3, 4, 5].map((d) => ({ ...good, date: addDays(good.date, -d) }))
     const readiness = computeReadiness({ ...good, restingHr: 57, sleepQuality: 3, fatigue: 3 }, history)
-    expect(readiness.level).not.toBe('VERT')
+    expect(readiness.level).not.toBe('GREEN')
     expect(readiness.alerts.join(' ')).toMatch(/FC de repos/)
     expect(readiness.factors[0]!.label).toMatch(/FC de repos/)
   })
 
   it('recommends rest with symptoms and heavy fatigue', () => {
     const readiness = computeReadiness({ ...good, illnessSymptoms: true, fatigue: 4, sleepHours: 5 }, [])
-    expect(readiness).toMatchObject({ level: 'ROUGE', action: 'REPOS' })
+    expect(readiness).toMatchObject({ level: 'RED', action: 'REST' })
   })
 
   it('warns after three days in a row without a green light', () => {

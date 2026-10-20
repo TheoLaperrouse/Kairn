@@ -90,17 +90,17 @@ describe('post-workout analysis', () => {
   it('approves an endurance session in the planned zone', () => {
     const activity = anActivity(track([{ minutes: 60, km: 10, hr: 140 }]), { plannedSessionId: easy.id })
     const analysis = analyzeWorkout(activity, { profile, session: easy, sessions: [easy], history: [] })
-    expect(analysis.verdict).toBe('CONFORME')
+    expect(analysis.verdict).toBe('ON_TARGET')
     expect(analysis.score).toBe(100)
     expect(analysis.headline).toMatch(/^Séance réussie/)
     expect(analysis.insights.map((i) => i.title)).toContain('Intensité maîtrisée')
   })
 
   it('flags an easy session run too hard and suggests lightening tomorrow\'s key session', () => {
-    const key = aSession({ id: 'key', date: '2027-03-04', type: 'SEUIL_MONTEE', zone: 4, keySession: true, status: 'PLANNED', title: 'Seuil en côte' })
+    const key = aSession({ id: 'key', date: '2027-03-04', type: 'UPHILL_THRESHOLD', zone: 4, keySession: true, status: 'PLANNED', title: 'Seuil en côte' })
     const activity = anActivity(track([{ minutes: 60, km: 12, hr: 165 }]))
     const analysis = analyzeWorkout(activity, { profile, session: easy, sessions: [easy, key], history: [] })
-    expect(analysis.verdict).toBe('TROP_INTENSE')
+    expect(analysis.verdict).toBe('TOO_HARD')
     expect(analysis.score).toBe(70)
     expect(analysis.headline).toContain('au-dessus de Z2')
     expect(analysis.nextStep).toMatchObject({ sessionId: 'key', suggestLighten: true })
@@ -109,22 +109,22 @@ describe('post-workout analysis', () => {
 
   it('spots threshold blocks that are not intense enough', () => {
     const threshold = aSession({
-      type: 'SEUIL_MONTEE',
+      type: 'UPHILL_THRESHOLD',
       zone: 4,
       durationMin: 60,
       steps: [{ kind: 'EFFORT', label: 'Seuil en côte', durationMin: 8, repeat: 3, zone: 4 }],
     })
     const activity = anActivity(track([{ minutes: 55, km: 9, climbM: 200, hr: 150 }, { minutes: 5, km: 1, hr: 165 }]))
     const analysis = analyzeWorkout(activity, { profile, session: threshold, sessions: [threshold], history: [] })
-    expect(analysis.verdict).toBe('PAS_ASSEZ_INTENSE')
+    expect(analysis.verdict).toBe('TOO_EASY')
     expect(analysis.comparison).toMatchObject({ plannedEffortMin: 24, effortMin: 5 })
   })
 
   it('tells a cut-short session apart from an unplanned run', () => {
     const short = analyzeWorkout(anActivity(track([{ minutes: 40, km: 7, hr: 140 }])), { profile, session: easy, sessions: [], history: [] })
-    expect(short.verdict).toBe('ECOURTEE')
+    expect(short.verdict).toBe('CUT_SHORT')
     const free = analyzeWorkout(anActivity(track([{ minutes: 40, km: 7, hr: 140 }])), { profile, sessions: [], history: [] })
-    expect(free.verdict).toBe('HORS_PLAN')
+    expect(free.verdict).toBe('UNPLANNED')
     expect(free.score).toBeUndefined()
     expect(free.headline).toBe('Sortie libre : 40 min, 7 km.')
   })
@@ -172,7 +172,7 @@ describe('post-workout analysis', () => {
       steps: [{ kind: 'EFFORT', label: 'Accélération', durationMin: 2, repeat: 4, zone: 3 }],
     })
     const analysis = analyzeWorkout(anActivity(track([{ minutes: 50, km: 9, hr: 160 }])), { profile, session: fartlek, sessions: [], history: [] })
-    expect(analysis.verdict).toBe('TROP_INTENSE')
+    expect(analysis.verdict).toBe('TOO_HARD')
     expect(analysis.headline).toBe('Plus intense que prévu : 50 min en zone d’effort pour 8 prévues.')
     expect(analysis.insights[0]!.title).toBe('Séance trop appuyée')
   })
@@ -182,7 +182,7 @@ describe('post-workout analysis', () => {
     const analysis = analyzeWorkout(activity, { profile, session: easy, sessions: [], history: [] })
     // Target Z2 (65 % of reserve ≈ 141 bpm): actual load ≈ planned load.
     expect(analysis.load / analysis.plannedLoad!).toBeCloseTo(1, 1)
-    expect(analysis.insights.map((i) => i.topic)).not.toContain('CHARGE')
+    expect(analysis.insights.map((i) => i.topic)).not.toContain('LOAD')
   })
 
   it('does not include a gentle approach slope in the climb', () => {
@@ -195,7 +195,7 @@ describe('post-workout analysis', () => {
   it('stays useful without a detailed track or max HR', () => {
     const analysis = analyzeWorkout(anActivity([], { samples: undefined, durationSec: 3600, distanceKm: 10 }), { profile: {}, session: easy, sessions: [], history: [] })
     expect(analysis.hasDetail).toBe(false)
-    expect(analysis.verdict).toBe('CONFORME')
+    expect(analysis.verdict).toBe('ON_TARGET')
     expect(analysis.insights.at(-1)!.title).toBe('Analyse partielle')
   })
 })

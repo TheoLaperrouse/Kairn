@@ -19,18 +19,18 @@ describe('generatePlan', () => {
   it('splits the build-up into ordered phases up to race week', () => {
     const plan = generatePlan(request())
     const phases = plan.weeks.map((w) => w.phase)
-    expect(phases[0]).toBe('FONCIER')
-    expect(phases.at(-1)).toBe('COURSE')
-    expect(phases.at(-2)).toBe('AFFUTAGE')
-    const order = ['FONCIER', 'DEVELOPPEMENT', 'SPECIFIQUE', 'AFFUTAGE', 'COURSE']
+    expect(phases[0]).toBe('BASE')
+    expect(phases.at(-1)).toBe('RACE')
+    expect(phases.at(-2)).toBe('TAPER')
+    const order = ['BASE', 'BUILD', 'SPECIFIC', 'TAPER', 'RACE']
     const ranks = phases.map((p) => order.indexOf(p))
     expect(ranks).toEqual([...ranks].sort((a, b) => a - b))
   })
 
   it('puts the race on race day and the long run on the chosen day', () => {
     const plan = generatePlan(request())
-    expect(plan.sessions.filter((s) => s.type === 'COURSE').map((s) => s.date)).toEqual(['2027-08-27'])
-    const longRuns = plan.sessions.filter((s) => s.type === 'SORTIE_LONGUE')
+    expect(plan.sessions.filter((s) => s.type === 'RACE').map((s) => s.date)).toEqual(['2027-08-27'])
+    const longRuns = plan.sessions.filter((s) => s.type === 'LONG_RUN')
     expect(longRuns.length).toBeGreaterThan(10)
     expect(longRuns.every((s) => weekday(s.date) === 5)).toBe(true)
   })
@@ -69,7 +69,7 @@ describe('generatePlan', () => {
   it('only schedules on available days (except the race)', () => {
     const plan = generatePlan(request())
     const allowed = new Set(aProfile().availableDays)
-    expect(plan.sessions.filter((s) => s.type !== 'COURSE').every((s) => allowed.has(weekday(s.date)))).toBe(true)
+    expect(plan.sessions.filter((s) => s.type !== 'RACE').every((s) => allowed.has(weekday(s.date)))).toBe(true)
   })
 
   it('warns about a short build-up and rejects less than 4 weeks', () => {
@@ -79,8 +79,8 @@ describe('generatePlan', () => {
   })
 
   it('adapts elevation gain to the available terrain', () => {
-    const flat = generatePlan(request({ profile: aProfile({ terrain: 'PLAT' }) }))
-    const mountain = generatePlan(request({ profile: aProfile({ terrain: 'MONTAGNE' }) }))
+    const flat = generatePlan(request({ profile: aProfile({ terrain: 'FLAT' }) }))
+    const mountain = generatePlan(request({ profile: aProfile({ terrain: 'MOUNTAINS' }) }))
     const total = (p: typeof flat) => p.weeks.reduce((s, w) => s + w.targetElevationM, 0)
     expect(total(mountain)).toBeGreaterThan(total(flat) * 2)
     expect(flat.warnings.some((w) => w.includes('terrain plat'))).toBe(true)

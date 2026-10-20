@@ -1,9 +1,9 @@
-export type TrainingPhase = 'FONCIER' | 'DEVELOPPEMENT' | 'SPECIFIQUE' | 'AFFUTAGE' | 'COURSE'
+export type TrainingPhase = 'BASE' | 'BUILD' | 'SPECIFIC' | 'TAPER' | 'RACE'
 
 export const PHASE_LABELS: Record<TrainingPhase, string> = {
-  FONCIER: 'Foncier',
-  DEVELOPPEMENT: 'Développement',
-  SPECIFIQUE: 'Spécifique',
-  AFFUTAGE: 'Affûtage',
-  COURSE: 'Semaine de course',
+  BASE: 'Foncier',
+  BUILD: 'Développement',
+  SPECIFIC: 'Spécifique',
+  TAPER: 'Affûtage',
+  RACE: 'Semaine de course',
 }

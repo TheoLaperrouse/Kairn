@@ -19,7 +19,7 @@ describe('editorial catalog', () => {
   })
 
   it('covers each pre-race phase with at least one routine', () => {
-    for (const phase of ['FONCIER', 'DEVELOPPEMENT', 'SPECIFIQUE', 'AFFUTAGE', 'COURSE'] as const) {
+    for (const phase of ['BASE', 'BUILD', 'SPECIFIC', 'TAPER', 'RACE'] as const) {
       expect(ROUTINES.some((r) => r.phases.includes(phase)), phase).toBe(true)
     }
   })
@@ -29,7 +29,7 @@ describe('editorial catalog', () => {
   })
 
   it('offers recipes in every category with consistent macros', () => {
-    for (const category of ['VEILLE', 'AVANT', 'PENDANT', 'BOISSON', 'APRES'] as const) {
+    for (const category of ['DAY_BEFORE', 'BEFORE', 'DURING', 'DRINK', 'AFTER'] as const) {
       expect(RECIPES.some((r) => r.category === category), category).toBe(true)
     }
     for (const recipe of RECIPES) {

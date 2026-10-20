@@ -2,16 +2,16 @@ import type { Exercise } from '../../../domain/strength/exercise'
 import {
   BIRD_DOG_ANIMATION,
   DEAD_BUG_ANIMATION,
-  PLANCHE_ANIMATION,
-  PLANCHE_LATERALE_ANIMATION,
-  PONT_FESSIER_ANIMATION,
-} from './animations-gainage-mobilite'
+  PLANK_ANIMATION,
+  SIDE_PLANK_ANIMATION,
+  GLUTE_BRIDGE_ANIMATION,
+} from './animations-core-mobility'
 
-export const GAINAGE: Exercise[] = [
+export const CORE_EXERCISES: Exercise[] = [
   {
     id: 'planche',
     name: 'Planche sur avant-bras',
-    category: 'GAINAGE',
+    category: 'CORE',
     muscles: ['Transverse', 'Grand droit', 'Fessiers', 'Épaules'],
     equipment: ['Tapis'],
     difficulty: 1,
@@ -28,12 +28,12 @@ export const GAINAGE: Exercise[] = [
       "Un tronc solide stabilise le bassin à chaque foulée : moins de déperdition d'énergie en côte et une posture qui tient encore après 10 heures d'effort quand le sac pèse.",
     regression: 'Genoux au sol, même alignement épaules-hanches-genoux.',
     progression: 'Lever une jambe ou un bras en alternance, ou porter le sac d’ultra chargé.',
-    animation: PLANCHE_ANIMATION,
+    animation: PLANK_ANIMATION,
   },
   {
     id: 'planche-laterale',
     name: 'Planche latérale avec relevé de bassin',
-    category: 'GAINAGE',
+    category: 'CORE',
     muscles: ['Obliques', 'Moyen fessier', 'Carré des lombes'],
     equipment: ['Tapis'],
     difficulty: 2,
@@ -50,12 +50,12 @@ export const GAINAGE: Exercise[] = [
       "Le moyen fessier et les obliques contrôlent la bascule du bassin en appui unipodal : indispensable sur les dévers, les pierriers et pour protéger les genoux (syndrome de l'essuie-glace).",
     regression: 'Genoux fléchis au sol, maintien statique.',
     progression: 'Lever la jambe du dessus en maintenant le bassin haut.',
-    animation: PLANCHE_LATERALE_ANIMATION,
+    animation: SIDE_PLANK_ANIMATION,
   },
   {
     id: 'dead-bug',
     name: 'Dead bug',
-    category: 'GAINAGE',
+    category: 'CORE',
     muscles: ['Transverse', 'Grand droit', 'Fléchisseurs de hanche'],
     equipment: ['Tapis'],
     difficulty: 1,
@@ -77,7 +77,7 @@ export const GAINAGE: Exercise[] = [
   {
     id: 'bird-dog',
     name: 'Bird dog',
-    category: 'GAINAGE',
+    category: 'CORE',
     muscles: ['Érecteurs du rachis', 'Fessiers', 'Deltoïdes', 'Transverse'],
     equipment: ['Tapis'],
     difficulty: 1,
@@ -99,7 +99,7 @@ export const GAINAGE: Exercise[] = [
   {
     id: 'pont-fessier-unipodal',
     name: 'Pont fessier unipodal',
-    category: 'GAINAGE',
+    category: 'CORE',
     muscles: ['Grand fessier', 'Ischio-jambiers', 'Lombaires'],
     equipment: ['Tapis'],
     difficulty: 2,
@@ -116,6 +116,6 @@ export const GAINAGE: Exercise[] = [
       'Le grand fessier est le moteur des montées raides. Le réveiller limite la surcharge des quadriceps et des lombaires sur les longues ascensions.',
     regression: 'Pont fessier sur deux pieds.',
     progression: 'Pied d’appui surélevé sur un banc, ou charge sur le bassin.',
-    animation: PONT_FESSIER_ANIMATION,
+    animation: GLUTE_BRIDGE_ANIMATION,
   },
 ]

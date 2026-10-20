@@ -43,9 +43,9 @@ export interface PlanRequest {
 /** Volume hebdomadaire au pic (h) pour un coureur intermédiaire. */
 const PEAK_HOURS: Record<TrailCategory, number> = { XS: 5, S: 6.5, M: 8, L: 10, XL: 12, XXL: 14 }
 const LEVEL_VOLUME_FACTOR: Record<ExperienceLevel, number> = {
-  DEBUTANT: 0.75,
-  INTERMEDIAIRE: 1,
-  CONFIRME: 1.2,
+  BEGINNER: 0.75,
+  INTERMEDIATE: 1,
+  ADVANCED: 1.2,
   EXPERT: 1.4,
 }
 /** Durée maximale de la sortie longue (min). */
@@ -56,22 +56,22 @@ const RECOVERY_FACTOR = 0.65
 const RACE_WEEK_FACTOR = 0.3
 const MIN_WEEKS = 4
 
-const QUALITY_TYPES: SessionType[] = ['COTES_COURTES', 'SEUIL_MONTEE', 'RANDO_COURSE', 'DESCENTE', 'FARTLEK']
+const QUALITY_TYPES: SessionType[] = ['HILL_REPEATS', 'UPHILL_THRESHOLD', 'HIKE_RUN', 'DOWNHILL', 'FARTLEK']
 const FIXED_DURATION: Partial<Record<SessionType, number>> = {
-  COTES_COURTES: 55,
-  SEUIL_MONTEE: 70,
-  RANDO_COURSE: 80,
-  DESCENTE: 55,
+  HILL_REPEATS: 55,
+  UPHILL_THRESHOLD: 70,
+  HIKE_RUN: 80,
+  DOWNHILL: 55,
   FARTLEK: 50,
-  RECUPERATION: 35,
+  RECOVERY: 35,
 }
 
 const PHASE_FOCUS: Record<TrainingPhase, string> = {
-  FONCIER: 'Construire le moteur aérobie, renforcer les structures (tendons, chevilles).',
-  DEVELOPPEMENT: 'Seuil en montée, force excentrique et montée en volume.',
-  SPECIFIQUE: 'Reproduire les exigences de la course : D+, durée, nutrition, nuit.',
-  AFFUTAGE: 'Réduire le volume, garder un peu d’intensité : arriver frais.',
-  COURSE: 'Repos actif, sommeil, charge glucidique les 2 derniers jours.',
+  BASE: 'Construire le moteur aérobie, renforcer les structures (tendons, chevilles).',
+  BUILD: 'Seuil en montée, force excentrique et montée en volume.',
+  SPECIFIC: 'Reproduire les exigences de la course : D+, durée, nutrition, nuit.',
+  TAPER: 'Réduire le volume, garder un peu d’intensité : arriver frais.',
+  RACE: 'Repos actif, sommeil, charge glucidique les 2 derniers jours.',
 }
 
 /** Données communes à toutes les semaines du plan. */
@@ -122,14 +122,14 @@ export function generatePlan(request: PlanRequest): TrainingPlan {
   const weeks: PlanWeek[] = skeleton.map((week) => {
     const weekSessions = buildWeekSessions(week, ctx).filter((s) => s.date >= today)
     sessions.push(...weekSessions)
-    const runs = weekSessions.filter((s) => s.sport === 'RUN' && s.type !== 'COURSE')
+    const runs = weekSessions.filter((s) => s.sport === 'RUN' && s.type !== 'RACE')
     return {
       index: week.index,
       startDate: week.startDate,
       phase: week.phase,
       isRecovery: week.isRecovery,
       targetHours: round1(
-        weekSessions.filter((s) => s.sport !== 'STRENGTH' && s.type !== 'COURSE').reduce((sum, s) => sum + s.durationMin, 0) / 60,
+        weekSessions.filter((s) => s.sport !== 'STRENGTH' && s.type !== 'RACE').reduce((sum, s) => sum + s.durationMin, 0) / 60,
       ),
       targetKm: Math.round(runs.reduce((sum, s) => sum + (s.distanceKm ?? 0), 0)),
       targetElevationM: roundTo(runs.reduce((sum, s) => sum + (s.elevationGainM ?? 0), 0), 50),
@@ -162,7 +162,7 @@ function collectWarnings(goal: RaceGoal, profile: AthleteProfile, category: Trai
       `Ton volume maximum (${profile.maxWeeklyHours} h) est en dessous des ~${Math.round(idealPeak)} h conseillées : la qualité des sorties longues sera déterminante.`,
     )
   }
-  if (profile.terrain === 'PLAT' && verticalRatio(goal) > 40) {
+  if (profile.terrain === 'FLAT' && verticalRatio(goal) > 40) {
     warnings.push(
       'Course très verticale et terrain plat : planifie quelques week-ends choc en montagne et exploite escaliers et tapis incliné.',
     )
@@ -170,7 +170,7 @@ function collectWarnings(goal: RaceGoal, profile: AthleteProfile, category: Trai
   if ((goal.maxAltitudeM ?? 0) >= 2_000) {
     warnings.push('Passages au-dessus de 2 000 m : si possible, arrive quelques jours avant pour t’acclimater.')
   }
-  if (profile.level === 'DEBUTANT' && (category === 'XL' || category === 'XXL')) {
+  if (profile.level === 'BEGINNER' && (category === 'XL' || category === 'XXL')) {
     warnings.push('Un ultra XXL comme premier objectif est ambitieux : une course préparatoire de 50-80 km est vivement conseillée.')
   }
   return warnings
@@ -186,14 +186,14 @@ function buildSkeleton(
 ): WeekSkeleton[] {
   const taper = Math.min(TAPER_WEEKS[category], Math.max(totalWeeks - 3, 1))
   const buildWeeks = totalWeeks - 1 - taper
-  const foncier = Math.max(1, Math.round(buildWeeks * 0.4))
-  const developpement = Math.max(1, Math.round(buildWeeks * 0.33))
-  const specifique = Math.max(buildWeeks - foncier - developpement, 1)
+  const baseWeeks = Math.max(1, Math.round(buildWeeks * 0.4))
+  const buildPhaseWeeks = Math.max(1, Math.round(buildWeeks * 0.33))
+  const specificWeeks = Math.max(buildWeeks - baseWeeks - buildPhaseWeeks, 1)
 
   const phases: TrainingPhase[] = [
-    ...Array<TrainingPhase>(foncier).fill('FONCIER'),
-    ...Array<TrainingPhase>(developpement).fill('DEVELOPPEMENT'),
-    ...Array<TrainingPhase>(specifique).fill('SPECIFIQUE'),
+    ...Array<TrainingPhase>(baseWeeks).fill('BASE'),
+    ...Array<TrainingPhase>(buildPhaseWeeks).fill('BUILD'),
+    ...Array<TrainingPhase>(specificWeeks).fill('SPECIFIC'),
   ].slice(0, buildWeeks)
 
   const peak = Math.min(PEAK_HOURS[category] * LEVEL_VOLUME_FACTOR[profile.level], profile.maxWeeklyHours)
@@ -236,7 +236,7 @@ function buildSkeleton(
     weeks.push({
       index,
       startDate: addDays(start, index * 7),
-      phase: 'AFFUTAGE',
+      phase: 'TAPER',
       isRecovery: false,
       hours: peak * factor,
       progress: taperFactors.length > 1 ? t / (taperFactors.length - 1) : 1,
@@ -246,7 +246,7 @@ function buildSkeleton(
   weeks.push({
     index: totalWeeks - 1,
     startDate: startOfWeek(goal.raceDate),
-    phase: 'COURSE',
+    phase: 'RACE',
     isRecovery: false,
     hours: peak * RACE_WEEK_FACTOR,
     progress: 1,
@@ -257,47 +257,47 @@ function buildSkeleton(
 function runTypesFor(week: WeekSkeleton, goal: RaceGoal, category: TrailCategory, isSimulationWeek: boolean): SessionType[] {
   const steep = goal.polesAllowed || verticalRatio(goal) >= 40
   const ultra = category === 'L' || category === 'XL' || category === 'XXL'
-  if (week.isRecovery) return ['SORTIE_LONGUE', 'ENDURANCE', 'RECUPERATION', 'ENDURANCE', 'FARTLEK', 'RECUPERATION']
+  if (week.isRecovery) return ['LONG_RUN', 'ENDURANCE', 'RECOVERY', 'ENDURANCE', 'FARTLEK', 'RECOVERY']
   switch (week.phase) {
-    case 'FONCIER':
-      return ['SORTIE_LONGUE', 'COTES_COURTES', 'ENDURANCE', 'FARTLEK', 'ENDURANCE', 'RECUPERATION']
-    case 'DEVELOPPEMENT':
+    case 'BASE':
+      return ['LONG_RUN', 'HILL_REPEATS', 'ENDURANCE', 'FARTLEK', 'ENDURANCE', 'RECOVERY']
+    case 'BUILD':
       return [
-        'SORTIE_LONGUE',
-        'SEUIL_MONTEE',
+        'LONG_RUN',
+        'UPHILL_THRESHOLD',
         'ENDURANCE',
-        week.index % 2 === 0 && steep ? 'RANDO_COURSE' : 'DESCENTE',
+        week.index % 2 === 0 && steep ? 'HIKE_RUN' : 'DOWNHILL',
         'ENDURANCE',
-        'COTES_COURTES',
+        'HILL_REPEATS',
       ]
-    case 'SPECIFIQUE':
+    case 'SPECIFIC':
       return [
-        isSimulationWeek ? 'SIMULATION' : 'SORTIE_LONGUE',
+        isSimulationWeek ? 'SIMULATION' : 'LONG_RUN',
         ultra ? 'BACK_TO_BACK' : 'ENDURANCE',
-        'SEUIL_MONTEE',
-        steep ? 'RANDO_COURSE' : 'DESCENTE',
+        'UPHILL_THRESHOLD',
+        steep ? 'HIKE_RUN' : 'DOWNHILL',
         'ENDURANCE',
-        steep ? 'DESCENTE' : 'ENDURANCE',
+        steep ? 'DOWNHILL' : 'ENDURANCE',
       ]
-    case 'AFFUTAGE':
-      return ['SORTIE_LONGUE', 'COTES_COURTES', 'ENDURANCE', 'ENDURANCE', 'RECUPERATION', 'ENDURANCE']
-    case 'COURSE':
-      return ['ENDURANCE', 'RECUPERATION', 'ENDURANCE']
+    case 'TAPER':
+      return ['LONG_RUN', 'HILL_REPEATS', 'ENDURANCE', 'ENDURANCE', 'RECOVERY', 'ENDURANCE']
+    case 'RACE':
+      return ['ENDURANCE', 'RECOVERY', 'ENDURANCE']
   }
 }
 
 function buildWeekSessions(week: WeekSkeleton, ctx: PlanContext): PlannedSession[] {
   const { goal, profile, planId } = ctx.request
   const days = [...profile.availableDays].sort((a, b) => a - b)
-  const raceDay = week.phase === 'COURSE' ? weekday(goal.raceDate) : undefined
+  const raceDay = week.phase === 'RACE' ? weekday(goal.raceDate) : undefined
 
   let runCount = Math.min(RUNNING_SESSIONS_BY_LEVEL[profile.level], days.length)
   if (week.isRecovery) runCount = Math.max(3, runCount - 1)
-  if (week.phase === 'COURSE') runCount = Math.min(runCount, 3)
+  if (week.phase === 'RACE') runCount = Math.min(runCount, 3)
   const runTypes = runTypesFor(week, goal, ctx.category, ctx.simulationWeek === week.index).slice(0, runCount)
 
   // Répartition du volume : le vélo prend ~20 % des heures s'il est activé.
-  const cycling = profile.crossTraining.cycling && week.phase !== 'COURSE'
+  const cycling = profile.crossTraining.cycling && week.phase !== 'RACE'
   const totalMin = week.hours * 60
   const runMin = cycling ? totalMin * 0.8 : totalMin
   const durations = allocateDurations(runTypes, runMin, ctx.category, profile.level, week)
@@ -310,8 +310,8 @@ function buildWeekSessions(week: WeekSkeleton, ctx: PlanContext): PlannedSession
   )
   if (cycling) sessions.push(...placeCycling(week, sessions, totalMin - runMin, ctx))
   if (profile.crossTraining.strength) sessions.push(...placeStrength(week, sessions, ctx))
-  if (week.phase === 'COURSE') {
-    sessions.push(createSession('COURSE', goal.raceDate, Math.round(ctx.raceDurationH * 60), week, ctx))
+  if (week.phase === 'RACE') {
+    sessions.push(createSession('RACE', goal.raceDate, Math.round(ctx.raceDurationH * 60), week, ctx))
   }
 
   return sessions
@@ -324,7 +324,7 @@ const SPORT_ORDER = { RUN: 0, BIKE: 1, STRENGTH: 2 } as const
 type DraftSession = Omit<PlannedSession, 'id'>
 
 function pickSimulationWeek(skeleton: WeekSkeleton[]): number | undefined {
-  const loading = skeleton.filter((w) => w.phase === 'SPECIFIQUE' && !w.isRecovery)
+  const loading = skeleton.filter((w) => w.phase === 'SPECIFIC' && !w.isRecovery)
   if (loading.length === 0) return undefined
   return loading[Math.max(loading.length - 2, 0)]!.index
 }
@@ -336,16 +336,16 @@ function allocateDurations(
   level: ExperienceLevel,
   week: WeekSkeleton,
 ): Map<SessionType, number[]> {
-  const maxLong = MAX_LONG_RUN_MIN[category] * (level === 'DEBUTANT' ? 0.85 : 1)
+  const maxLong = MAX_LONG_RUN_MIN[category] * (level === 'BEGINNER' ? 0.85 : 1)
   const hasBackToBack = types.includes('BACK_TO_BACK')
-  const longShare = week.phase === 'COURSE' ? 0 : hasBackToBack ? 0.28 : 0.35
+  const longShare = week.phase === 'RACE' ? 0 : hasBackToBack ? 0.28 : 0.35
   const durations = new Map<SessionType, number[]>()
   const push = (type: SessionType, min: number) => durations.set(type, [...(durations.get(type) ?? []), roundTo(min, 5)])
 
   let remaining = runMin
   const longMin = clamp(runMin * longShare, 60, maxLong)
   for (const type of types) {
-    if (type === 'SORTIE_LONGUE') push(type, longMin)
+    if (type === 'LONG_RUN') push(type, longMin)
     else if (type === 'SIMULATION') push(type, Math.min(longMin * 1.25, maxLong * 1.1))
     else if (type === 'BACK_TO_BACK') push(type, Math.max(longMin * 0.55, 45))
     else continue
@@ -359,11 +359,11 @@ function allocateDurations(
   }
   const easy = types.filter((t) => t === 'ENDURANCE')
   const easyMin = easy.length > 0 ? clamp(remaining / easy.length, 35, 90) : 0
-  easy.forEach((t) => push(t, week.phase === 'COURSE' ? 35 : easyMin))
+  easy.forEach((t) => push(t, week.phase === 'RACE' ? 35 : easyMin))
   remaining -= easyMin * easy.length
 
   // Volume non absorbé par les footings : il allonge la sortie longue puis le back-to-back.
-  if (remaining > 0 && week.phase !== 'COURSE' && !week.isRecovery) {
+  if (remaining > 0 && week.phase !== 'RACE' && !week.isRecovery) {
     const extend = (type: SessionType, cap: number) => {
       const list = durations.get(type)
       if (!list?.length || remaining <= 0) return
@@ -371,9 +371,9 @@ function allocateDurations(
       list[0] = roundTo(list[0]! + extra, 5)
       remaining -= extra
     }
-    extend('SORTIE_LONGUE', maxLong)
+    extend('LONG_RUN', maxLong)
     extend('SIMULATION', maxLong * 1.1)
-    extend('BACK_TO_BACK', (durations.get('SORTIE_LONGUE')?.[0] ?? durations.get('SIMULATION')?.[0] ?? 0) * 0.6)
+    extend('BACK_TO_BACK', (durations.get('LONG_RUN')?.[0] ?? durations.get('SIMULATION')?.[0] ?? 0) * 0.6)
   }
   return durations
 }
@@ -397,7 +397,7 @@ function placeRuns(types: SessionType[], days: number[], longRunDay: number, rac
     placed.push({ type, day })
   }
 
-  const longType = types.find((t) => t === 'SORTIE_LONGUE' || t === 'SIMULATION')
+  const longType = types.find((t) => t === 'LONG_RUN' || t === 'SIMULATION')
   const longDay = free.has(longRunDay) ? longRunDay : days.at(-1)!
   if (longType && raceDay === undefined) take(longType, longDay)
 
@@ -419,12 +419,12 @@ function placeRuns(types: SessionType[], days: number[], longRunDay: number, rac
     take(type, best)
   }
 
-  const easyTypes = types.filter((t) => t === 'ENDURANCE' || t === 'RECUPERATION')
+  const easyTypes = types.filter((t) => t === 'ENDURANCE' || t === 'RECOVERY')
   if (raceDay !== undefined && longType) easyTypes.unshift('ENDURANCE')
   for (const type of easyTypes) {
     if (free.size === 0) break
     const dayAfterLong = (longDay + 1) % 7
-    const day = type === 'RECUPERATION' && free.has(dayAfterLong) ? dayAfterLong : [...free][0]!
+    const day = type === 'RECOVERY' && free.has(dayAfterLong) ? dayAfterLong : [...free][0]!
     take(type, day)
   }
   return placed
@@ -439,7 +439,7 @@ function placeCycling(week: WeekSkeleton, existing: DraftSession[], bikeMin: num
 
   for (let n = 0; n < count; n++) {
     const type: SessionType =
-      (week.phase === 'DEVELOPPEMENT' || week.phase === 'SPECIFIQUE') && !week.isRecovery && n === 0 ? 'VELO_FORCE' : 'VELO_ENDURANCE'
+      (week.phase === 'BUILD' || week.phase === 'SPECIFIC') && !week.isRecovery && n === 0 ? 'BIKE_STRENGTH' : 'BIKE_ENDURANCE'
     const duration = clamp(roundTo(bikeMin / count, 5), 45, 150)
     let day = freeDays.shift()
     if (day === undefined) {
@@ -457,14 +457,14 @@ function placeCycling(week: WeekSkeleton, existing: DraftSession[], bikeMin: num
 
 function placeStrength(week: WeekSkeleton, existing: DraftSession[], ctx: PlanContext): DraftSession[] {
   const { profile, goal } = ctx.request
-  const tapering = week.phase === 'AFFUTAGE' || week.phase === 'COURSE' || week.isRecovery
+  const tapering = week.phase === 'TAPER' || week.phase === 'RACE' || week.isRecovery
   const count = tapering ? 1 : profile.crossTraining.strengthSessionsPerWeek
   const routines = pickRoutines(ctx.request.routines, week, count)
   if (routines.length === 0) return []
 
-  const hard = new Set(existing.filter((s) => s.keySession || s.type === 'VELO_FORCE').map((s) => weekday(s.date)))
+  const hard = new Set(existing.filter((s) => s.keySession || s.type === 'BIKE_STRENGTH').map((s) => weekday(s.date)))
   const dayBeforeLong = (profile.longRunDay + 6) % 7
-  const lastAllowed = week.phase === 'COURSE' ? weekday(goal.raceDate) - 4 : 6
+  const lastAllowed = week.phase === 'RACE' ? weekday(goal.raceDate) - 4 : 6
   const candidates = profile.availableDays
     .filter((d) => d <= lastAllowed && d !== profile.longRunDay && d !== dayBeforeLong)
     .sort((a, b) => Number(hard.has(a)) - Number(hard.has(b)) || a - b)
@@ -476,7 +476,7 @@ function placeStrength(week: WeekSkeleton, existing: DraftSession[], ctx: PlanCo
   }
   return chosen.map((day, i) => {
     const routine = routines[i]!
-    const session = createSession('RENFORCEMENT', addDays(week.startDate, day), routine.durationMin, week, ctx)
+    const session = createSession('STRENGTH', addDays(week.startDate, day), routine.durationMin, week, ctx)
     return { ...session, title: routine.name, routineId: routine.id }
   })
 }
@@ -494,7 +494,7 @@ function pickRoutines(routines: RoutineSummary[], week: WeekSkeleton, count: num
 
 /** Ratio D+/km réaliste à l'entraînement : borné par le terrain disponible. */
 function effectiveVerticalRatio(goal: RaceGoal, profile: AthleteProfile): number {
-  const cap = profile.terrain === 'PLAT' ? 15 : profile.terrain === 'COLLINES' ? 35 : Infinity
+  const cap = profile.terrain === 'FLAT' ? 15 : profile.terrain === 'HILLS' ? 35 : Infinity
   return Math.min(verticalRatio(goal), cap)
 }
 
@@ -524,7 +524,7 @@ function createSession(type: SessionType, date: IsoDate, durationMin: number, we
     status: 'PLANNED',
   }
   if (sport !== 'RUN') return base
-  if (type === 'COURSE') return { ...base, distanceKm: goal.distanceKm, elevationGainM: goal.elevationGainM }
+  if (type === 'RACE') return { ...base, distanceKm: goal.distanceKm, elevationGainM: goal.elevationGainM }
 
   const sessionRatio = ctx.verticalRatio * content.verticalShare
   const effort = (durationMin / 60) * ctx.speedKme * (content.zone >= 4 ? 1.05 : 1)

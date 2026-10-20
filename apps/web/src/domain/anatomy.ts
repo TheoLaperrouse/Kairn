@@ -2,28 +2,28 @@
  * Regroupe les libellés de muscles du catalogue en zones dessinables sur le personnage.
  * `anterior` indique de quel côté du segment se trouve le muscle (avant/arrière).
  */
-export type MuscleRegion = 'ABDOS' | 'DOS' | 'FESSIERS' | 'QUADRICEPS' | 'ISCHIOS' | 'MOLLETS' | 'CHEVILLES' | 'EPAULES'
+export type MuscleRegion = 'ABS' | 'LOWER_BACK' | 'GLUTES' | 'QUADRICEPS' | 'HAMSTRINGS' | 'CALVES' | 'ANKLES' | 'SHOULDERS'
 
 export const REGION_LABELS: Record<MuscleRegion, string> = {
-  ABDOS: 'Sangle abdominale',
-  DOS: 'Lombaires',
-  FESSIERS: 'Fessiers',
+  ABS: 'Sangle abdominale',
+  LOWER_BACK: 'Lombaires',
+  GLUTES: 'Fessiers',
   QUADRICEPS: 'Quadriceps',
-  ISCHIOS: 'Ischio-jambiers',
-  MOLLETS: 'Mollets',
-  CHEVILLES: 'Chevilles',
-  EPAULES: 'Épaules',
+  HAMSTRINGS: 'Ischio-jambiers',
+  CALVES: 'Mollets',
+  ANKLES: 'Chevilles',
+  SHOULDERS: 'Épaules',
 }
 
 const RULES: Array<[RegExp, MuscleRegion]> = [
-  [/ischio/i, 'ISCHIOS'],
+  [/ischio/i, 'HAMSTRINGS'],
   [/quadri|droit fémoral|psoas|fléchisseurs de hanche|genou/i, 'QUADRICEPS'],
-  [/fessier|rotateurs de hanche|adducteur/i, 'FESSIERS'],
-  [/mollet|gastroc|soléaire|achille/i, 'MOLLETS'],
-  [/cheville|péronier/i, 'CHEVILLES'],
-  [/lombaire|érecteur|carré des lombes/i, 'DOS'],
-  [/transverse|grand droit|oblique|abdo/i, 'ABDOS'],
-  [/épaule|deltoïde/i, 'EPAULES'],
+  [/fessier|rotateurs de hanche|adducteur/i, 'GLUTES'],
+  [/mollet|gastroc|soléaire|achille/i, 'CALVES'],
+  [/cheville|péronier/i, 'ANKLES'],
+  [/lombaire|érecteur|carré des lombes/i, 'LOWER_BACK'],
+  [/transverse|grand droit|oblique|abdo/i, 'ABS'],
+  [/épaule|deltoïde/i, 'SHOULDERS'],
 ]
 
 export function regionsFor(muscles: string[]): MuscleRegion[] {

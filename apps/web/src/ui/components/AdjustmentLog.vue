@@ -7,10 +7,10 @@ import type { AdjustmentReason, PlanAdjustment } from '../../domain/models'
 const props = withDefaults(defineProps<{ adjustments: PlanAdjustment[]; limit?: number }>(), { limit: 5 })
 
 const REASONS: Record<AdjustmentReason, { label: string; icon: typeof CalendarClock; tone: string }> = {
-  SEANCE_MANQUEE: { label: 'Séance manquée', icon: CalendarClock, tone: 'var(--teal)' },
-  MALADIE: { label: 'Maladie', icon: Thermometer, tone: 'var(--danger)' },
-  BLESSURE: { label: 'Blessure', icon: Bandage, tone: 'var(--danger)' },
-  INDISPONIBLE: { label: 'Indisponibilité', icon: CalendarX, tone: 'var(--warning)' },
+  MISSED_SESSION: { label: 'Séance manquée', icon: CalendarClock, tone: 'var(--teal)' },
+  ILLNESS: { label: 'Maladie', icon: Thermometer, tone: 'var(--danger)' },
+  INJURY: { label: 'Blessure', icon: Bandage, tone: 'var(--danger)' },
+  UNAVAILABLE: { label: 'Indisponibilité', icon: CalendarX, tone: 'var(--warning)' },
   FATIGUE: { label: 'Fatigue', icon: BatteryLow, tone: 'var(--warning)' },
 }
 

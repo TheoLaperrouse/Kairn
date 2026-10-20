@@ -5,8 +5,8 @@ const scale = { enum: [1, 2, 3, 4, 5] } as const
 const date = { type: 'string', format: 'date' } as const
 const time = { type: 'string', pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' } as const
 const temperatureC = { type: 'number', minimum: -30, maximum: 50 } as const
-const sweat = { enum: ['FAIBLE', 'MOYEN', 'FORT'] } as const
-const gut = { enum: ['AUCUN', 'PARTIEL', 'ENTRAINE'] } as const
+const sweat = { enum: ['LOW', 'MEDIUM', 'HIGH'] } as const
+const gut = { enum: ['NONE', 'PARTIAL', 'TRAINED'] } as const
 
 export const credentialsSchema = {
   type: 'object',
@@ -35,7 +35,7 @@ export const profileSchema = {
   additionalProperties: false,
   properties: {
     name: { type: 'string', maxLength: 60 },
-    level: { enum: ['DEBUTANT', 'INTERMEDIAIRE', 'CONFIRME', 'EXPERT'] },
+    level: { enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'] },
     weightKg: { type: 'number', minimum: 30, maximum: 200 },
     hrMax: { type: 'integer', minimum: 120, maximum: 230 },
     hrRest: { type: 'integer', minimum: 30, maximum: 110 },
@@ -44,7 +44,7 @@ export const profileSchema = {
     availableDays: { type: 'array', items: day, maxItems: 7 },
     longRunDay: day,
     maxWeeklyHours: { type: 'number', minimum: 3, maximum: 30 },
-    terrain: { enum: ['MONTAGNE', 'COLLINES', 'PLAT'] },
+    terrain: { enum: ['MOUNTAINS', 'HILLS', 'FLAT'] },
     crossTraining: {
       type: 'object',
       required: ['cycling', 'cyclingSessionsPerWeek', 'strength', 'strengthSessionsPerWeek'],
@@ -126,7 +126,7 @@ export const unavailabilitySchema = {
   properties: {
     from: date,
     to: date,
-    reason: { enum: ['MALADIE', 'BLESSURE', 'INDISPONIBLE'] },
+    reason: { enum: ['ILLNESS', 'INJURY', 'UNAVAILABLE'] },
     crossTrainingOk: { type: 'boolean' },
   },
 } as const
@@ -135,7 +135,7 @@ export const lightenSchema = {
   type: 'object',
   required: ['mode'],
   additionalProperties: false,
-  properties: { mode: { enum: ['ALLEGER', 'REPOS'] } },
+  properties: { mode: { enum: ['LIGHTEN', 'REST'] } },
 } as const
 
 export const raceCourseUpdateSchema = {

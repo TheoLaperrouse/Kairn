@@ -7,16 +7,16 @@ import { inputChecked, inputNumber, inputValue, optionalNumber } from './input-e
 const profile = defineModel<AthleteProfile>({ required: true })
 
 const LEVELS: Array<{ value: ExperienceLevel; hint: string }> = [
-  { value: 'DEBUTANT', hint: 'Moins de 2 ans de course, premier trail long' },
-  { value: 'INTERMEDIAIRE', hint: 'Quelques trails terminés, jusqu’au marathon' },
-  { value: 'CONFIRME', hint: 'Plusieurs trails longs, un premier ultra' },
+  { value: 'BEGINNER', hint: 'Moins de 2 ans de course, premier trail long' },
+  { value: 'INTERMEDIATE', hint: 'Quelques trails terminés, jusqu’au marathon' },
+  { value: 'ADVANCED', hint: 'Plusieurs trails longs, un premier ultra' },
   { value: 'EXPERT', hint: 'Ultras réguliers, gros volume' },
 ]
 
 const TERRAINS: Array<{ value: TerrainAccess; label: string; hint: string }> = [
-  { value: 'MONTAGNE', label: 'Montagne', hint: 'Longues montées à portée : le plan reproduit le D+ de la course.' },
-  { value: 'COLLINES', label: 'Collines', hint: 'Côtes courtes : le D+ est plafonné, on répète les montées.' },
-  { value: 'PLAT', label: 'Plat', hint: 'Escaliers, ponts, tapis incliné remplacent les côtes.' },
+  { value: 'MOUNTAINS', label: 'Montagne', hint: 'Longues montées à portée : le plan reproduit le D+ de la course.' },
+  { value: 'HILLS', label: 'Collines', hint: 'Côtes courtes : le D+ est plafonné, on répète les montées.' },
+  { value: 'FLAT', label: 'Plat', hint: 'Escaliers, ponts, tapis incliné remplacent les côtes.' },
 ]
 
 function update<K extends keyof AthleteProfile>(key: K, value: AthleteProfile[K]) {

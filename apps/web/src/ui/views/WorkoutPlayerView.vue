@@ -102,7 +102,7 @@ const timeLeft = computed(() => Math.max(remainingSec(queue.value, index.value) 
 const estimatedTotal = computed(() => remainingSec(queue.value, 0))
 
 function sideName(side: Side | undefined): string {
-  return side === 'GAUCHE' ? 'Côté gauche' : side === 'DROITE' ? 'Côté droit' : ''
+  return side === 'LEFT' ? 'Côté gauche' : side === 'RIGHT' ? 'Côté droit' : ''
 }
 const sideLabel = computed(() => sideName(effort.value?.side))
 
@@ -181,7 +181,7 @@ function enterStep() {
   resetStageClock()
   const s = step.value
   if (!s) return finish()
-  if (s.kind === 'REPOS') {
+  if (s.kind === 'REST') {
     stage.value = 'RUN'
     const next = exerciseOf(s.nextExerciseId)
     const previousStep = queue.value[index.value - 1]
@@ -204,7 +204,7 @@ function startEffort() {
   resetStageClock()
   const e = effort.value
   if (!e) return
-  const last = e.lastSet && e.totalSets > 1 && e.side !== 'GAUCHE' ? ' Dernière série !' : ''
+  const last = e.lastSet && e.totalSets > 1 && e.side !== 'LEFT' ? ' Dernière série !' : ''
   const amount = e.durationSec ? `${e.durationSec} secondes.` : e.reps ? `${e.reps} répétitions.` : ''
   say(`C'est parti ! ${amount}${last}`)
   beep(880, 0.16)
@@ -353,12 +353,12 @@ const RING = 2 * Math.PI * 54
       </div>
     </section>
 
-    <section v-else-if="routine && step && stage !== 'DONE'" class="stage" :class="{ resting: step.kind === 'REPOS' }">
+    <section v-else-if="routine && step && stage !== 'DONE'" class="stage" :class="{ resting: step.kind === 'REST' }">
       <div class="demo-wrap">
         <MotionDemo
           v-if="currentExercise"
           :exercise="currentExercise"
-          :paused="paused || step.kind === 'REPOS' || stage === 'PREP'"
+          :paused="paused || step.kind === 'REST' || stage === 'PREP'"
           :cycle-ms="effort?.reps ? effort.animationCycleMs : undefined"
           :show-labels="step.kind === 'EFFORT'"
         />
@@ -367,14 +367,14 @@ const RING = 2 * Math.PI * 54
           <span class="prep-count num">{{ Math.max(Math.ceil(remaining ?? 0), 1) }}</span>
           <span v-if="sideLabel" class="side-pill">{{ sideLabel }}</span>
         </div>
-        <div v-if="step.kind === 'REPOS'" class="rest-tag"><Clock :size="16" /> Repos — prochain : {{ currentExercise?.name }}</div>
+        <div v-if="step.kind === 'REST'" class="rest-tag"><Clock :size="16" /> Repos — prochain : {{ currentExercise?.name }}</div>
       </div>
 
       <div class="panel">
         <div class="panel-head">
           <span class="eyebrow">
             <template v-if="step.kind === 'EFFORT'">
-              Exercice {{ step.blockIndex + 1 }}/{{ routine.blocks.length }} · {{ CATEGORY_LABELS[currentExercise?.category ?? 'FORCE'] }}
+              Exercice {{ step.blockIndex + 1 }}/{{ routine.blocks.length }} · {{ CATEGORY_LABELS[currentExercise?.category ?? 'STRENGTH'] }}
             </template>
             <template v-else>Récupération</template>
           </span>
@@ -395,14 +395,14 @@ const RING = 2 * Math.PI * 54
               cy="60"
               r="54"
               class="ring-value"
-              :class="{ rest: step.kind === 'REPOS' }"
+              :class="{ rest: step.kind === 'REST' }"
               :stroke-dasharray="RING"
               :stroke-dashoffset="RING * (1 - ringProgress)"
             />
           </svg>
           <div class="ring-label">
             <span class="big num">{{ formatClock(remaining ?? 0) }}</span>
-            <span class="muted">{{ stage === 'PREP' ? 'préparation' : step.kind === 'REPOS' ? 'repos' : 'maintien' }}</span>
+            <span class="muted">{{ stage === 'PREP' ? 'préparation' : step.kind === 'REST' ? 'repos' : 'maintien' }}</span>
           </div>
         </div>
 
@@ -427,7 +427,7 @@ const RING = 2 * Math.PI * 54
         </ul>
         <p v-if="effort?.notes" class="notes">{{ effort.notes }}</p>
 
-        <div v-if="step.kind === 'REPOS' && nextEffort" class="next-up">
+        <div v-if="step.kind === 'REST' && nextEffort" class="next-up">
           <span class="eyebrow">Ensuite</span>
           <strong>{{ exerciseOf(nextEffort.exerciseId)?.name }}</strong>
           <span class="muted">

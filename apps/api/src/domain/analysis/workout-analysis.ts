@@ -10,9 +10,9 @@ import { aggregateVerticalSpeed, detectClimbs, movingSeconds, type Climb } from 
 import { vamCurve, vamRecords, type VamCurve, type VamDuration } from './vam-curve'
 import { heartRateZones, shareAtOrAbove, timeInZones, totalSeconds, type HeartRateZones, type TimeInZones } from './heart-rate-zones'
 
-export type Verdict = 'CONFORME' | 'TROP_INTENSE' | 'PAS_ASSEZ_INTENSE' | 'ECOURTEE' | 'PROLONGEE' | 'HORS_PLAN'
+export type Verdict = 'ON_TARGET' | 'TOO_HARD' | 'TOO_EASY' | 'CUT_SHORT' | 'EXTENDED' | 'UNPLANNED'
 export type InsightTone = 'POSITIVE' | 'ATTENTION' | 'INFO'
-export type InsightTopic = 'INTENSITE' | 'DUREE' | 'DENIVELE' | 'MONTEE' | 'DESCENTE' | 'ENDURANCE' | 'NUTRITION' | 'DONNEES' | 'CHARGE'
+export type InsightTopic = 'INTENSITY' | 'DURATION' | 'ELEVATION' | 'UPHILL' | 'DOWNHILL' | 'ENDURANCE' | 'NUTRITION' | 'DATA' | 'LOAD'
 
 export interface Insight {
   tone: InsightTone
@@ -79,15 +79,15 @@ export interface AnalysisContext {
 /** Séances d'endurance : l'important est de ne pas dépasser la zone visée. */
 const EASY_TYPES: ReadonlySet<SessionType> = new Set([
   'ENDURANCE',
-  'RECUPERATION',
-  'SORTIE_LONGUE',
+  'RECOVERY',
+  'LONG_RUN',
   'BACK_TO_BACK',
-  'RANDO_COURSE',
-  'DESCENTE',
-  'VELO_ENDURANCE',
+  'HIKE_RUN',
+  'DOWNHILL',
+  'BIKE_ENDURANCE',
 ])
 /** Séances de qualité : l'important est d'atteindre la zone visée assez longtemps. */
-const QUALITY_TYPES: ReadonlySet<SessionType> = new Set(['COTES_COURTES', 'SEUIL_MONTEE', 'FARTLEK', 'VELO_FORCE', 'SIMULATION'])
+const QUALITY_TYPES: ReadonlySet<SessionType> = new Set(['HILL_REPEATS', 'UPHILL_THRESHOLD', 'FARTLEK', 'BIKE_STRENGTH', 'SIMULATION'])
 
 const MIN_BEST_CLIMB_M = 100
 const BASELINE_WEEKS = 8
@@ -108,7 +108,7 @@ export function analyzeWorkout(activity: Activity, context: AnalysisContext): Wo
   const session = context.session
   const comparison = session ? compare(activity, session, zones?.seconds) : undefined
   const load = activityLoad(activity, context.profile)
-  const verdict = comparison ? judge(comparison, zones?.seconds) : 'HORS_PLAN'
+  const verdict = comparison ? judge(comparison, zones?.seconds) : 'UNPLANNED'
 
   const analysis: WorkoutAnalysis = {
     activityId: activity.id,
@@ -225,7 +225,7 @@ function effortMinutesOf(session: PlannedSession): number {
 
 /** Zone à partir de laquelle on compte le temps d'effort : la FC met 1 à 2 min à monter sur les efforts courts. */
 function effortZone(session: PlannedSession): Zone {
-  return (session.type === 'COTES_COURTES' || session.zone === 5 ? Math.max(session.zone - 1, 1) : session.zone) as Zone
+  return (session.type === 'HILL_REPEATS' || session.zone === 5 ? Math.max(session.zone - 1, 1) : session.zone) as Zone
 }
 
 function compare(activity: Activity, session: PlannedSession, zones?: TimeInZones): PlanComparison {
@@ -248,7 +248,7 @@ function compare(activity: Activity, session: PlannedSession, zones?: TimeInZone
 /** Trop intense pour une séance facile : plus de 10 % deux zones au-dessus, ou 40 % une zone au-dessus. */
 function tooIntense(comparison: PlanComparison, zones: TimeInZones): boolean {
   const target = comparison.targetZone
-  if (comparison.sessionType === 'RECUPERATION') return shareAtOrAbove(zones, 3) > 0.1
+  if (comparison.sessionType === 'RECOVERY') return shareAtOrAbove(zones, 3) > 0.1
   return shareAtOrAbove(zones, target + 2) > 0.1 || shareAtOrAbove(zones, target + 1) > 0.4
 }
 
@@ -259,22 +259,22 @@ function overdone(comparison: PlanComparison): boolean {
 }
 
 function judge(comparison: PlanComparison, zones?: TimeInZones): Verdict {
-  if (zones && EASY_TYPES.has(comparison.sessionType) && tooIntense(comparison, zones)) return 'TROP_INTENSE'
+  if (zones && EASY_TYPES.has(comparison.sessionType) && tooIntense(comparison, zones)) return 'TOO_HARD'
   if (comparison.plannedEffortMin && comparison.effortMin !== undefined) {
-    const expected = comparison.sessionType === 'COTES_COURTES' ? 0.35 : 0.5
-    if (comparison.plannedEffortMin >= 8 && comparison.effortMin < comparison.plannedEffortMin * expected) return 'PAS_ASSEZ_INTENSE'
-    if (overdone(comparison)) return 'TROP_INTENSE'
+    const expected = comparison.sessionType === 'HILL_REPEATS' ? 0.35 : 0.5
+    if (comparison.plannedEffortMin >= 8 && comparison.effortMin < comparison.plannedEffortMin * expected) return 'TOO_EASY'
+    if (overdone(comparison)) return 'TOO_HARD'
   }
   const ratio = comparison.actualDurationMin / comparison.plannedDurationMin
-  if (ratio < 0.75) return 'ECOURTEE'
-  if (ratio > 1.3) return 'PROLONGEE'
-  return 'CONFORME'
+  if (ratio < 0.75) return 'CUT_SHORT'
+  if (ratio > 1.3) return 'EXTENDED'
+  return 'ON_TARGET'
 }
 
 function score(comparison: PlanComparison, verdict: Verdict): number {
   const durationGap = Math.abs(1 - comparison.actualDurationMin / comparison.plannedDurationMin)
   let penalty = Math.min(durationGap * 60, 35)
-  if (verdict === 'TROP_INTENSE' || verdict === 'PAS_ASSEZ_INTENSE') penalty += 30
+  if (verdict === 'TOO_HARD' || verdict === 'TOO_EASY') penalty += 30
   return Math.max(0, Math.round(100 - penalty))
 }
 
@@ -283,15 +283,15 @@ function headline(activity: Activity, a: WorkoutAnalysis): string {
   const summary = `${formatMinutes(activity.durationSec / 60)}, ${formatKm(activity.distanceKm)}${activity.elevationGainM >= 50 ? `, ${formatInt(activity.elevationGainM)} m D+` : ''}`
   if (!c) return `Sortie libre : ${summary}.`
   switch (a.verdict) {
-    case 'TROP_INTENSE':
+    case 'TOO_HARD':
       return overdone(c)
         ? `Plus intense que prévu : ${c.effortMin} min en zone d’effort pour ${c.plannedEffortMin} prévues.`
         : `Plus intense que prévu : ${formatPercent(shareAtOrAbove(a.zones!.seconds, c.targetZone + 1))} du temps au-dessus de Z${c.targetZone}.`
-    case 'PAS_ASSEZ_INTENSE':
+    case 'TOO_EASY':
       return `Intensité en deçà : ${c.effortMin} min en zone d’effort sur ${c.plannedEffortMin} prévues.`
-    case 'ECOURTEE':
+    case 'CUT_SHORT':
       return `Séance écourtée : ${formatMinutes(c.actualDurationMin)} sur ${formatMinutes(c.plannedDurationMin)} prévues.`
-    case 'PROLONGEE':
+    case 'EXTENDED':
       return `Plus long que prévu : ${formatMinutes(c.actualDurationMin)} au lieu de ${formatMinutes(c.plannedDurationMin)}.`
     default:
       return `Séance réussie : « ${c.sessionTitle} » réalisée comme prévu (${summary}).`
@@ -316,40 +316,40 @@ function insights(activity: Activity, a: WorkoutAnalysis, context: AnalysisConte
 function intensityInsight(a: WorkoutAnalysis, zones: TimeInZones): Insight | undefined {
   const c = a.comparison
   const easy = 1 - shareAtOrAbove(zones, 3)
-  if (a.verdict === 'TROP_INTENSE' && overdone(c!)) {
+  if (a.verdict === 'TOO_HARD' && overdone(c!)) {
     return {
       tone: 'ATTENTION',
-      topic: 'INTENSITE',
+      topic: 'INTENSITY',
       title: 'Séance trop appuyée',
       text: `${c!.effortMin} min en zone d’effort pour ${c!.plannedEffortMin} prévues. Une séance de qualité vaut par la précision des blocs, pas par leur durée : entre eux, récupère vraiment en Z1-Z2.`,
     }
   }
-  if (a.verdict === 'TROP_INTENSE') {
+  if (a.verdict === 'TOO_HARD') {
     return {
       tone: 'ATTENTION',
-      topic: 'INTENSITE',
+      topic: 'INTENSITY',
       title: 'Trop vite pour une séance facile',
       text: `Seulement ${formatPercent(easy)} du temps en Z1-Z2. En montée, passe à la marche active dès que tu ne peux plus parler : l’endurance se construit en aisance, et tu arriveras plus frais à la prochaine séance clé.`,
     }
   }
-  if (a.verdict === 'PAS_ASSEZ_INTENSE') {
+  if (a.verdict === 'TOO_EASY') {
     return {
       tone: 'ATTENTION',
-      topic: 'INTENSITE',
+      topic: 'INTENSITY',
       title: 'Zone d’effort pas atteinte',
       text: `${c!.effortMin} min en zone d’effort pour ${c!.plannedEffortMin} prévues. Si les jambes étaient lourdes, c’était le bon choix ; sinon, ose pousser un peu plus sur les blocs et récupère vraiment entre eux.`,
     }
   }
   if (c && EASY_TYPES.has(c.sessionType)) {
-    return { tone: 'POSITIVE', topic: 'INTENSITE', title: 'Intensité maîtrisée', text: `${formatPercent(easy)} du temps en Z1-Z2 : exactement ce qu’on attend d’une séance d’endurance.` }
+    return { tone: 'POSITIVE', topic: 'INTENSITY', title: 'Intensité maîtrisée', text: `${formatPercent(easy)} du temps en Z1-Z2 : exactement ce qu’on attend d’une séance d’endurance.` }
   }
   if (c?.plannedEffortMin && c.effortMin !== undefined) {
-    return { tone: 'POSITIVE', topic: 'INTENSITE', title: 'Blocs d’effort réussis', text: `${c.effortMin} min en zone d’effort pour ${c.plannedEffortMin} prévues.` }
+    return { tone: 'POSITIVE', topic: 'INTENSITY', title: 'Blocs d’effort réussis', text: `${c.effortMin} min en zone d’effort pour ${c.plannedEffortMin} prévues.` }
   }
   if (!c) {
     return {
       tone: 'INFO',
-      topic: 'INTENSITE',
+      topic: 'INTENSITY',
       title: 'Répartition de l’effort',
       text: `${formatPercent(easy)} en Z1-Z2, ${formatPercent(shareAtOrAbove(zones, 4))} en Z4-Z5.`,
     }
@@ -361,17 +361,17 @@ function intensityInsight(a: WorkoutAnalysis, zones: TimeInZones): Insight | und
 function planInsights(activity: Activity, a: WorkoutAnalysis, c: PlanComparison): Insight[] {
   const list: Insight[] = []
   const ratio = c.actualDurationMin / c.plannedDurationMin
-  if (a.verdict === 'ECOURTEE') {
+  if (a.verdict === 'CUT_SHORT') {
     list.push({
       tone: 'ATTENTION',
-      topic: 'DUREE',
+      topic: 'DURATION',
       title: 'Séance raccourcie',
       text: `${formatPercent(ratio)} de la durée prévue. Pas de rattrapage : reprends le plan normalement, c’est la régularité qui paie.`,
     })
-  } else if (a.verdict === 'PROLONGEE') {
+  } else if (a.verdict === 'EXTENDED') {
     list.push({
       tone: 'ATTENTION',
-      topic: 'DUREE',
+      topic: 'DURATION',
       title: 'Plus long que prévu',
       text: `${formatPercent(ratio)} de la durée prévue : le surplus de volume se paie en fatigue, veille à bien récupérer.`,
     })
@@ -381,12 +381,12 @@ function planInsights(activity: Activity, a: WorkoutAnalysis, c: PlanComparison)
     if (elevationRatio < 0.7) {
       list.push({
         tone: 'INFO',
-        topic: 'DENIVELE',
+        topic: 'ELEVATION',
         title: 'D+ en dessous de l’objectif',
         text: `${formatInt(activity.elevationGainM)} m sur ${formatInt(c.plannedElevationM)} m prévus. Si le terrain manque, des répétitions de côte, des escaliers ou le tapis incliné complètent bien.`,
       })
     } else if (elevationRatio >= 0.9) {
-      list.push({ tone: 'POSITIVE', topic: 'DENIVELE', title: 'D+ au rendez-vous', text: `${formatInt(activity.elevationGainM)} m de dénivelé pour ${formatInt(c.plannedElevationM)} m prévus.` })
+      list.push({ tone: 'POSITIVE', topic: 'ELEVATION', title: 'D+ au rendez-vous', text: `${formatInt(activity.elevationGainM)} m de dénivelé pour ${formatInt(c.plannedElevationM)} m prévus.` })
     }
   }
   return list
@@ -397,7 +397,7 @@ function vamRecordsInsight(a: WorkoutAnalysis): Insight | undefined {
   if (!first) return undefined
   return {
     tone: 'POSITIVE',
-    topic: 'MONTEE',
+    topic: 'UPHILL',
     title: others.length ? 'Records de VAM' : 'Record de VAM',
     text:
       `Nouveau record sur ${first.minutes} min : ${formatInt(first.vam)} m/h (précédent : ${formatInt(first.previous)} m/h).` +
@@ -422,7 +422,7 @@ function climbsInsight(a: WorkoutAnalysis): Insight | undefined {
       text += ` Dans tes valeurs habituelles (${formatInt(a.vamBaseline)} m/h).`
     }
   }
-  return { tone, topic: 'MONTEE', title: 'Montées', text }
+  return { tone, topic: 'UPHILL', title: 'Montées', text }
 }
 
 function descentsInsight(activity: Activity, a: WorkoutAnalysis): Insight | undefined {
@@ -430,7 +430,7 @@ function descentsInsight(activity: Activity, a: WorkoutAnalysis): Insight | unde
   if (descended < 200 || !a.descentSpeed || activity.sport !== 'RUN') return undefined
   return {
     tone: 'INFO',
-    topic: 'DESCENTE',
+    topic: 'DOWNHILL',
     title: 'Descentes',
     text: `${formatInt(descended)} m descendus à ${formatInt(a.descentSpeed)} m/h.${descended >= 400 ? ' Ce volume de descente use les quadriceps : l’excentrique du renfo te prépare à l’encaisser.' : ''}`,
   }
@@ -474,7 +474,7 @@ function loadInsight(a: WorkoutAnalysis): Insight | undefined {
   if (!a.plannedLoad || a.load <= a.plannedLoad * 1.4) return undefined
   return {
     tone: 'ATTENTION',
-    topic: 'CHARGE',
+    topic: 'LOAD',
     title: 'Charge élevée',
     text: `Charge de ${a.load} pour ${a.plannedLoad} prévue : cette séance compte presque double dans ta fatigue.`,
   }
@@ -482,12 +482,12 @@ function loadInsight(a: WorkoutAnalysis): Insight | undefined {
 
 function dataInsight(activity: Activity, a: WorkoutAnalysis, context: AnalysisContext): Insight | undefined {
   if (!a.hasDetail) {
-    return { tone: 'INFO', topic: 'DONNEES', title: 'Analyse partielle', text: 'La trace détaillée n’est pas (encore) disponible : zones cardiaques et montées seront analysées dès sa récupération.' }
+    return { tone: 'INFO', topic: 'DATA', title: 'Analyse partielle', text: 'La trace détaillée n’est pas (encore) disponible : zones cardiaques et montées seront analysées dès sa récupération.' }
   }
   if (a.hrMaxSuggestion?.current) {
     return {
       tone: 'ATTENTION',
-      topic: 'DONNEES',
+      topic: 'DATA',
       title: 'FC max dépassée',
       text: `${a.hrMaxSuggestion.observed} bpm tenus 10 s, au-dessus des ${a.hrMaxSuggestion.current} bpm de ton profil. Mets ta FC max à jour : toutes tes zones, et donc tes analyses, seront plus justes.`,
     }
@@ -495,7 +495,7 @@ function dataInsight(activity: Activity, a: WorkoutAnalysis, context: AnalysisCo
   if (!context.profile.hrMax && activity.avgHeartRate) {
     return {
       tone: 'INFO',
-      topic: 'DONNEES',
+      topic: 'DATA',
       title: 'Zones cardiaques',
       text: `Renseigne ta FC max (et ta FC de repos) pour obtenir le temps passé dans chaque zone.${a.hrMaxSuggestion ? ` La plus haute FC relevée sur tes sorties est ${a.hrMaxSuggestion.observed} bpm : c’est au moins ta FC max.` : ''}`,
     }
@@ -510,7 +510,7 @@ function nextStep(activity: Activity, a: WorkoutAnalysis, sessions: PlannedSessi
     .sort((x, y) => x.date.localeCompare(y.date))[0]
   if (!next) return undefined
   const when = daysBetween(day, next.date) === 1 ? 'demain' : weekdayName(weekday(next.date))
-  const heavy = a.verdict === 'TROP_INTENSE' || a.verdict === 'PROLONGEE' || (a.plannedLoad !== undefined && a.load > a.plannedLoad * 1.4)
+  const heavy = a.verdict === 'TOO_HARD' || a.verdict === 'EXTENDED' || (a.plannedLoad !== undefined && a.load > a.plannedLoad * 1.4)
   if (heavy && next.keySession && next.date <= addDays(day, 2)) {
     return {
       text: `La séance clé « ${next.title} » arrive ${when} : si les jambes sont lourdes au réveil, allège-la plutôt que de la rater.`,

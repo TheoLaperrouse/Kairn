@@ -7,9 +7,9 @@ import {
   BALANCE_FRONT,
   BALANCE_KNEE,
   BALANCE_WOBBLE,
-} from './poses-force'
+} from './poses-strength'
 
-export const PROPRIOCEPTION: Exercise[] = [
+export const PROPRIOCEPTION_EXERCISES: Exercise[] = [
   {
     id: 'equilibre-coussin',
     name: 'Équilibre unipodal sur coussin',

@@ -30,7 +30,7 @@ const enum Mesg {
 }
 
 const SPORT = { RUN: 1, BIKE: 2 } as const
-const INTENSITY: Record<StepIntensity, number> = { ACTIF: 0, RECUP: 1, ECHAUFFEMENT: 2, RETOUR_CALME: 3 }
+const INTENSITY: Record<StepIntensity, number> = { ACTIVE: 0, RECOVERY: 1, WARMUP: 2, COOLDOWN: 3 }
 const DURATION_TIME = 0
 const DURATION_REPEAT_UNTIL_STEPS_COMPLETE = 6
 const TARGET_HEART_RATE = 1
@@ -180,7 +180,7 @@ function flatten(workout: WorkoutDefinition): FieldValue[][] {
       item.times,
       INVALID.uint32,
       INVALID.uint32,
-      INTENSITY.ACTIF,
+      INTENSITY.ACTIVE,
     ])
   }
   return rows

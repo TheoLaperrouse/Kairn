@@ -58,7 +58,7 @@ describe('morning reminder', () => {
   })
 
   it('wishes a good race on race day', () => {
-    const race = aSession({ type: 'COURSE', title: 'CCC', date: '2027-08-27', status: 'PLANNED' })
+    const race = aSession({ type: 'RACE', title: 'CCC', date: '2027-08-27', status: 'PLANNED' })
     expect(morningMessage([race], { date: '2027-08-27' })!.title).toBe('Jour de course 🏔️')
   })
 })
@@ -105,7 +105,7 @@ describe('weekly summary', () => {
     expect(summary.inProgress).toBe(false)
     expect(summary.totals.activities).toBe(done.length)
     expect(summary.sessions.done).toBe(done.length)
-    expect(summary.verdicts.CONFORME).toBe(done.length)
+    expect(summary.verdicts.ON_TARGET).toBe(done.length)
     expect(summary.zones![2]).toBeGreaterThan(0)
     expect(summary.highlights.map((h) => h.label)).toEqual(['Plus longue sortie', 'Plus grosse montée', 'Meilleure VAM'])
     expect(summary.nextWeek?.index).toBe(1)

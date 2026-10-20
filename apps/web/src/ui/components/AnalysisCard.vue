@@ -56,7 +56,7 @@ async function lighten() {
   if (!nextSession.value) return
   lightening.value = true
   try {
-    await training.lightenSession(nextSession.value.id, 'ALLEGER')
+    await training.lightenSession(nextSession.value.id, 'LIGHTEN')
     lightened.value = true
   } finally {
     lightening.value = false

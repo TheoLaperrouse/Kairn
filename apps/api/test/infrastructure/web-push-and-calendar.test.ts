@@ -120,7 +120,7 @@ describe('iCalendar feed', () => {
         }),
         aSession({ id: 's2', date: '2027-03-04', status: 'SKIPPED' }),
         aSession({ id: 's3', date: '2027-03-05', status: 'DONE', title: 'Footing', durationMin: 60 }),
-        aSession({ id: 'race', date: '2027-08-27', type: 'COURSE', status: 'PLANNED' }),
+        aSession({ id: 'race', date: '2027-08-27', type: 'RACE', status: 'PLANNED' }),
       ],
     })
     const unfolded = ics.replace(/\r\n /g, '')

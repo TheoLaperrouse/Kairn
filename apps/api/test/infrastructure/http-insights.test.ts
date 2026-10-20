@@ -75,7 +75,7 @@ describe('imported activity analysis', () => {
     expect(analysis.zones.seconds[4]).toBeGreaterThan(3000)
     expect(analysis.climbs).toHaveLength(1)
     expect(analysis.comparison.sessionId).toBe(run.id)
-    expect(analysis.verdict).toBe('TROP_INTENSE')
+    expect(analysis.verdict).toBe('TOO_HARD')
     // Manual import: no notification.
     expect(push.sent).toHaveLength(0)
   })

@@ -7,12 +7,12 @@
  */
 
 export type ExerciseCategory =
-  | 'GAINAGE'
-  | 'FORCE'
-  | 'EXCENTRIQUE'
-  | 'PLIOMETRIE'
+  | 'CORE'
+  | 'STRENGTH'
+  | 'ECCENTRIC'
+  | 'PLYOMETRICS'
   | 'PROPRIOCEPTION'
-  | 'MOBILITE'
+  | 'MOBILITY'
 
 /**
  * Angles en degrés.

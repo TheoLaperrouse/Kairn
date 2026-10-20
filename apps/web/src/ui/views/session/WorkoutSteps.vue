@@ -8,21 +8,21 @@ import ZoneBadge from '../../components/ZoneBadge.vue'
 const props = defineProps<{ steps: WorkoutStep[] }>()
 
 const STEP_LABELS: Record<WorkoutStep['kind'], string> = {
-  ECHAUFFEMENT: 'Échauffement',
+  WARMUP: 'Échauffement',
   EFFORT: 'Effort',
-  RECUP: 'Récupération',
-  RETOUR_CALME: 'Retour au calme',
-  CONTINU: 'Continu',
+  RECOVERY: 'Récupération',
+  COOLDOWN: 'Retour au calme',
+  CONTINUOUS: 'Continu',
 }
 
-/** Les étapes EFFORT + RECUP répétées sont présentées ensemble. */
+/** Les étapes EFFORT + RECOVERY répétées sont présentées ensemble. */
 const stepGroups = computed(() => {
   const steps = props.steps
   const groups: Array<{ steps: WorkoutStep[]; repeat?: number }> = []
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i]!
     const next = steps[i + 1]
-    if (step.repeat && next?.repeat === step.repeat && next.kind === 'RECUP') {
+    if (step.repeat && next?.repeat === step.repeat && next.kind === 'RECOVERY') {
       groups.push({ steps: [step, next], repeat: step.repeat })
       i++
     } else groups.push({ steps: [step], repeat: step.repeat })

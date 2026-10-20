@@ -24,7 +24,7 @@ const sent = ref('')
 
 const visible = computed(() => props.sessions.filter((s) => props.sports.has(s.sport)))
 const stats = computed(() => {
-  const all = props.sessions.filter((s) => s.type !== 'COURSE')
+  const all = props.sessions.filter((s) => s.type !== 'RACE')
   return {
     done: all.filter((s) => s.status === 'DONE').length,
     total: all.length,
@@ -32,7 +32,7 @@ const stats = computed(() => {
   }
 })
 const hasWatchSessions = computed(() =>
-  props.sessions.some((s) => s.status === 'PLANNED' && s.sport !== 'STRENGTH' && s.type !== 'COURSE'),
+  props.sessions.some((s) => s.status === 'PLANNED' && s.sport !== 'STRENGTH' && s.type !== 'RACE'),
 )
 
 async function sendWeek() {

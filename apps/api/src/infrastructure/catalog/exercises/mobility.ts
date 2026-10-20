@@ -1,11 +1,11 @@
 import type { Exercise } from '../../../domain/strength/exercise'
-import { FENTE_PSOAS_ANIMATION, MOBILITE_CHEVILLE_ANIMATION } from './animations-gainage-mobilite'
+import { HIP_FLEXOR_LUNGE_ANIMATION, ANKLE_MOBILITY_ANIMATION } from './animations-core-mobility'
 
-export const MOBILITE: Exercise[] = [
+export const MOBILITY_EXERCISES: Exercise[] = [
   {
     id: 'fente-psoas',
     name: 'Étirement du psoas en fente basse',
-    category: 'MOBILITE',
+    category: 'MOBILITY',
     muscles: ['Psoas-iliaque', 'Droit fémoral', 'Quadriceps'],
     equipment: ['Tapis ou coussin sous le genou'],
     difficulty: 1,
@@ -17,12 +17,12 @@ export const MOBILITE: Exercise[] = [
       'Les fléchisseurs de hanche se raccourcissent à force de montées et de marche penchée sur les bâtons : les assouplir libère la foulée et soulage les lombaires.',
     regression: 'Amplitude réduite, mains sur le genou avant.',
     progression: 'Attraper le pied arrière pour étirer aussi le droit fémoral.',
-    animation: FENTE_PSOAS_ANIMATION,
+    animation: HIP_FLEXOR_LUNGE_ANIMATION,
   },
   {
     id: 'mobilite-cheville-mur',
     name: 'Mobilité de cheville genou au mur',
-    category: 'MOBILITE',
+    category: 'MOBILITY',
     muscles: ['Soléaire', 'Gastrocnémiens', 'Articulation de la cheville'],
     equipment: ['Mur'],
     difficulty: 1,
@@ -34,6 +34,6 @@ export const MOBILITE: Exercise[] = [
       'Une cheville mobile encaisse mieux les descentes raides et les terrains en dévers ; la flexion de cheville limitée surcharge le genou et le tendon d’Achille.',
     regression: 'Debout, pied avant sur une marche.',
     progression: 'Avec élastique tirant le tibia vers l’arrière.',
-    animation: MOBILITE_CHEVILLE_ANIMATION,
+    animation: ANKLE_MOBILITY_ANIMATION,
   },
 ]

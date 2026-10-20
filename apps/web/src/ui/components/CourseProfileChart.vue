@@ -44,7 +44,7 @@ const nightBands = computed(() => {
   return bands
 })
 
-const SEGMENT_CLASS = { MONTEE: 'seg-up', DESCENTE: 'seg-down', ROULANT: 'seg-flat' } as const
+const SEGMENT_CLASS = { UPHILL: 'seg-up', DOWNHILL: 'seg-down', FLAT: 'seg-flat' } as const
 
 const stationMarks = computed(() =>
   props.stations.map((station, i) => ({

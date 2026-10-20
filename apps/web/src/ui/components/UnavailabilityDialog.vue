@@ -16,12 +16,12 @@ const training = useTrainingStore()
 const dialog = ref<HTMLDialogElement>()
 
 const REASONS = [
-  { value: 'MALADIE', label: 'Malade', hint: 'Rhume, grippe, gastro…', icon: Thermometer },
-  { value: 'BLESSURE', label: 'Blessé', hint: 'Douleur qui empêche de courir', icon: Bandage },
-  { value: 'INDISPONIBLE', label: 'Indisponible', hint: 'Voyage, travail, famille', icon: CalendarX },
+  { value: 'ILLNESS', label: 'Malade', hint: 'Rhume, grippe, gastro…', icon: Thermometer },
+  { value: 'INJURY', label: 'Blessé', hint: 'Douleur qui empêche de courir', icon: Bandage },
+  { value: 'UNAVAILABLE', label: 'Indisponible', hint: 'Voyage, travail, famille', icon: CalendarX },
 ] as const
 
-const reason = ref<Unavailability['reason']>('MALADIE')
+const reason = ref<Unavailability['reason']>('ILLNESS')
 const from = ref(todayIso())
 const to = ref(todayIso())
 const crossTrainingOk = ref(true)
@@ -50,13 +50,13 @@ const days = computed(() => {
 const explanation = computed(() => {
   const n = Math.max(days.value, 0)
   const period = `ces ${n} jour${n > 1 ? 's' : ''}`
-  if (reason.value === 'BLESSURE') {
+  if (reason.value === 'INJURY') {
     const recovery = `${Math.min(Math.round(n * 1.5), 21)} jours de reprise progressive, sans intensité.`
     return crossTrainingOk.value
       ? `Pendant ${period}, tes sorties deviennent des séances sans impact (vélo, natation, elliptique). Ensuite, ${recovery}`
       : `Les séances de ${period} sont annulées, puis ${recovery}`
   }
-  if (reason.value === 'INDISPONIBLE' && n < 5) return `Les séances de ${period} sont annulées, le reste du plan est inchangé.`
+  if (reason.value === 'UNAVAILABLE' && n < 5) return `Les séances de ${period} sont annulées, le reste du plan est inchangé.`
   return `Les séances de ${period} sont annulées, puis ${Math.min(n, 21)} jours de reprise : volume de 50 % à 90 %, sans intensité.`
 })
 
@@ -72,7 +72,7 @@ async function submit() {
       from: from.value,
       to: to.value,
       reason: reason.value,
-      crossTrainingOk: reason.value === 'BLESSURE' && crossTrainingOk.value,
+      crossTrainingOk: reason.value === 'INJURY' && crossTrainingOk.value,
     })
   } catch (e) {
     error.value = errorMessage(e, 'Impossible d’adapter le plan')
@@ -114,13 +114,13 @@ async function submit() {
           <label class="field"><span>Au (inclus)</span><input v-model="to" class="input" type="date" :min="from" required /></label>
         </div>
 
-        <label v-if="reason === 'BLESSURE'" class="switch">
+        <label v-if="reason === 'INJURY'" class="switch">
           <span>Je peux faire du vélo, de la natation ou de l’elliptique</span>
           <input v-model="crossTrainingOk" type="checkbox" />
         </label>
 
         <p class="explain">{{ explanation }}</p>
-        <p v-if="reason === 'BLESSURE'" class="muted small">Une douleur qui persiste plus de quelques jours mérite l’avis d’un professionnel de santé.</p>
+        <p v-if="reason === 'INJURY'" class="muted small">Une douleur qui persiste plus de quelques jours mérite l’avis d’un professionnel de santé.</p>
         <p v-if="error" class="alert alert-error" role="alert"><TriangleAlert :size="18" aria-hidden="true" /> {{ error }}</p>
 
         <div class="actions">

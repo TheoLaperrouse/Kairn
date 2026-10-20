@@ -5,7 +5,7 @@ import { ROUTINES } from '../../src/infrastructure/catalog/routines'
 export function aProfile(overrides: Partial<AthleteProfile> = {}): AthleteProfile {
   return {
     name: 'Théo',
-    level: 'INTERMEDIAIRE',
+    level: 'INTERMEDIATE',
     weightKg: 70,
     hrMax: 190,
     hrRest: 50,
@@ -14,7 +14,7 @@ export function aProfile(overrides: Partial<AthleteProfile> = {}): AthleteProfil
     availableDays: [1, 2, 3, 5, 6],
     longRunDay: 5,
     maxWeeklyHours: 12,
-    terrain: 'COLLINES',
+    terrain: 'HILLS',
     crossTraining: { cycling: true, cyclingSessionsPerWeek: 1, strength: true, strengthSessionsPerWeek: 2 },
     ...overrides,
   }

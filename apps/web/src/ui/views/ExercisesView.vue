@@ -10,7 +10,7 @@ const content = useContentStore()
 const loading = ref(true)
 const error = ref('')
 const query = ref('')
-const category = ref<ExerciseCategory | 'TOUS'>('TOUS')
+const category = ref<ExerciseCategory | 'ALL'>('ALL')
 const hovered = ref<string>()
 const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 
@@ -40,7 +40,7 @@ const filtered = computed(() => {
   const q = normalize(query.value.trim())
   return content.exercises.filter(
     (e) =>
-      (category.value === 'TOUS' || e.category === category.value) &&
+      (category.value === 'ALL' || e.category === category.value) &&
       (!q || normalize([e.name, e.description, ...e.muscles].join(' ')).includes(q)),
   )
 })
@@ -95,7 +95,7 @@ function countFor(c: ExerciseCategory) {
         </label>
       </div>
       <div class="row" role="group" aria-label="Filtrer par catégorie">
-        <button class="chip chip-toggle" type="button" :aria-pressed="category === 'TOUS'" @click="category = 'TOUS'">
+        <button class="chip chip-toggle" type="button" :aria-pressed="category === 'ALL'" @click="category = 'ALL'">
           Tous <span class="count">{{ content.exercises.length }}</span>
         </button>
         <button

@@ -24,7 +24,7 @@ export interface CheckIn {
   notes?: string
 }
 
-export type ReadinessLevel = 'VERT' | 'ORANGE' | 'ROUGE'
+export type ReadinessLevel = 'GREEN' | 'ORANGE' | 'RED'
 
 export interface Readiness {
   score: number
@@ -32,7 +32,7 @@ export interface Readiness {
   /** Facteurs qui ont pesé, du plus pénalisant au moins pénalisant. */
   factors: Array<{ label: string; impact: number }>
   message: string
-  action: 'AUCUNE' | 'ALLEGER' | 'REPOS'
+  action: 'NONE' | 'LIGHTEN' | 'REST'
   alerts: string[]
 }
 
@@ -86,18 +86,18 @@ export function computeReadiness(checkIn: CheckIn, history: CheckIn[]): Readines
   }
 
   const score = Math.max(0, Math.min(100, Math.round(100 - factors.reduce((sum, f) => sum + f.impact, 0))))
-  const level: ReadinessLevel = score >= 65 && !checkIn.illnessSymptoms ? 'VERT' : score >= 45 ? 'ORANGE' : 'ROUGE'
+  const level: ReadinessLevel = score >= 65 && !checkIn.illnessSymptoms ? 'GREEN' : score >= 45 ? 'ORANGE' : 'RED'
 
   const lastTwo = previous.filter((h) => h.date >= addDays(checkIn.date, -2))
   // Niveau des bilans passés sans comparaison aux références : évite une récursion coûteuse.
   const recentLevels = [...lastTwo.map((h) => computeReadiness(h, []).level), level]
-  if (recentLevels.length === 3 && recentLevels.every((l) => l !== 'VERT')) {
+  if (recentLevels.length === 3 && recentLevels.every((l) => l !== 'GREEN')) {
     alerts.push('Trois jours d’affilée sans feu vert : signe de surcharge. Envisage une semaine allégée.')
   }
 
-  const action = level === 'VERT' ? 'AUCUNE' : level === 'ORANGE' ? 'ALLEGER' : 'REPOS'
+  const action = level === 'GREEN' ? 'NONE' : level === 'ORANGE' ? 'LIGHTEN' : 'REST'
   const message =
-    level === 'VERT'
+    level === 'GREEN'
       ? 'Feu vert : la séance prévue est adaptée.'
       : level === 'ORANGE'
         ? 'Feu orange : garde la séance mais en version facile, sans intensité.'

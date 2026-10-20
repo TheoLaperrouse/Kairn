@@ -68,12 +68,12 @@ export class DashboardService {
     const loadEnd = goal.raceDate > today ? goal.raceDate : today
     // On amorce la série plus tôt pour que la forme de fond ne parte pas de zéro.
     // La course elle-même est exclue : on veut la fraîcheur au départ, pas après 20 h d'effort.
-    const trainingSessions = plan.sessions.filter((s) => s.type !== 'COURSE')
+    const trainingSessions = plan.sessions.filter((s) => s.type !== 'RACE')
     const load = computeLoadSeries(activities, trainingSessions, profile, addDays(loadStart, -84), loadEnd, today).filter(
       (p) => p.date >= loadStart,
     )
 
-    const past = plan.sessions.filter((s) => s.date < today && s.type !== 'COURSE')
+    const past = plan.sessions.filter((s) => s.date < today && s.type !== 'RACE')
     return {
       goal: {
         name: goal.name,
@@ -106,7 +106,7 @@ export class DashboardService {
     const end = addDays(week.startDate, 7)
     const done = activities.filter((a) => activityDay(a) >= week.startDate && activityDay(a) < end)
     const runs = done.filter((a) => a.sport === 'RUN')
-    const planned = sessions.filter((s) => s.weekIndex === week.index && s.sport !== 'STRENGTH' && s.type !== 'COURSE')
+    const planned = sessions.filter((s) => s.weekIndex === week.index && s.sport !== 'STRENGTH' && s.type !== 'RACE')
     return {
       weekIndex: week.index,
       startDate: week.startDate,

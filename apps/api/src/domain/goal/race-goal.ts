@@ -63,9 +63,9 @@ export function verticalRatio(goal: Pick<RaceGoal, 'distanceKm' | 'elevationGain
 
 /** Vitesse de course moyenne en km-effort/h sur ~50 km-effort, par niveau. */
 const REFERENCE_SPEED: Record<ExperienceLevel, number> = {
-  DEBUTANT: 5.5,
-  INTERMEDIAIRE: 6.5,
-  CONFIRME: 7.5,
+  BEGINNER: 5.5,
+  INTERMEDIATE: 6.5,
+  ADVANCED: 7.5,
   EXPERT: 9,
 }
 

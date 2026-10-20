@@ -140,7 +140,7 @@ async function saveNotes() {
 
       <WorkoutSteps :steps="session.steps" />
 
-      <WatchExport v-if="(session.sport === 'RUN' || session.sport === 'BIKE') && session.type !== 'COURSE'" :session="session" />
+      <WatchExport v-if="(session.sport === 'RUN' || session.sport === 'BIKE') && session.type !== 'RACE'" :session="session" />
 
       <div class="grid grid-2">
         <section v-if="session.tips.length" class="card" aria-labelledby="tips-title">
