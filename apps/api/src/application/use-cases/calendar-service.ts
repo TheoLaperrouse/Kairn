@@ -17,12 +17,8 @@ export class CalendarService {
   ) {}
 
   feedUrl(userId: string): string {
-    let token = this.feeds.tokenOf(userId)
-    if (!token) {
-      token = this.tokens.generate()
-      this.feeds.save(userId, token)
-    }
-    return this.urlOf(token)
+    const token = this.feeds.tokenOf(userId)
+    return token ? this.urlOf(token) : this.regenerate(userId)
   }
 
   regenerate(userId: string): string {

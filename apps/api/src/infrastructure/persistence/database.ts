@@ -106,15 +106,10 @@ export function openDatabase(path: string): DatabaseSync {
 function migrate(db: DatabaseSync): void {
   const { user_version: version } = db.prepare('PRAGMA user_version').get() as { user_version: number }
   for (let i = version; i < MIGRATIONS.length; i++) {
-    db.exec('BEGIN')
-    try {
+    transaction(db, () => {
       db.exec(MIGRATIONS[i]!)
       db.exec(`PRAGMA user_version = ${i + 1}`)
-      db.exec('COMMIT')
-    } catch (error) {
-      db.exec('ROLLBACK')
-      throw error
-    }
+    })
   }
 }
 

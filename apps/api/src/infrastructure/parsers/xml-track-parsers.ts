@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto'
-import { XMLParser } from 'fast-xml-parser'
 import type { ActivityFileParser } from '../../application/ports'
 import {
   cumulativeGain,
@@ -9,6 +7,7 @@ import {
   sportFromLabel,
   type ImportedActivity,
 } from '../../domain/activity/activity'
+import { fileExternalId, gpxTrackPoints, parseXml, round2, type XmlNode } from './parser-utils'
 
 interface TrackPoint {
   lat?: number
@@ -19,13 +18,6 @@ interface TrackPoint {
   /** Distance cumulée fournie par l'appareil (TCX), en mètres. */
   distanceM?: number
 }
-
-const xml = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: '',
-  removeNSPrefix: true,
-  isArray: (name) => ['trk', 'trkseg', 'trkpt', 'Activity', 'Lap', 'Track', 'Trackpoint'].includes(name),
-})
 
 function asNumber(value: unknown): number | undefined {
   const n = typeof value === 'object' && value !== null ? Number((value as { Value?: unknown }).Value) : Number(value)
@@ -44,25 +36,23 @@ function fromTrack(points: TrackPoint[], meta: { source: 'GPX' | 'TCX'; sportLab
     }
     return distanceKm
   })
-  const profile = points.map((p, i) => ({ distanceKm: Math.round(cumulative[i]! * 100) / 100, altitudeM: Math.round(p.ele ?? 0) }))
+  const profile = points.map((p, i) => ({ distanceKm: round2(cumulative[i]!), altitudeM: Math.round(p.ele ?? 0) }))
 
-  const times = points.map((p) => (p.time ? Date.parse(p.time) : NaN)).filter(Number.isFinite)
+  const instants = points.map((p) => (p.time ? Date.parse(p.time) : NaN))
+  const times = instants.filter(Number.isFinite)
   const heartRates = points.map((p) => p.hr).filter((hr): hr is number => hr !== undefined && hr > 0)
   const sport = sportFromLabel(meta.sportLabel)
   const samples = resampleTrack(
-    points.flatMap((p, i) => {
-      const time = p.time ? Date.parse(p.time) : NaN
-      return Number.isFinite(time) ? [{ t: time / 1000, d: cumulative[i], alt: p.ele, hr: p.hr }] : []
-    }),
+    points.flatMap((p, i) => (Number.isFinite(instants[i]) ? [{ t: instants[i]! / 1000, d: cumulative[i], alt: p.ele, hr: p.hr }] : [])),
   )
   return {
     source: meta.source,
-    externalId: `${meta.source.toLowerCase()}:${createHash('sha1').update(meta.content).digest('hex')}`,
+    externalId: fileExternalId(meta.source.toLowerCase(), meta.content),
     sport,
     name: meta.name?.trim() || (sport === 'BIKE' ? 'Vélo' : 'Sortie trail'),
     startTime: new Date(times[0] ?? Date.now()).toISOString(),
     durationSec: times.length >= 2 ? Math.round((times.at(-1)! - times[0]!) / 1000) : 0,
-    distanceKm: Math.round(distanceKm * 100) / 100,
+    distanceKm: round2(distanceKm),
     elevationGainM: cumulativeGain(points.map((p) => p.ele).filter((e): e is number => e !== undefined)),
     avgHeartRate: heartRates.length ? Math.round(heartRates.reduce((a, b) => a + b, 0) / heartRates.length) : undefined,
     maxHeartRate: heartRates.length ? Math.max(...heartRates) : undefined,
@@ -72,50 +62,40 @@ function fromTrack(points: TrackPoint[], meta: { source: 'GPX' | 'TCX'; sportLab
 }
 
 export class GpxActivityParser implements ActivityFileParser {
-  supports(filename: string): boolean {
-    return filename.toLowerCase().endsWith('.gpx')
-  }
+  readonly extension = '.gpx'
 
   async parse(content: Buffer): Promise<ImportedActivity> {
-    const doc = xml.parse(content.toString('utf8'))
-    const track = doc.gpx?.trk?.[0]
+    const track = ((parseXml(content).gpx as XmlNode | undefined)?.trk as XmlNode[] | undefined)?.[0]
     if (!track) throw new Error('Aucune trace (<trk>) dans le fichier GPX')
-    const points: TrackPoint[] = (track.trkseg ?? []).flatMap((seg: { trkpt?: unknown[] }) =>
-      (seg.trkpt ?? []).map((pt) => {
-        const p = pt as Record<string, unknown>
-        const ext = (p.extensions as Record<string, Record<string, unknown>> | undefined)?.TrackPointExtension
-        return { lat: asNumber(p.lat), lon: asNumber(p.lon), ele: asNumber(p.ele), time: p.time as string, hr: asNumber(ext?.hr) }
-      }),
-    )
-    return fromTrack(points, { source: 'GPX', sportLabel: String(track.type ?? 'run'), name: track.name, content })
+    const points: TrackPoint[] = gpxTrackPoints([track]).map((p) => {
+      const ext = (p.extensions as Record<string, XmlNode> | undefined)?.TrackPointExtension
+      return { lat: asNumber(p.lat), lon: asNumber(p.lon), ele: asNumber(p.ele), time: p.time as string, hr: asNumber(ext?.hr) }
+    })
+    return fromTrack(points, { source: 'GPX', sportLabel: String(track.type ?? 'run'), name: track.name as string | undefined, content })
   }
 }
 
 export class TcxActivityParser implements ActivityFileParser {
-  supports(filename: string): boolean {
-    return filename.toLowerCase().endsWith('.tcx')
-  }
+  readonly extension = '.tcx'
 
   async parse(content: Buffer): Promise<ImportedActivity> {
-    const doc = xml.parse(content.toString('utf8'))
-    const activity = doc.TrainingCenterDatabase?.Activities?.Activity?.[0]
+    const activities = ((parseXml(content).TrainingCenterDatabase as XmlNode | undefined)?.Activities as XmlNode | undefined)?.Activity
+    const activity = (activities as XmlNode[] | undefined)?.[0]
     if (!activity) throw new Error('Aucune activité dans le fichier TCX')
-    const points: TrackPoint[] = (activity.Lap ?? []).flatMap((lap: { Track?: Array<{ Trackpoint?: unknown[] }> }) =>
-      (lap.Track ?? []).flatMap((t) =>
-        (t.Trackpoint ?? []).map((tp) => {
-          const p = tp as Record<string, unknown>
-          const pos = p.Position as Record<string, unknown> | undefined
-          return {
-            lat: asNumber(pos?.LatitudeDegrees),
-            lon: asNumber(pos?.LongitudeDegrees),
-            ele: asNumber(p.AltitudeMeters),
-            time: p.Time as string,
-            hr: asNumber(p.HeartRateBpm),
-            distanceM: asNumber(p.DistanceMeters),
-          }
-        }),
-      ),
-    )
-    return fromTrack(points, { source: 'TCX', sportLabel: activity.Sport, content })
+    const trackpoints = ((activity.Lap as XmlNode[] | undefined) ?? [])
+      .flatMap((lap) => (lap.Track as XmlNode[] | undefined) ?? [])
+      .flatMap((track) => (track.Trackpoint as XmlNode[] | undefined) ?? [])
+    const points: TrackPoint[] = trackpoints.map((p) => {
+      const position = p.Position as XmlNode | undefined
+      return {
+        lat: asNumber(position?.LatitudeDegrees),
+        lon: asNumber(position?.LongitudeDegrees),
+        ele: asNumber(p.AltitudeMeters),
+        time: p.Time as string,
+        hr: asNumber(p.HeartRateBpm),
+        distanceM: asNumber(p.DistanceMeters),
+      }
+    })
+    return fromTrack(points, { source: 'TCX', sportLabel: activity.Sport as string | undefined, content })
   }
 }

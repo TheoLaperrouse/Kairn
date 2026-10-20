@@ -9,8 +9,7 @@ import {
   type RacePlan,
 } from '../../domain/race-course/race-course'
 import type { RaceGoal } from '../../domain/goal/race-goal'
-import { DomainError } from '../../domain/shared/errors'
-import { assertDomain } from '../../domain/shared/errors'
+import { DomainError, assertDomain } from '../../domain/shared/errors'
 import type { Clock, CourseFileParser, GoalRepository, ProfileRepository, RaceCourseRepository } from '../ports'
 
 export interface RaceCourseView {

@@ -123,28 +123,31 @@ export class NotificationService implements ActivityImportListener {
     const { settings, state } = this.load(userId)
     const local = localTime(now, settings.timeZone)
     const next: NotificationState = { ...state }
+    const sessions = () => this.plans.get(userId)?.sessions ?? []
+    const notify = async (sent: NotificationState, message: () => PushMessage | undefined) => {
+      Object.assign(next, sent)
+      this.settingsStore.save(userId, settings, next)
+      const built = message()
+      if (built) await this.deliver(userId, built)
+    }
 
     if (isMorningDue(settings, state, local)) {
-      next.lastMorning = local.date
-      this.settingsStore.save(userId, settings, next)
-      const message = morningMessage(this.plans.get(userId)?.sessions ?? [], { date: local.date, latest: this.latestReadiness(userId, local.date) })
-      if (message) await this.deliver(userId, message)
+      await notify({ lastMorning: local.date }, () =>
+        morningMessage(sessions(), { date: local.date, latest: this.latestReadiness(userId, local.date) }),
+      )
     }
-
     if (isCheckInReminderDue(settings, state, local)) {
-      next.lastCheckInReminder = local.date
-      this.settingsStore.save(userId, settings, next)
-      const done = this.checkIns.listSince(userId, local.date).some((c) => c.date === local.date)
-      const message = done ? undefined : checkInReminderMessage(this.plans.get(userId)?.sessions ?? [], local.date)
-      if (message) await this.deliver(userId, message)
+      await notify({ lastCheckInReminder: local.date }, () => {
+        const done = this.checkIns.listSince(userId, local.date).some((c) => c.date === local.date)
+        return done ? undefined : checkInReminderMessage(sessions(), local.date)
+      })
     }
-
     const weekStart = dueWeeklySummary(settings, state, local)
     if (weekStart) {
-      next.lastWeekly = weekStart
-      this.settingsStore.save(userId, settings, next)
-      const summary = this.summaries.weekly(userId, weekStart)
-      if (summary && (summary.totals.activities > 0 || summary.sessions.planned > 0)) await this.deliver(userId, weeklyMessage(summary))
+      await notify({ lastWeekly: weekStart }, () => {
+        const summary = this.summaries.weekly(userId, weekStart)
+        return summary && (summary.totals.activities > 0 || summary.sessions.planned > 0) ? weeklyMessage(summary) : undefined
+      })
     }
   }
 

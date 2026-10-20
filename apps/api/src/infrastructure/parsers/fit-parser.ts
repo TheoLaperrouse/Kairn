@@ -1,16 +1,14 @@
-import { createHash } from 'node:crypto'
 import FitParser from 'fit-file-parser'
 import type { ActivityFileParser } from '../../application/ports'
 import { downsampleProfile, resampleTrack, sportFromLabel, type ImportedActivity, type ProfilePoint } from '../../domain/activity/activity'
+import { fileExternalId, round2 } from './parser-utils'
 
 /**
  * Fichiers .FIT natifs des montres Garmin (et Coros, Suunto, Wahoo…).
  * On lit le message « session » pour les totaux, et les « records » pour le profil.
  */
 export class FitActivityParser implements ActivityFileParser {
-  supports(filename: string): boolean {
-    return filename.toLowerCase().endsWith('.fit')
-  }
+  readonly extension = '.fit'
 
   async parse(content: Buffer, filename: string): Promise<ImportedActivity> {
     const parser = new FitParser({ force: true, lengthUnit: 'm', speedUnit: 'km/h', mode: 'list' })
@@ -41,7 +39,7 @@ export class FitActivityParser implements ActivityFileParser {
     const startTime = new Date(session.start_time as unknown as string | Date).toISOString()
     return {
       source: 'FIT',
-      externalId: `fit:${createHash('sha1').update(content).digest('hex')}`,
+      externalId: fileExternalId('fit', content),
       sport,
       name: activityName(sport, session.sub_sport, filename),
       startTime,
@@ -61,8 +59,4 @@ function activityName(sport: ImportedActivity['sport'], subSport: unknown, filen
   if (sport === 'BIKE') return 'Vélo'
   if (sport === 'STRENGTH') return 'Renforcement'
   return filename
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100
 }

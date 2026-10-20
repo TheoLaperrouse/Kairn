@@ -125,12 +125,7 @@ export class StravaActivityProvider implements ActivityProvider {
         per_page: String(PAGE_SIZE),
         page: String(page),
       })
-      const response = await this.http(`${API}/api/v3/athlete/activities?${params}`, {
-        headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      })
-      if (response.status === 429) throw new RateLimitedError('Strava')
-      if (!response.ok) throw new Error(`Strava a répondu ${response.status}`)
-      const batch = (await response.json()) as StravaActivity[]
+      const batch = (await this.get<StravaActivity[]>(`athlete/activities?${params}`, tokens))!
       result.push(...batch.map(toImported))
       if (batch.length < PAGE_SIZE) break
     }
@@ -140,14 +135,9 @@ export class StravaActivityProvider implements ActivityProvider {
   async fetchSamples(tokens: IntegrationTokens, externalId: string): Promise<ActivitySample[]> {
     const id = externalId.replace(/^strava:/, '')
     const params = new URLSearchParams({ keys: 'time,distance,altitude,heartrate', key_by_type: 'true' })
-    const response = await this.http(`${API}/api/v3/activities/${encodeURIComponent(id)}/streams?${params}`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-    })
     // Activité saisie à la main ou sans capteur : pas de flux.
-    if (response.status === 404) return []
-    if (response.status === 429) throw new RateLimitedError('Strava')
-    if (!response.ok) throw new Error(`Strava a répondu ${response.status}`)
-    const streams = (await response.json()) as StravaStreams
+    const streams = await this.get<StravaStreams>(`activities/${encodeURIComponent(id)}/streams?${params}`, tokens, true)
+    if (!streams) return []
     const time = streams.time?.data ?? []
     return resampleTrack(
       time.map((t, i) => ({
@@ -157,6 +147,15 @@ export class StravaActivityProvider implements ActivityProvider {
         hr: streams.heartrate?.data[i],
       })),
     )
+  }
+
+  /** Lecture authentifiée de l'API ; `undefined` sur un 404 quand `missingOk`. */
+  private async get<T>(path: string, tokens: IntegrationTokens, missingOk = false): Promise<T | undefined> {
+    const response = await this.http(`${API}/api/v3/${path}`, { headers: { Authorization: `Bearer ${tokens.accessToken}` } })
+    if (missingOk && response.status === 404) return undefined
+    if (response.status === 429) throw new RateLimitedError('Strava')
+    if (!response.ok) throw new Error(`Strava a répondu ${response.status}`)
+    return (await response.json()) as T
   }
 
   private async tokenRequest(body: Record<string, string>): Promise<IntegrationTokens> {

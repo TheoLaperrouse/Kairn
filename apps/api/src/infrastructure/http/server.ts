@@ -3,39 +3,32 @@ import { existsSync } from 'node:fs'
 import multipart from '@fastify/multipart'
 import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyInstance } from 'fastify'
+import type { PushSubscription } from '../../application/ports'
 import type { AccountService } from '../../application/use-cases/account-service'
 import type { ActivityService, ImportOutcome } from '../../application/use-cases/activity-service'
 import type { AnalysisService } from '../../application/use-cases/analysis-service'
 import type { CalendarService } from '../../application/use-cases/calendar-service'
-import type { NotificationService } from '../../application/use-cases/notification-service'
-import type { ProgressService } from '../../application/use-cases/progress-service'
-import type { SummaryService } from '../../application/use-cases/summary-service'
-import type { PushSubscription } from '../../application/ports'
-import { describeDevice } from '../../domain/account/account'
-import type { NotificationSettings } from '../../domain/notifications/notification'
 import type { ContentService } from '../../application/use-cases/content-service'
 import type { DashboardService } from '../../application/use-cases/dashboard-service'
+import type { NotificationService } from '../../application/use-cases/notification-service'
+import type { ProgressService } from '../../application/use-cases/progress-service'
 import type { RaceCourseService } from '../../application/use-cases/race-course-service'
+import type { SummaryService } from '../../application/use-cases/summary-service'
+import type { TrainingService } from '../../application/use-cases/training-service'
 import type { WellnessService } from '../../application/use-cases/wellness-service'
 import type { WorkoutExportService } from '../../application/use-cases/workout-export-service'
-import type { TrainingService } from '../../application/use-cases/training-service'
+import { describeDevice } from '../../domain/account/account'
 import type { AthleteProfile } from '../../domain/athlete/athlete-profile'
 import type { RaceGoal } from '../../domain/goal/race-goal'
+import type { NotificationSettings } from '../../domain/notifications/notification'
 import type { FuelingInput } from '../../domain/nutrition/race-fueling'
 import type { LightenMode, Unavailability } from '../../domain/plan/plan-adapter'
 import type { SessionStatus } from '../../domain/plan/training-plan'
 import type { AidStation, RaceCourseSettings } from '../../domain/race-course/race-course'
+import { DomainError, NotFoundError } from '../../domain/shared/errors'
 import type { CheckIn } from '../../domain/wellness/check-in'
 import type { StravaWebhookEvent } from '../integrations/strava-provider'
-import { DomainError, NotFoundError } from '../../domain/shared/errors'
-import {
-  AttemptLimiter,
-  UnauthorizedError,
-  clearSessionCookie,
-  requireAuth,
-  setSessionCookie,
-  userId,
-} from './auth'
+import { AttemptLimiter, UnauthorizedError, clearSessionCookie, requireAuth, setSessionCookie, userId } from './auth'
 import {
   checkInSchema,
   credentialsSchema,
@@ -45,10 +38,10 @@ import {
   notificationSettingsSchema,
   profileSchema,
   pushSubscriptionSchema,
-  unsubscribeSchema,
   raceCourseUpdateSchema,
   sessionPatchSchema,
   unavailabilitySchema,
+  unsubscribeSchema,
 } from './schemas'
 
 export interface Services {
@@ -77,6 +70,8 @@ export interface ServerOptions {
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 const OAUTH_STATE_TTL_MS = 10 * 60_000
+
+type IdParams = { Params: { id: string } }
 
 export async function buildServer(services: Services, options: ServerOptions): Promise<FastifyInstance> {
   // Seul le proxy directement devant l'API (Caddy, cloudflared) est cru : l'IP client est la dernière
@@ -156,7 +151,7 @@ function registerAuthRoutes(app: FastifyInstance, accounts: AccountService, secu
       return { ok: true }
     })
     authed.get('/api/auth/devices', async (request) => accounts.listDevices(userId(request), request.auth!.sessionId))
-    authed.delete<{ Params: { id: string } }>('/api/auth/devices/:id', async (request, reply) => {
+    authed.delete<IdParams>('/api/auth/devices/:id', async (request, reply) => {
       accounts.revokeDevice(userId(request), request.params.id)
       if (request.params.id === request.auth!.sessionId) clearSessionCookie(reply)
       return { ok: true }
@@ -180,10 +175,10 @@ function registerTrainingRoutes(api: FastifyInstance, { training, dashboard }: S
   api.get('/api/plan', async (request) => training.getPlan(userId(request)) ?? null)
   api.post('/api/plan/generate', async (request) => training.regeneratePlan(userId(request)))
 
-  api.get<{ Params: { id: string } }>('/api/sessions/:id', async (request) =>
+  api.get<IdParams>('/api/sessions/:id', async (request) =>
     training.getSession(userId(request), request.params.id),
   )
-  api.patch<{ Params: { id: string }; Body: { status?: SessionStatus; notes?: string } }>(
+  api.patch<IdParams & { Body: { status?: SessionStatus; notes?: string } }>(
     '/api/sessions/:id',
     { schema: { body: sessionPatchSchema } },
     async (request) => training.updateSession(userId(request), request.params.id, request.body),
@@ -198,10 +193,10 @@ function registerActivityRoutes(api: FastifyInstance, activities: ActivityServic
   api.get<{ Querystring: { limit?: string } }>('/api/activities', async (request) =>
     activities.list(userId(request), request.query.limit ? Number(request.query.limit) : undefined),
   )
-  api.get<{ Params: { id: string } }>('/api/activities/:id', async (request) =>
+  api.get<IdParams>('/api/activities/:id', async (request) =>
     activities.get(userId(request), request.params.id),
   )
-  api.delete<{ Params: { id: string } }>('/api/activities/:id', async (request) => {
+  api.delete<IdParams>('/api/activities/:id', async (request) => {
     activities.delete(userId(request), request.params.id)
     return { ok: true }
   })
@@ -287,7 +282,7 @@ function registerInsightRoutes(api: FastifyInstance, { analyses, summaries, prog
     progress.vam(userId(request), request.query.weeks ? Number(request.query.weeks) || undefined : undefined),
   )
   api.get('/api/activities/verdicts', async (request) => analyses.verdicts(userId(request)))
-  api.get<{ Params: { id: string } }>('/api/activities/:id/analysis', async (request) =>
+  api.get<IdParams>('/api/activities/:id/analysis', async (request) =>
     analyses.analyze(userId(request), request.params.id),
   )
   api.get<{ Querystring: { week?: string } }>('/api/summaries/weekly', async (request) =>
@@ -329,9 +324,9 @@ function registerCalendarFeed(app: FastifyInstance, calendar: CalendarService): 
 
 function registerContentRoutes(api: FastifyInstance, content: ContentService): void {
   api.get('/api/exercises', async () => content.exercises())
-  api.get<{ Params: { id: string } }>('/api/exercises/:id', async (request) => content.exercise(request.params.id))
+  api.get<IdParams>('/api/exercises/:id', async (request) => content.exercise(request.params.id))
   api.get('/api/routines', async () => content.routines())
-  api.get<{ Params: { id: string } }>('/api/routines/:id', async (request) => content.routine(request.params.id))
+  api.get<IdParams>('/api/routines/:id', async (request) => content.routine(request.params.id))
   api.get('/api/recipes', async () => content.recipes())
   api.post<{ Body: FuelingInput }>('/api/nutrition/fueling', { schema: { body: fuelingSchema } }, async (request) =>
     content.fuelingPlan(request.body),
@@ -373,21 +368,21 @@ function registerAdaptationRoutes(api: FastifyInstance, { training, wellness, wo
   api.post<{ Body: Unavailability }>('/api/plan/unavailability', { schema: { body: unavailabilitySchema } }, async (request) =>
     training.declareUnavailability(userId(request), request.body),
   )
-  api.post<{ Params: { id: string }; Body: { mode: LightenMode } }>(
+  api.post<IdParams & { Body: { mode: LightenMode } }>(
     '/api/sessions/:id/lighten',
     { schema: { body: lightenSchema } },
     async (request) => training.lightenSession(userId(request), request.params.id, request.body.mode),
   )
 
   api.get('/api/watch', async () => ({ configured: workouts.watchConfigured() }))
-  api.get<{ Params: { id: string } }>('/api/sessions/:id/workout.fit', async (request, reply) => {
+  api.get<IdParams>('/api/sessions/:id/workout.fit', async (request, reply) => {
     const file = workouts.exportSession(userId(request), request.params.id)
     return reply
       .header('Content-Type', 'application/vnd.ant.fit')
       .header('Content-Disposition', `attachment; filename="${file.filename}"`)
       .send(file.content)
   })
-  api.post<{ Params: { id: string } }>('/api/sessions/:id/send-to-watch', async (request) => {
+  api.post<IdParams>('/api/sessions/:id/send-to-watch', async (request) => {
     await workouts.sendSessionToWatch(userId(request), request.params.id)
     return { ok: true }
   })
