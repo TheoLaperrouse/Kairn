@@ -1,5 +1,7 @@
 import { activityDay, type Activity } from '../activity/activity'
+import { kmEffort } from '../goal/race-goal'
 import { addDays, type IsoDate } from '../shared/dates'
+import { clamp, median, round1 } from '../shared/math'
 
 const WINDOW_DAYS = 42
 const MIN_DURATION_SEC = 30 * 60
@@ -17,10 +19,7 @@ export function personalTrainingSpeed(activities: Activity[], today: IsoDate): n
   const since = addDays(today, -WINDOW_DAYS)
   const speeds = activities
     .filter((a) => a.sport === 'RUN' && a.durationSec >= MIN_DURATION_SEC && a.distanceKm > 0 && activityDay(a) >= since && activityDay(a) <= today)
-    .map((a) => (a.distanceKm + a.elevationGainM / 100) / (a.durationSec / 3600))
-    .sort((a, b) => a - b)
+    .map((a) => kmEffort(a.distanceKm, a.elevationGainM) / (a.durationSec / 3600))
   if (speeds.length < MIN_RUNS) return undefined
-  const mid = Math.floor(speeds.length / 2)
-  const median = speeds.length % 2 ? speeds[mid]! : (speeds[mid - 1]! + speeds[mid]!) / 2
-  return Math.round(Math.min(Math.max(median, MIN_SPEED), MAX_SPEED) * 10) / 10
+  return round1(clamp(median(speeds)!, MIN_SPEED, MAX_SPEED))
 }

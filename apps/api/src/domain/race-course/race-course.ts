@@ -1,8 +1,9 @@
 import type { ExperienceLevel } from '../athlete/athlete-profile'
 import { estimateRaceDurationH, type RaceGoal } from '../goal/race-goal'
 import { computeFuelingPlan, type GutTraining, type SweatProfile } from '../nutrition/race-fueling'
-import { haversineKm } from '../activity/activity'
+import { downsampleProfile, haversineKm } from '../activity/activity'
 import { assertDomain } from '../shared/errors'
+import { clamp, round1, round2, roundTo } from '../shared/math'
 
 /**
  * Parcours officiel de la course (GPX de l'organisation) et plan de course qui en découle :
@@ -113,16 +114,10 @@ export function buildProfile(track: TrackPoint[]): CoursePoint[] {
     const window = raw.filter((q, j) => Math.abs(j - i) <= 20 && Math.abs(q.distanceKm - p.distanceKm) <= 0.075)
     return { distanceKm: p.distanceKm, altitudeM: window.reduce((s, q) => s + q.altitudeM, 0) / window.length }
   })
-  return downsample(smoothed, 1500).map((p) => ({
+  return downsampleProfile(smoothed, 1500).map((p) => ({
     distanceKm: Math.round(p.distanceKm * 1000) / 1000,
     altitudeM: Math.round(p.altitudeM),
   }))
-}
-
-function downsample(points: CoursePoint[], max: number): CoursePoint[] {
-  if (points.length <= max) return points
-  const step = (points.length - 1) / (max - 1)
-  return Array.from({ length: max }, (_, i) => points[Math.round(i * step)]!)
 }
 
 /** Kilomètre du tracé le plus proche d'un waypoint (ravitaillement indiqué dans le GPX). */
@@ -135,23 +130,15 @@ export function snapToTrack(track: TrackPoint[], target: { lat: number; lon: num
     const gap = haversineKm(p.lat, p.lon, target.lat, target.lon)
     if (gap < best.gap) best = { km: distance, gap }
   })
-  return Math.round(best.km * 10) / 10
+  return round1(best.km)
 }
 
 export function courseStats(points: CoursePoint[]): Pick<RaceCourse, 'totalDistanceKm' | 'elevationGainM' | 'elevationLossM' | 'maxAltitudeM'> {
-  let gain = 0
-  let loss = 0
-  points.forEach((p, i) => {
-    const prev = points[i - 1]
-    if (!prev) return
-    const delta = p.altitudeM - prev.altitudeM
-    if (delta > 0) gain += delta
-    else loss -= delta
-  })
+  const { gain, loss } = legStats(points, -Infinity, Infinity)
   return {
-    totalDistanceKm: Math.round((points.at(-1)?.distanceKm ?? 0) * 10) / 10,
-    elevationGainM: Math.round(gain / 10) * 10,
-    elevationLossM: Math.round(loss / 10) * 10,
+    totalDistanceKm: round1(points.at(-1)?.distanceKm ?? 0),
+    elevationGainM: gain,
+    elevationLossM: loss,
     maxAltitudeM: Math.max(...points.map((p) => p.altitudeM)),
   }
 }
@@ -176,7 +163,7 @@ export function planRace(course: RaceCourse, goal: RaceGoal, level: ExperienceLe
     level,
   )
   const stations = [...aidStations].filter((a) => a.km > 0 && a.km < course.totalDistanceKm).sort((a, b) => a.km - b.km)
-  const stopMin = (a: AidStation) => Math.round(Math.min(Math.max(totalH * (a.major ? 1.5 : 0.5), a.major ? 10 : 2), a.major ? 40 : 10))
+  const stopMin = (a: AidStation) => Math.round(a.major ? clamp(totalH * 1.5, 10, 40) : clamp(totalH * 0.5, 2, 10))
   const totalStopH = stations.reduce((sum, a) => sum + stopMin(a), 0) / 60
   const movingH = Math.max(totalH - totalStopH, totalH * 0.8)
 
@@ -212,7 +199,7 @@ export function planRace(course: RaceCourse, goal: RaceGoal, level: ExperienceLe
   }
 
   const fueling = computeFuelingPlan({
-    durationH: Math.min(Math.max(totalH, 0.5), 72),
+    durationH: clamp(totalH, 0.5, 72),
     temperatureC: settings.temperatureC,
     weightKg: settings.weightKg,
     sweat: settings.sweat,
@@ -248,13 +235,13 @@ export function planRace(course: RaceCourse, goal: RaceGoal, level: ExperienceLe
 
     const split: Split = {
       name: station.name,
-      km: Math.round(station.km * 10) / 10,
+      km: round1(station.km),
       elapsedH: round2(arrival),
       clock,
       day,
       cutoffH: station.cutoffH,
       marginH: marginH !== undefined ? round2(marginH) : undefined,
-      legDistanceKm: Math.round((station.km - previousKm) * 10) / 10,
+      legDistanceKm: round1(station.km - previousKm),
       legGainM: leg.gain,
       legLossM: leg.loss,
       legDurationH: round2(legDurationH),
@@ -280,7 +267,7 @@ export function planRace(course: RaceCourse, goal: RaceGoal, level: ExperienceLe
     splits,
     timeline: points
       .filter((_, i) => i % Math.ceil(points.length / 300) === 0 || i === points.length - 1)
-      .map((p) => ({ km: Math.round(p.distanceKm * 100) / 100, elapsedH: round2(timeAt(p.distanceKm)) })),
+      .map((p) => ({ km: round2(p.distanceKm), elapsedH: round2(timeAt(p.distanceKm)) })),
     warnings,
   }
 }
@@ -295,13 +282,13 @@ function legStats(points: CoursePoint[], fromKm: number, toKm: number) {
     if (delta > 0) gain += delta
     else loss -= delta
   }
-  return { gain: Math.round(gain / 10) * 10, loss: Math.round(loss / 10) * 10 }
+  return { gain: roundTo(gain, 10), loss: roundTo(loss, 10) }
 }
 
 /** Glucides à emporter : la boisson d'effort (≈ 60 g/L) d'abord, le reste en solide. */
 function legNutrition(durationH: number, carbsH: number, fluidH: number, sodiumH: number, startH: number): LegNutrition {
   const carbsG = Math.round(carbsH * durationH)
-  const fluidMl = Math.round((fluidH * durationH) / 50) * 50
+  const fluidMl = roundTo(fluidH * durationH, 50)
   const flasks = Math.max(1, Math.round(fluidMl / 500))
   const fromDrink = Math.min(Math.round(flasks * 500 * 0.06), carbsG)
   const solid = Math.max(carbsG - fromDrink, 0)
@@ -357,7 +344,7 @@ function segment(points: CoursePoint[], timeAt: (km: number) => number): CourseS
       endKm: b.distanceKm,
       gainM: stats.gain,
       lossM: stats.loss,
-      avgGradePct: Math.round(grade * 10) / 10,
+      avgGradePct: round1(grade),
       startElapsedH: 0,
       durationH: 0,
     })
@@ -379,16 +366,12 @@ function segment(points: CoursePoint[], timeAt: (km: number) => number): CourseS
     const start = timeAt(s.startKm)
     return {
       ...s,
-      startKm: Math.round(s.startKm * 10) / 10,
-      endKm: Math.round(s.endKm * 10) / 10,
+      startKm: round1(s.startKm),
+      endKm: round1(s.endKm),
       startElapsedH: round2(start),
       durationH: round2(timeAt(s.endKm) - start),
     }
   })
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100
 }
 
 function formatH(hours: number): string {

@@ -108,6 +108,3 @@ export const SESSION_SPORT: Record<SessionType, Sport> = {
   VELO_FORCE: 'BIKE',
   COURSE: 'RUN',
 }
-
-/** Facteur d'intensité utilisé pour estimer la charge prévue (min × facteur). */
-export const ZONE_LOAD_FACTOR: Record<Zone, number> = { 1: 0.6, 2: 0.8, 3: 1, 4: 1.25, 5: 1.5 }

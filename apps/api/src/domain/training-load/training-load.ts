@@ -1,7 +1,8 @@
 import type { AthleteProfile } from '../athlete/athlete-profile'
 import { activityDay, type Activity } from '../activity/activity'
-import { ZONE_LOAD_FACTOR, type PlannedSession, type Zone } from '../plan/training-plan'
+import type { PlannedSession, Sport, Zone } from '../plan/training-plan'
 import { addDays, daysBetween, type IsoDate } from '../shared/dates'
+import { clamp, round1 } from '../shared/math'
 
 /**
  * Modèle Banister « fitness / fatigue » :
@@ -13,6 +14,8 @@ const CTL_DAYS = 42
 const ATL_DAYS = 7
 
 const SPORT_FACTOR = { RUN: 1, BIKE: 0.65, STRENGTH: 0.5 } as const
+/** Facteur d'intensité utilisé pour estimer la charge prévue (min × facteur). */
+const ZONE_LOAD_FACTOR: Record<Zone, number> = { 1: 0.6, 2: 0.8, 3: 1, 4: 1.25, 5: 1.5 }
 
 export interface LoadPoint {
   date: IsoDate
@@ -32,11 +35,15 @@ export function activityLoad(activity: Activity, profile: Pick<AthleteProfile, '
   const factor = SPORT_FACTOR[activity.sport]
   if (activity.avgHeartRate && profile.hrMax && profile.hrRest && profile.hrMax > profile.hrRest) {
     const reserve = (activity.avgHeartRate - profile.hrRest) / (profile.hrMax - profile.hrRest)
-    const ratio = Math.min(Math.max(reserve, 0), 1)
-    return Math.round(minutes * ratio * 0.64 * Math.exp(1.92 * ratio) * (activity.sport === 'RUN' ? 1 : factor + 0.2))
+    return trimp(minutes, clamp(reserve, 0, 1), activity.sport)
   }
   const verticalBonus = activity.sport === 'RUN' ? 1 + Math.min(activity.elevationGainM / 2000, 0.5) : 1
   return Math.round(minutes * 0.8 * factor * verticalBonus)
+}
+
+/** TRIMP de Banister pour une fraction de FC de réserve donnée ; vélo et renfo pèsent moins que la course. */
+function trimp(minutes: number, reserve: number, sport: Sport): number {
+  return Math.round(minutes * reserve * 0.64 * Math.exp(1.92 * reserve) * (sport === 'RUN' ? 1 : SPORT_FACTOR[sport] + 0.2))
 }
 
 export function plannedLoad(session: PlannedSession): number {
@@ -59,14 +66,9 @@ export function expectedActivityLoad(session: PlannedSession, withHeartRate: boo
   const total = blocks.reduce((sum, b) => sum + b.minutes, 0)
   if (total === 0) return plannedLoad(session)
   const ratio = blocks.reduce((sum, b) => sum + b.minutes * ZONE_RESERVE[b.zone], 0) / total
-  const factor = session.sport === 'RUN' ? 1 : SPORT_FACTOR[session.sport] + 0.2
-  return Math.round(session.durationMin * ratio * 0.64 * Math.exp(1.92 * ratio) * factor)
+  return trimp(session.durationMin, ratio, session.sport)
 }
 
-/**
- * Série quotidienne de charge du `from` au `to` inclus. Les jours postérieurs à `today`
- * utilisent la charge prévue par le plan : on projette la forme jusqu'au jour de course.
- */
 /**
  * La charge réalisée se calcule à la FC dès qu'elle est connue (TRIMP), sinon à la durée.
  * La charge prévue doit suivre la même échelle, sinon la projection jusqu'au jour de course
@@ -81,6 +83,10 @@ export function usesHeartRateLoad(profile: Pick<AthleteProfile, 'hrMax' | 'hrRes
   return recent.length === 0 || recent.filter((a) => a.avgHeartRate).length * 2 >= recent.length
 }
 
+/**
+ * Série quotidienne de charge du `from` au `to` inclus. Les jours postérieurs à `today`
+ * utilisent la charge prévue par le plan : on projette la forme jusqu'au jour de course.
+ */
 export function computeLoadSeries(
   activities: Activity[],
   sessions: PlannedSession[],
@@ -121,8 +127,4 @@ export function computeLoadSeries(
     })
   }
   return points
-}
-
-function round1(value: number): number {
-  return Math.round(value * 10) / 10
 }

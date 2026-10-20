@@ -1,4 +1,5 @@
 import type { PlannedSession } from '../plan/training-plan'
+import { round1 } from '../shared/math'
 import type { Activity } from './activity'
 
 /** Noms donnés par défaut par les montres, Strava (en anglais et en français) ou nos parseurs. */
@@ -12,7 +13,7 @@ export function isGenericName(name: string): boolean {
 }
 
 function kmLabel(km: number): string {
-  return `${km >= 10 ? Math.round(km) : Math.round(km * 10) / 10} km`.replace('.', ',')
+  return `${km >= 10 ? Math.round(km) : round1(km)} km`.replace('.', ',')
 }
 
 /** Nom lisible : le titre de la séance prévue, sinon une description tirée du profil de la sortie. */

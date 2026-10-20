@@ -1,8 +1,10 @@
 import { activityDay, type Activity, type ActivitySample } from '../activity/activity'
 import type { AthleteProfile } from '../athlete/athlete-profile'
 import type { PlannedSession, SessionType, Zone } from '../plan/training-plan'
+import { kmEffort } from '../goal/race-goal'
 import { addDays, daysBetween, weekday } from '../shared/dates'
 import { formatInt, formatKm, formatMinutes, formatPercent, weekdayName } from '../shared/format'
+import { mean, median } from '../shared/math'
 import { activityLoad, expectedActivityLoad } from '../training-load/training-load'
 import { aggregateVerticalSpeed, detectClimbs, movingSeconds, type Climb } from './climbs'
 import { vamCurve, vamRecords, type VamCurve, type VamDuration } from './vam-curve'
@@ -170,10 +172,7 @@ function baselineVam(activity: Activity, history: Activity[]): number | undefine
       const best = bestClimbOf(detectClimbs(a.samples!).climbs)
       return best ? [best.verticalSpeed] : []
     })
-    .sort((a, b) => a - b)
-  if (values.length < 3) return undefined
-  const mid = Math.floor(values.length / 2)
-  return Math.round(values.length % 2 ? values[mid]! : (values[mid - 1]! + values[mid]!) / 2)
+  return values.length < 3 ? undefined : Math.round(median(values)!)
 }
 
 /**
@@ -199,24 +198,25 @@ function decoupling(samples: ActivitySample[]): number | undefined {
       else loss -= delta
     }
     const km = part.at(-1)!.d - part[0]!.d
-    const hrs = part.flatMap((s) => (s.hr === undefined ? [] : [s.hr]))
+    const effortKm = kmEffort(km, gain)
+    const hr = mean(part.flatMap((s) => (s.hr === undefined ? [] : [s.hr])))
     const seconds = movingSeconds(part)
-    return { km, gain, gainPerKm: km > 0 ? gain / km : 0, lossPerKm: km > 0 ? loss / km : 0, hrs, seconds }
+    return {
+      gainPerKm: km > 0 ? gain / km : 0,
+      lossPerKm: km > 0 ? loss / km : 0,
+      efficiency: seconds < 600 || hr === undefined || effortKm <= 0 ? undefined : effortKm / (seconds / 3600) / hr,
+    }
   })
   const [first, second] = halves as [(typeof halves)[0], (typeof halves)[0]]
   if (
     Math.abs(first.gainPerKm - second.gainPerKm) > MAX_TERRAIN_GAP_M_PER_KM ||
-    Math.abs(first.lossPerKm - second.lossPerKm) > MAX_TERRAIN_GAP_M_PER_KM
+    Math.abs(first.lossPerKm - second.lossPerKm) > MAX_TERRAIN_GAP_M_PER_KM ||
+    first.efficiency === undefined ||
+    second.efficiency === undefined
   ) {
     return undefined
   }
-  const efficiency = halves.map(({ km, gain, hrs, seconds }) => {
-    const effortKm = km + gain / 100
-    if (seconds < 600 || hrs.length === 0 || effortKm <= 0) return undefined
-    return effortKm / (seconds / 3600) / (hrs.reduce((a, b) => a + b, 0) / hrs.length)
-  })
-  if (efficiency[0] === undefined || efficiency[1] === undefined) return undefined
-  return Math.round(((efficiency[0] - efficiency[1]) / efficiency[0]) * 1000) / 10
+  return Math.round(((first.efficiency - second.efficiency) / first.efficiency) * 1000) / 10
 }
 
 function effortMinutesOf(session: PlannedSession): number {
@@ -299,176 +299,208 @@ function headline(activity: Activity, a: WorkoutAnalysis): string {
 }
 
 function insights(activity: Activity, a: WorkoutAnalysis, context: AnalysisContext): Insight[] {
-  const list: Insight[] = []
   const c = a.comparison
-  const minutes = activity.durationSec / 60
+  return [
+    a.zones && intensityInsight(a, a.zones.seconds),
+    ...(c ? planInsights(activity, a, c) : []),
+    vamRecordsInsight(a),
+    climbsInsight(a),
+    descentsInsight(activity, a),
+    enduranceInsight(activity, a),
+    fuelInsight(activity),
+    loadInsight(a),
+    dataInsight(activity, a, context),
+  ].filter((i): i is Insight => Boolean(i))
+}
 
-  if (a.zones) {
-    const easy = 1 - shareAtOrAbove(a.zones.seconds, 3)
-    const hard = shareAtOrAbove(a.zones.seconds, 4)
-    if (a.verdict === 'TROP_INTENSE' && overdone(c!)) {
-      list.push({
-        tone: 'ATTENTION',
-        topic: 'INTENSITE',
-        title: 'Séance trop appuyée',
-        text: `${c!.effortMin} min en zone d’effort pour ${c!.plannedEffortMin} prévues. Une séance de qualité vaut par la précision des blocs, pas par leur durée : entre eux, récupère vraiment en Z1-Z2.`,
-      })
-    } else if (a.verdict === 'TROP_INTENSE') {
-      list.push({
-        tone: 'ATTENTION',
-        topic: 'INTENSITE',
-        title: 'Trop vite pour une séance facile',
-        text: `Seulement ${formatPercent(easy)} du temps en Z1-Z2. En montée, passe à la marche active dès que tu ne peux plus parler : l’endurance se construit en aisance, et tu arriveras plus frais à la prochaine séance clé.`,
-      })
-    } else if (a.verdict === 'PAS_ASSEZ_INTENSE') {
-      list.push({
-        tone: 'ATTENTION',
-        topic: 'INTENSITE',
-        title: 'Zone d’effort pas atteinte',
-        text: `${c!.effortMin} min en zone d’effort pour ${c!.plannedEffortMin} prévues. Si les jambes étaient lourdes, c’était le bon choix ; sinon, ose pousser un peu plus sur les blocs et récupère vraiment entre eux.`,
-      })
-    } else if (c && EASY_TYPES.has(c.sessionType)) {
-      list.push({ tone: 'POSITIVE', topic: 'INTENSITE', title: 'Intensité maîtrisée', text: `${formatPercent(easy)} du temps en Z1-Z2 : exactement ce qu’on attend d’une séance d’endurance.` })
-    } else if (c?.plannedEffortMin && c.effortMin !== undefined) {
-      list.push({ tone: 'POSITIVE', topic: 'INTENSITE', title: 'Blocs d’effort réussis', text: `${c.effortMin} min en zone d’effort pour ${c.plannedEffortMin} prévues.` })
-    } else if (!c) {
-      list.push({
-        tone: 'INFO',
-        topic: 'INTENSITE',
-        title: 'Répartition de l’effort',
-        text: `${formatPercent(easy)} en Z1-Z2, ${formatPercent(hard)} en Z4-Z5.`,
-      })
+function intensityInsight(a: WorkoutAnalysis, zones: TimeInZones): Insight | undefined {
+  const c = a.comparison
+  const easy = 1 - shareAtOrAbove(zones, 3)
+  if (a.verdict === 'TROP_INTENSE' && overdone(c!)) {
+    return {
+      tone: 'ATTENTION',
+      topic: 'INTENSITE',
+      title: 'Séance trop appuyée',
+      text: `${c!.effortMin} min en zone d’effort pour ${c!.plannedEffortMin} prévues. Une séance de qualité vaut par la précision des blocs, pas par leur durée : entre eux, récupère vraiment en Z1-Z2.`,
     }
   }
-
-  if (c) {
-    const ratio = c.actualDurationMin / c.plannedDurationMin
-    if (a.verdict === 'ECOURTEE') {
-      list.push({
-        tone: 'ATTENTION',
-        topic: 'DUREE',
-        title: 'Séance raccourcie',
-        text: `${formatPercent(ratio)} de la durée prévue. Pas de rattrapage : reprends le plan normalement, c’est la régularité qui paie.`,
-      })
-    } else if (a.verdict === 'PROLONGEE') {
-      list.push({
-        tone: 'ATTENTION',
-        topic: 'DUREE',
-        title: 'Plus long que prévu',
-        text: `${formatPercent(ratio)} de la durée prévue : le surplus de volume se paie en fatigue, veille à bien récupérer.`,
-      })
-    }
-    if (c.plannedElevationM && c.plannedElevationM >= 200 && activity.sport === 'RUN') {
-      const elevationRatio = activity.elevationGainM / c.plannedElevationM
-      if (elevationRatio < 0.7) {
-        list.push({
-          tone: 'INFO',
-          topic: 'DENIVELE',
-          title: 'D+ en dessous de l’objectif',
-          text: `${formatInt(activity.elevationGainM)} m sur ${formatInt(c.plannedElevationM)} m prévus. Si le terrain manque, des répétitions de côte, des escaliers ou le tapis incliné complètent bien.`,
-        })
-      } else if (elevationRatio >= 0.9) {
-        list.push({ tone: 'POSITIVE', topic: 'DENIVELE', title: 'D+ au rendez-vous', text: `${formatInt(activity.elevationGainM)} m de dénivelé pour ${formatInt(c.plannedElevationM)} m prévus.` })
-      }
+  if (a.verdict === 'TROP_INTENSE') {
+    return {
+      tone: 'ATTENTION',
+      topic: 'INTENSITE',
+      title: 'Trop vite pour une séance facile',
+      text: `Seulement ${formatPercent(easy)} du temps en Z1-Z2. En montée, passe à la marche active dès que tu ne peux plus parler : l’endurance se construit en aisance, et tu arriveras plus frais à la prochaine séance clé.`,
     }
   }
-
-  if (a.vamRecords.length) {
-    const [first, ...others] = a.vamRecords
-    list.push({
-      tone: 'POSITIVE',
-      topic: 'MONTEE',
-      title: a.vamRecords.length > 1 ? 'Records de VAM' : 'Record de VAM',
-      text:
-        `Nouveau record sur ${first!.minutes} min : ${formatInt(first!.vam)} m/h (précédent : ${formatInt(first!.previous)} m/h).` +
-        (others.length ? ` Aussi sur ${others.map((r) => `${r.minutes} min (${formatInt(r.vam)} m/h)`).join(', ')}.` : ''),
-    })
-  }
-
-  if (a.climbs.length && a.ascentVam) {
-    const best = a.bestClimb
-    let text = `${a.climbs.length} montée${a.climbs.length > 1 ? 's' : ''} de plus de 50 m, à ${formatInt(a.ascentVam)} m/h en moyenne.`
-    if (best) text += ` Meilleure : ${formatInt(best.verticalSpeed)} m/h sur ${formatInt(best.elevationM)} m à ${best.gradePct.toLocaleString('fr-FR')} % (km ${best.startKm.toLocaleString('fr-FR')}).`
-    let tone: InsightTone = 'INFO'
-    if (best && a.vamBaseline) {
-      const delta = best.verticalSpeed / a.vamBaseline - 1
-      if (delta >= 0.05) {
-        tone = 'POSITIVE'
-        text += ` C’est ${formatPercent(delta)} de mieux que ta VAM habituelle (${formatInt(a.vamBaseline)} m/h).`
-      } else if (delta <= -0.1) {
-        text += ` En dessous de ta VAM habituelle (${formatInt(a.vamBaseline)} m/h) : normal sur une séance facile ou en fin de bloc chargé.`
-      } else {
-        text += ` Dans tes valeurs habituelles (${formatInt(a.vamBaseline)} m/h).`
-      }
+  if (a.verdict === 'PAS_ASSEZ_INTENSE') {
+    return {
+      tone: 'ATTENTION',
+      topic: 'INTENSITE',
+      title: 'Zone d’effort pas atteinte',
+      text: `${c!.effortMin} min en zone d’effort pour ${c!.plannedEffortMin} prévues. Si les jambes étaient lourdes, c’était le bon choix ; sinon, ose pousser un peu plus sur les blocs et récupère vraiment entre eux.`,
     }
-    list.push({ tone, topic: 'MONTEE', title: 'Montées', text })
   }
-
-  const descended = a.descents.reduce((s, d) => s - d.elevationM, 0)
-  if (descended >= 200 && a.descentSpeed && activity.sport === 'RUN') {
-    list.push({
+  if (c && EASY_TYPES.has(c.sessionType)) {
+    return { tone: 'POSITIVE', topic: 'INTENSITE', title: 'Intensité maîtrisée', text: `${formatPercent(easy)} du temps en Z1-Z2 : exactement ce qu’on attend d’une séance d’endurance.` }
+  }
+  if (c?.plannedEffortMin && c.effortMin !== undefined) {
+    return { tone: 'POSITIVE', topic: 'INTENSITE', title: 'Blocs d’effort réussis', text: `${c.effortMin} min en zone d’effort pour ${c.plannedEffortMin} prévues.` }
+  }
+  if (!c) {
+    return {
       tone: 'INFO',
-      topic: 'DESCENTE',
-      title: 'Descentes',
-      text: `${formatInt(descended)} m descendus à ${formatInt(a.descentSpeed)} m/h.${descended >= 400 ? ' Ce volume de descente use les quadriceps : l’excentrique du renfo te prépare à l’encaisser.' : ''}`,
-    })
-  }
-
-  if (a.decouplingPct !== undefined && (!c || EASY_TYPES.has(c.sessionType))) {
-    if (a.decouplingPct >= 8) {
-      list.push({
-        tone: 'ATTENTION',
-        topic: 'ENDURANCE',
-        title: 'Dérive cardiaque',
-        text: `Ton efficience a baissé de ${formatInt(a.decouplingPct)} % en seconde moitié : à effort égal, la FC monte. Chaleur, hydratation ou carburant insuffisants, ou fatigue accumulée : bois et mange dès la première heure.`,
-      })
-    } else if (a.decouplingPct <= 4 && minutes >= 75) {
-      list.push({
-        tone: 'POSITIVE',
-        topic: 'ENDURANCE',
-        title: 'Endurance solide',
-        text: `FC stable du début à la fin (dérive de ${formatInt(Math.max(a.decouplingPct, 0))} %) : ta base aérobie encaisse bien la durée.`,
-      })
+      topic: 'INTENSITE',
+      title: 'Répartition de l’effort',
+      text: `${formatPercent(easy)} en Z1-Z2, ${formatPercent(shareAtOrAbove(zones, 4))} en Z4-Z5.`,
     }
   }
+  return undefined
+}
 
-  if (minutes >= 120 && activity.sport !== 'STRENGTH') {
-    const hours = minutes / 60
-    list.push({
-      tone: 'INFO',
-      topic: 'NUTRITION',
-      title: 'Carburant',
-      text: `Sur ${formatMinutes(minutes)}, vise 60 à 90 g de glucides par heure, soit ${formatInt(hours * 60)} à ${formatInt(hours * 90)} g, et 500 à 700 mg de sodium par litre bu. Les sorties longues servent aussi à entraîner l’estomac.`,
-    })
-  }
-
-  if (a.plannedLoad && a.load > a.plannedLoad * 1.4) {
+/** Durée et dénivelé réalisés face à la séance prévue. */
+function planInsights(activity: Activity, a: WorkoutAnalysis, c: PlanComparison): Insight[] {
+  const list: Insight[] = []
+  const ratio = c.actualDurationMin / c.plannedDurationMin
+  if (a.verdict === 'ECOURTEE') {
     list.push({
       tone: 'ATTENTION',
-      topic: 'CHARGE',
-      title: 'Charge élevée',
-      text: `Charge de ${a.load} pour ${a.plannedLoad} prévue : cette séance compte presque double dans ta fatigue.`,
+      topic: 'DUREE',
+      title: 'Séance raccourcie',
+      text: `${formatPercent(ratio)} de la durée prévue. Pas de rattrapage : reprends le plan normalement, c’est la régularité qui paie.`,
+    })
+  } else if (a.verdict === 'PROLONGEE') {
+    list.push({
+      tone: 'ATTENTION',
+      topic: 'DUREE',
+      title: 'Plus long que prévu',
+      text: `${formatPercent(ratio)} de la durée prévue : le surplus de volume se paie en fatigue, veille à bien récupérer.`,
     })
   }
+  if (c.plannedElevationM && c.plannedElevationM >= 200 && activity.sport === 'RUN') {
+    const elevationRatio = activity.elevationGainM / c.plannedElevationM
+    if (elevationRatio < 0.7) {
+      list.push({
+        tone: 'INFO',
+        topic: 'DENIVELE',
+        title: 'D+ en dessous de l’objectif',
+        text: `${formatInt(activity.elevationGainM)} m sur ${formatInt(c.plannedElevationM)} m prévus. Si le terrain manque, des répétitions de côte, des escaliers ou le tapis incliné complètent bien.`,
+      })
+    } else if (elevationRatio >= 0.9) {
+      list.push({ tone: 'POSITIVE', topic: 'DENIVELE', title: 'D+ au rendez-vous', text: `${formatInt(activity.elevationGainM)} m de dénivelé pour ${formatInt(c.plannedElevationM)} m prévus.` })
+    }
+  }
+  return list
+}
 
+function vamRecordsInsight(a: WorkoutAnalysis): Insight | undefined {
+  const [first, ...others] = a.vamRecords
+  if (!first) return undefined
+  return {
+    tone: 'POSITIVE',
+    topic: 'MONTEE',
+    title: others.length ? 'Records de VAM' : 'Record de VAM',
+    text:
+      `Nouveau record sur ${first.minutes} min : ${formatInt(first.vam)} m/h (précédent : ${formatInt(first.previous)} m/h).` +
+      (others.length ? ` Aussi sur ${others.map((r) => `${r.minutes} min (${formatInt(r.vam)} m/h)`).join(', ')}.` : ''),
+  }
+}
+
+function climbsInsight(a: WorkoutAnalysis): Insight | undefined {
+  if (!a.climbs.length || !a.ascentVam) return undefined
+  const best = a.bestClimb
+  let text = `${a.climbs.length} montée${a.climbs.length > 1 ? 's' : ''} de plus de 50 m, à ${formatInt(a.ascentVam)} m/h en moyenne.`
+  if (best) text += ` Meilleure : ${formatInt(best.verticalSpeed)} m/h sur ${formatInt(best.elevationM)} m à ${best.gradePct.toLocaleString('fr-FR')} % (km ${best.startKm.toLocaleString('fr-FR')}).`
+  let tone: InsightTone = 'INFO'
+  if (best && a.vamBaseline) {
+    const delta = best.verticalSpeed / a.vamBaseline - 1
+    if (delta >= 0.05) {
+      tone = 'POSITIVE'
+      text += ` C’est ${formatPercent(delta)} de mieux que ta VAM habituelle (${formatInt(a.vamBaseline)} m/h).`
+    } else if (delta <= -0.1) {
+      text += ` En dessous de ta VAM habituelle (${formatInt(a.vamBaseline)} m/h) : normal sur une séance facile ou en fin de bloc chargé.`
+    } else {
+      text += ` Dans tes valeurs habituelles (${formatInt(a.vamBaseline)} m/h).`
+    }
+  }
+  return { tone, topic: 'MONTEE', title: 'Montées', text }
+}
+
+function descentsInsight(activity: Activity, a: WorkoutAnalysis): Insight | undefined {
+  const descended = a.descents.reduce((s, d) => s - d.elevationM, 0)
+  if (descended < 200 || !a.descentSpeed || activity.sport !== 'RUN') return undefined
+  return {
+    tone: 'INFO',
+    topic: 'DESCENTE',
+    title: 'Descentes',
+    text: `${formatInt(descended)} m descendus à ${formatInt(a.descentSpeed)} m/h.${descended >= 400 ? ' Ce volume de descente use les quadriceps : l’excentrique du renfo te prépare à l’encaisser.' : ''}`,
+  }
+}
+
+function enduranceInsight(activity: Activity, a: WorkoutAnalysis): Insight | undefined {
+  const c = a.comparison
+  if (a.decouplingPct === undefined || (c && !EASY_TYPES.has(c.sessionType))) return undefined
+  if (a.decouplingPct >= 8) {
+    return {
+      tone: 'ATTENTION',
+      topic: 'ENDURANCE',
+      title: 'Dérive cardiaque',
+      text: `Ton efficience a baissé de ${formatInt(a.decouplingPct)} % en seconde moitié : à effort égal, la FC monte. Chaleur, hydratation ou carburant insuffisants, ou fatigue accumulée : bois et mange dès la première heure.`,
+    }
+  }
+  if (a.decouplingPct <= 4 && activity.durationSec / 60 >= 75) {
+    return {
+      tone: 'POSITIVE',
+      topic: 'ENDURANCE',
+      title: 'Endurance solide',
+      text: `FC stable du début à la fin (dérive de ${formatInt(Math.max(a.decouplingPct, 0))} %) : ta base aérobie encaisse bien la durée.`,
+    }
+  }
+  return undefined
+}
+
+function fuelInsight(activity: Activity): Insight | undefined {
+  const minutes = activity.durationSec / 60
+  if (minutes < 120 || activity.sport === 'STRENGTH') return undefined
+  const hours = minutes / 60
+  return {
+    tone: 'INFO',
+    topic: 'NUTRITION',
+    title: 'Carburant',
+    text: `Sur ${formatMinutes(minutes)}, vise 60 à 90 g de glucides par heure, soit ${formatInt(hours * 60)} à ${formatInt(hours * 90)} g, et 500 à 700 mg de sodium par litre bu. Les sorties longues servent aussi à entraîner l’estomac.`,
+  }
+}
+
+function loadInsight(a: WorkoutAnalysis): Insight | undefined {
+  if (!a.plannedLoad || a.load <= a.plannedLoad * 1.4) return undefined
+  return {
+    tone: 'ATTENTION',
+    topic: 'CHARGE',
+    title: 'Charge élevée',
+    text: `Charge de ${a.load} pour ${a.plannedLoad} prévue : cette séance compte presque double dans ta fatigue.`,
+  }
+}
+
+function dataInsight(activity: Activity, a: WorkoutAnalysis, context: AnalysisContext): Insight | undefined {
   if (!a.hasDetail) {
-    list.push({ tone: 'INFO', topic: 'DONNEES', title: 'Analyse partielle', text: 'La trace détaillée n’est pas (encore) disponible : zones cardiaques et montées seront analysées dès sa récupération.' })
-  } else if (a.hrMaxSuggestion?.current) {
-    list.push({
+    return { tone: 'INFO', topic: 'DONNEES', title: 'Analyse partielle', text: 'La trace détaillée n’est pas (encore) disponible : zones cardiaques et montées seront analysées dès sa récupération.' }
+  }
+  if (a.hrMaxSuggestion?.current) {
+    return {
       tone: 'ATTENTION',
       topic: 'DONNEES',
       title: 'FC max dépassée',
       text: `${a.hrMaxSuggestion.observed} bpm tenus 10 s, au-dessus des ${a.hrMaxSuggestion.current} bpm de ton profil. Mets ta FC max à jour : toutes tes zones, et donc tes analyses, seront plus justes.`,
-    })
-  } else if (!context.profile.hrMax && activity.avgHeartRate) {
-    list.push({
+    }
+  }
+  if (!context.profile.hrMax && activity.avgHeartRate) {
+    return {
       tone: 'INFO',
       topic: 'DONNEES',
       title: 'Zones cardiaques',
       text: `Renseigne ta FC max (et ta FC de repos) pour obtenir le temps passé dans chaque zone.${a.hrMaxSuggestion ? ` La plus haute FC relevée sur tes sorties est ${a.hrMaxSuggestion.observed} bpm : c’est au moins ta FC max.` : ''}`,
-    })
+    }
   }
-  return list
+  return undefined
 }
 
 function nextStep(activity: Activity, a: WorkoutAnalysis, sessions: PlannedSession[]): WorkoutAnalysis['nextStep'] {

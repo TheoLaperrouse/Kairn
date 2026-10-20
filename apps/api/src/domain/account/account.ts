@@ -23,7 +23,7 @@ export interface DeviceSession {
 }
 
 export const SESSION_TTL_DAYS = 60
-export const MIN_PASSWORD_LENGTH = 10
+const MIN_PASSWORD_LENGTH = 10
 
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase()

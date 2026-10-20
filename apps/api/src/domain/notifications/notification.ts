@@ -1,7 +1,7 @@
 import type { WorkoutAnalysis } from '../analysis/workout-analysis'
 import type { Readiness } from '../wellness/check-in'
 import type { PlannedSession } from '../plan/training-plan'
-import { addDays, weekday, type IsoDate, type LocalTime } from '../shared/dates'
+import { addDays, DEFAULT_TIME_ZONE, weekday, type IsoDate, type LocalTime } from '../shared/dates'
 import { assertDomain } from '../shared/errors'
 import { formatInt, formatKm, formatMinutes } from '../shared/format'
 import type { WeeklySummary } from '../summary/weekly-summary'
@@ -33,7 +33,7 @@ export interface NotificationState {
 }
 
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
-  timeZone: 'Europe/Paris',
+  timeZone: DEFAULT_TIME_ZONE,
   morning: { enabled: true, time: '07:00' },
   weekly: { enabled: true, time: '19:00' },
   analysis: { enabled: true },
@@ -45,8 +45,8 @@ export function normalizeSettings(settings: Partial<NotificationSettings>): Noti
   return { ...DEFAULT_NOTIFICATION_SETTINGS, ...settings }
 }
 
-/** Après un redémarrage, une notification du matin manquée part encore dans ce délai. */
-const MORNING_CATCH_UP_MIN = 4 * 60
+/** Après un redémarrage, un rappel manqué part encore dans ce délai. */
+const CATCH_UP_MIN = 4 * 60
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
 
 export function validateNotificationSettings(settings: NotificationSettings): void {
@@ -70,10 +70,15 @@ function minutesOf(time: string): number {
   return h! * 60 + m!
 }
 
+/** Rappel quotidien activé, pas encore envoyé aujourd'hui, et heure atteinte depuis moins de `CATCH_UP_MIN`. */
+function isDailyReminderDue(reminder: { enabled: boolean; time: string }, lastSent: IsoDate | undefined, now: LocalTime): boolean {
+  if (!reminder.enabled || lastSent === now.date) return false
+  const at = minutesOf(reminder.time)
+  return now.minutes >= at && now.minutes < at + CATCH_UP_MIN
+}
+
 export function isMorningDue(settings: NotificationSettings, state: NotificationState, now: LocalTime): boolean {
-  if (!settings.morning.enabled || state.lastMorning === now.date) return false
-  const at = minutesOf(settings.morning.time)
-  return now.minutes >= at && now.minutes < at + MORNING_CATCH_UP_MIN
+  return isDailyReminderDue(settings.morning, state.lastMorning, now)
 }
 
 /** Le bilan part le dimanche à l'heure choisie, ou le lundi matin s'il a été manqué. */
@@ -88,9 +93,7 @@ export function dueWeeklySummary(settings: NotificationSettings, state: Notifica
 }
 
 export function isCheckInReminderDue(settings: NotificationSettings, state: NotificationState, now: LocalTime): boolean {
-  if (!settings.checkIn.enabled || state.lastCheckInReminder === now.date) return false
-  const at = minutesOf(settings.checkIn.time)
-  return now.minutes >= at && now.minutes < at + MORNING_CATCH_UP_MIN
+  return isDailyReminderDue(settings.checkIn, state.lastCheckInReminder, now)
 }
 
 const SPORT_EMOJI = { RUN: '🏃', BIKE: '🚴', STRENGTH: '💪' } as const

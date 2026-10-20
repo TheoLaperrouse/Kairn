@@ -1,5 +1,6 @@
 import type { Sport } from '../plan/training-plan'
 import type { IsoDate } from '../shared/dates'
+import { mean, round1, round2 } from '../shared/math'
 
 export type ActivitySource = 'FIT' | 'GPX' | 'TCX' | 'STRAVA' | 'GARMIN_FOLDER' | 'MANUAL'
 
@@ -109,15 +110,15 @@ export function resampleTrack(points: RawTrackPoint[]): ActivitySample[] {
   let lastDistance = 0
   const flush = (t: number) => {
     if (bucket.length === 0) return
-    const alts = bucket.map((p) => p.alt).filter(isFiniteNumber)
-    const hrs = bucket.map((p) => p.hr).filter((hr): hr is number => isFiniteNumber(hr) && hr > 30 && hr < 240)
+    const alt = mean(bucket.map((p) => p.alt).filter(isFiniteNumber))
+    const hr = mean(bucket.map((p) => p.hr).filter((hr): hr is number => isFiniteNumber(hr) && hr > 30 && hr < 240))
     const distance = bucket.map((p) => p.d).filter(isFiniteNumber).at(-1)
     if (distance !== undefined) lastDistance = Math.max(lastDistance, distance)
     samples.push({
       t: Math.round(t),
       d: Math.round(lastDistance * 1000) / 1000,
-      ...(alts.length ? { alt: Math.round((alts.reduce((a, b) => a + b, 0) / alts.length) * 10) / 10 } : {}),
-      ...(hrs.length ? { hr: Math.round(hrs.reduce((a, b) => a + b, 0) / hrs.length) } : {}),
+      ...(alt === undefined ? {} : { alt: round1(alt) }),
+      ...(hr === undefined ? {} : { hr: Math.round(hr) }),
     })
     bucket = []
   }
@@ -135,7 +136,7 @@ export function resampleTrack(points: RawTrackPoint[]): ActivitySample[] {
 
 export function profileFromSamples(samples: ActivitySample[]): ProfilePoint[] {
   return downsampleProfile(
-    samples.filter((s) => s.alt !== undefined).map((s) => ({ distanceKm: Math.round(s.d * 100) / 100, altitudeM: Math.round(s.alt!) })),
+    samples.filter((s) => s.alt !== undefined).map((s) => ({ distanceKm: round2(s.d), altitudeM: Math.round(s.alt!) })),
   )
 }
 

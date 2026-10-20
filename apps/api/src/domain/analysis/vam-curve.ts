@@ -1,5 +1,6 @@
 import { activityDay, type Activity, type ActivitySample } from '../activity/activity'
 import { addDays, startOfWeek, type IsoDate } from '../shared/dates'
+import { round2 } from '../shared/math'
 
 /**
  * Courbe de VAM record : meilleure vitesse ascensionnelle tenue pendant 5, 10, 20 et 30 min.
@@ -8,7 +9,7 @@ import { addDays, startOfWeek, type IsoDate } from '../shared/dates'
  * régulière ou faite de plusieurs rampes. Indépendante du parcours, elle montre si l'on
  * progresse vraiment en côte.
  */
-export const VAM_DURATIONS = [5, 10, 20, 30] as const
+const VAM_DURATIONS = [5, 10, 20, 30] as const
 export type VamDuration = (typeof VAM_DURATIONS)[number]
 
 export interface VamEffort {
@@ -23,7 +24,7 @@ export interface VamEffort {
 export type VamCurve = Partial<Record<VamDuration, VamEffort>>
 
 /** En dessous, on ne monte pas vraiment : un footing vallonné ne doit pas peser dans la courbe. */
-export const MIN_CLIMBING_VAM = 300
+const MIN_CLIMBING_VAM = 300
 /** Une fenêtre qui enjambe un trou d'enregistrement (montre arrêtée) n'est pas un effort continu. */
 const MAX_WINDOW_STRETCH = 1.25
 
@@ -45,8 +46,8 @@ export function bestVam(samples: ActivitySample[], minutes: VamDuration): VamEff
         minutes,
         vam: Math.round(vam),
         elevationM: Math.round(elevation),
-        startKm: Math.round(points[i]!.d * 100) / 100,
-        endKm: Math.round(points[j]!.d * 100) / 100,
+        startKm: round2(points[i]!.d),
+        endKm: round2(points[j]!.d),
       }
     }
   }

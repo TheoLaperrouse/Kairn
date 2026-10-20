@@ -1,5 +1,6 @@
 import { addDays, daysBetween, weekday, type IsoDate } from '../shared/dates'
 import { assertDomain } from '../shared/errors'
+import { round1, roundTo } from '../shared/math'
 import type { AdjustmentReason, PlanAdjustment, PlannedSession, SessionType, TrainingPlan } from './training-plan'
 
 /**
@@ -213,7 +214,7 @@ export function lightenSession(session: PlannedSession, mode: LightenMode): Plan
 }
 
 function easeSession(session: PlannedSession, factor: number, adjustment: string): PlannedSession {
-  const durationMin = Math.max(20, Math.round((session.durationMin * factor) / 5) * 5)
+  const durationMin = Math.max(20, roundTo(session.durationMin * factor, 5))
   const ratio = durationMin / session.durationMin
   if (session.sport === 'STRENGTH') return { ...session, adjustment, durationMin }
   const intense = INTENSE_TYPES.includes(session.type) || session.zone >= 4
@@ -224,8 +225,8 @@ function easeSession(session: PlannedSession, factor: number, adjustment: string
     title: intense ? (run ? 'Endurance facile' : 'Vélo en endurance') : session.title,
     objective: intense ? 'Entretenir le moteur sans ajouter de fatigue.' : session.objective,
     durationMin,
-    distanceKm: session.distanceKm ? Math.round(session.distanceKm * ratio * 10) / 10 : undefined,
-    elevationGainM: session.elevationGainM ? Math.round((session.elevationGainM * ratio) / 10) * 10 : undefined,
+    distanceKm: session.distanceKm ? round1(session.distanceKm * ratio) : undefined,
+    elevationGainM: session.elevationGainM ? roundTo(session.elevationGainM * ratio, 10) : undefined,
     zone: 2,
     keySession: false,
     steps: [{ kind: 'CONTINU', label: run ? 'Footing en aisance respiratoire' : 'Pédalage souple', durationMin, zone: 2 }],
@@ -234,7 +235,7 @@ function easeSession(session: PlannedSession, factor: number, adjustment: string
 }
 
 function toCrossTraining(session: PlannedSession, adjustment: string): PlannedSession {
-  const durationMin = Math.max(30, Math.round(Math.min(session.durationMin, 90) * 0.8 / 5) * 5)
+  const durationMin = Math.max(30, roundTo(Math.min(session.durationMin, 90) * 0.8, 5))
   return {
     ...session,
     type: 'VELO_ENDURANCE',

@@ -5,9 +5,10 @@ import { analyzeWorkout, type Insight, type Verdict, type WorkoutAnalysis } from
 import type { AthleteProfile } from '../athlete/athlete-profile'
 import type { RaceGoal } from '../goal/race-goal'
 import { PHASE_LABELS, type TrainingPhase } from '../plan/phase'
-import type { PlanWeek, PlannedSession, SessionStatus, TrainingPlan } from '../plan/training-plan'
+import type { PlanWeek, SessionStatus, TrainingPlan } from '../plan/training-plan'
 import { addDays, daysBetween, type IsoDate } from '../shared/dates'
 import { formatInt, formatKm, formatMinutes, formatPercent } from '../shared/format'
+import { round1 } from '../shared/math'
 import { computeLoadSeries } from '../training-load/training-load'
 import { computeReadiness, type CheckIn } from '../wellness/check-in'
 
@@ -68,8 +69,6 @@ export interface SummaryInput {
   checkIns: CheckIn[]
 }
 
-const day = activityDay
-
 /** Historique minimal pour que le modèle forme / fatigue soit interprétable. */
 const HISTORY_FOR_FORM_DAYS = 28
 
@@ -87,6 +86,10 @@ function weekInfo(week: PlanWeek): WeekInfo {
   return { index: week.index, phase: week.phase, phaseLabel: PHASE_LABELS[week.phase], isRecovery: week.isRecovery, focus: week.focus }
 }
 
+function weekTargets(week: PlanWeek): WeekVolumeTotals {
+  return { hours: week.targetHours, km: week.targetKm, elevationM: week.targetElevationM }
+}
+
 function inWeek(start: IsoDate) {
   const end = addDays(start, 6)
   return (date: IsoDate) => date >= start && date <= end
@@ -96,7 +99,7 @@ export function buildWeeklySummary(input: SummaryInput): WeeklySummary {
   const { weekStart, today, profile, plan } = input
   const weekEnd = addDays(weekStart, 6)
   const within = inWeek(weekStart)
-  const activities = input.activities.filter((a) => within(day(a))).sort((a, b) => a.startTime.localeCompare(b.startTime))
+  const activities = input.activities.filter((a) => within(activityDay(a))).sort((a, b) => a.startTime.localeCompare(b.startTime))
   const sessions = (plan?.sessions ?? []).filter((s) => within(s.date) && s.type !== 'COURSE')
   const planWeek = plan?.weeks.find((w) => w.startDate === weekStart)
 
@@ -129,23 +132,24 @@ export function buildWeeklySummary(input: SummaryInput): WeeklySummary {
     }))
 
   const totals = { ...volumeOf(activities), activities: activities.length, load: [...analyses.values()].reduce((s, a) => s + a.load, 0) }
-  const targets = planWeek ? { hours: planWeek.targetHours, km: planWeek.targetKm, elevationM: planWeek.targetElevationM } : undefined
+  const targets = planWeek ? weekTargets(planWeek) : undefined
 
+  const asOf = today < weekEnd ? today : weekEnd
   const series = computeLoadSeries(
     input.activities,
     (plan?.sessions ?? []).filter((s) => s.type !== 'COURSE'),
     profile,
     addDays(weekStart, -126),
     weekEnd,
-    today < weekEnd ? today : weekEnd,
+    asOf,
   )
-  const endPoint = series.find((p) => p.date === (today < weekEnd ? today : weekEnd)) ?? series.at(-1)!
+  const endPoint = series.find((p) => p.date === asOf) ?? series.at(-1)!
   const startPoint = series.find((p) => p.date === addDays(weekStart, -1)) ?? series[0]!
   const form = {
     fitness: Math.round(endPoint.fitness),
-    fitnessChange: Math.round((endPoint.fitness - startPoint.fitness) * 10) / 10,
+    fitnessChange: round1(endPoint.fitness - startPoint.fitness),
     freshness: Math.round(endPoint.form),
-    reliable: input.activities.some((a) => day(a) < addDays(weekStart, -HISTORY_FOR_FORM_DAYS)),
+    reliable: input.activities.some((a) => activityDay(a) < addDays(weekStart, -HISTORY_FOR_FORM_DAYS)),
   }
 
   const weekCheckIns = input.checkIns.filter((c) => within(c.date))
@@ -162,7 +166,7 @@ export function buildWeeklySummary(input: SummaryInput): WeeklySummary {
   const nextWeek = nextPlanWeek
     ? {
         ...weekInfo(nextPlanWeek),
-        targets: { hours: nextPlanWeek.targetHours, km: nextPlanWeek.targetKm, elevationM: nextPlanWeek.targetElevationM },
+        targets: weekTargets(nextPlanWeek),
         keySessions: plan!.sessions
           .filter((s) => s.weekIndex === nextPlanWeek.index && (s.keySession || s.type === 'COURSE'))
           .map((s) => ({ id: s.id, title: s.title, date: s.date })),
@@ -192,7 +196,7 @@ export function buildWeeklySummary(input: SummaryInput): WeeklySummary {
       id: a.id,
       name: a.name,
       startTime: a.startTime,
-      localDate: day(a),
+      localDate: activityDay(a),
       sport: a.sport,
       durationSec: a.durationSec,
       distanceKm: a.distanceKm,
@@ -256,7 +260,7 @@ function highlights(activities: Activity[], analyses: Map<string, WorkoutAnalysi
 function hoursRatio(input: SummaryInput, week: PlanWeek): number | undefined {
   if (week.targetHours <= 0) return undefined
   const within = inWeek(week.startDate)
-  return volumeOf(input.activities.filter((a) => within(day(a)))).hours / week.targetHours
+  return volumeOf(input.activities.filter((a) => within(activityDay(a)))).hours / week.targetHours
 }
 
 function insights(summary: WeeklySummary, input: SummaryInput, analyses: Map<string, WorkoutAnalysis>): Insight[] {

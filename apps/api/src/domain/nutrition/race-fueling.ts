@@ -1,4 +1,5 @@
 import { assertDomain } from '../shared/errors'
+import { clamp } from '../shared/math'
 
 export type SweatProfile = 'FAIBLE' | 'MOYEN' | 'FORT'
 export type GutTraining = 'AUCUN' | 'PARTIEL' | 'ENTRAINE'
@@ -42,7 +43,7 @@ export function computeFuelingPlan(input: FuelingInput): FuelingPlan {
   assertDomain(input.weightKg >= 35 && input.weightKg <= 150, 'Poids entre 35 et 150 kg')
 
   const carbs = input.durationH < 1.5 ? 30 : CARBS_BY_GUT[input.gut]
-  const heat = Math.min(Math.max((input.temperatureC - 15) / 15, 0), 1)
+  const heat = clamp((input.temperatureC - 15) / 15, 0, 1)
   const sweatBonus = input.sweat === 'FORT' ? 150 : input.sweat === 'FAIBLE' ? -100 : 0
   const fluid = Math.round((450 + heat * 300 + sweatBonus) * (input.weightKg / 70) / 50) * 50
   const sodiumPerLitre = SODIUM_BY_SWEAT[input.sweat] + Math.round(heat * 100)

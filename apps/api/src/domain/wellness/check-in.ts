@@ -1,5 +1,6 @@
 import { addDays, isValidIsoDate, type IsoDate } from '../shared/dates'
 import { assertDomain } from '../shared/errors'
+import { mean } from '../shared/math'
 
 /** Échelle 1 (très mauvais) → 5 (excellent), sauf mention contraire. */
 type Scale = 1 | 2 | 3 | 4 | 5
@@ -47,10 +48,6 @@ export function validateCheckIn(checkIn: CheckIn): void {
 
 const BASELINE_DAYS = 14
 
-function average(values: number[]): number | undefined {
-  return values.length ? values.reduce((a, b) => a + b, 0) / values.length : undefined
-}
-
 /**
  * Score de disponibilité (0-100) à partir des sensations et, si disponibles, de la FC de repos
  * et de la VFC comparées à la moyenne personnelle des 14 derniers jours.
@@ -72,13 +69,13 @@ export function computeReadiness(checkIn: CheckIn, history: CheckIn[]): Readines
   penalize('Stress', (checkIn.stress - 1) * 2)
 
   const alerts: string[] = []
-  const hrBaseline = average(previous.map((h) => h.restingHr).filter((v): v is number => v !== undefined))
+  const hrBaseline = mean(previous.map((h) => h.restingHr).filter((v): v is number => v !== undefined))
   if (checkIn.restingHr && hrBaseline && previous.length >= 3) {
     const delta = checkIn.restingHr - hrBaseline
     penalize(`FC de repos +${Math.round(delta)} bpm vs ta moyenne`, Math.max(0, delta - 2) * 3)
     if (delta >= 7) alerts.push('FC de repos nettement plus haute que d’habitude : possible début d’infection ou fatigue profonde.')
   }
-  const hrvBaseline = average(previous.map((h) => h.hrv).filter((v): v is number => v !== undefined))
+  const hrvBaseline = mean(previous.map((h) => h.hrv).filter((v): v is number => v !== undefined))
   if (checkIn.hrv && hrvBaseline && previous.length >= 3) {
     const drop = (hrvBaseline - checkIn.hrv) / hrvBaseline
     penalize(`VFC −${Math.round(drop * 100)} % vs ta moyenne`, Math.max(0, drop - 0.05) * 80)
@@ -92,7 +89,8 @@ export function computeReadiness(checkIn: CheckIn, history: CheckIn[]): Readines
   const level: ReadinessLevel = score >= 65 && !checkIn.illnessSymptoms ? 'VERT' : score >= 45 ? 'ORANGE' : 'ROUGE'
 
   const lastTwo = previous.filter((h) => h.date >= addDays(checkIn.date, -2))
-  const recentLevels = [...lastTwo.map((h) => computeLevelOnly(h)), level]
+  // Niveau des bilans passés sans comparaison aux références : évite une récursion coûteuse.
+  const recentLevels = [...lastTwo.map((h) => computeReadiness(h, []).level), level]
   if (recentLevels.length === 3 && recentLevels.every((l) => l !== 'VERT')) {
     alerts.push('Trois jours d’affilée sans feu vert : signe de surcharge. Envisage une semaine allégée.')
   }
@@ -106,9 +104,4 @@ export function computeReadiness(checkIn: CheckIn, history: CheckIn[]): Readines
         : 'Feu rouge : aujourd’hui, le repos est l’entraînement le plus efficace.'
 
   return { score, level, factors: factors.sort((a, b) => b.impact - a.impact), message, action, alerts }
-}
-
-/** Niveau d'un bilan passé, sans comparaison aux références (évite une récursion coûteuse). */
-function computeLevelOnly(checkIn: CheckIn): ReadinessLevel {
-  return computeReadiness(checkIn, []).level
 }

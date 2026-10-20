@@ -1,4 +1,5 @@
 import type { ActivitySample } from '../activity/activity'
+import { mean, round2 } from '../shared/math'
 
 /**
  * Découpage d'une trace en montées et descentes significatives.
@@ -136,7 +137,7 @@ function segment(samples: ActivitySample[], pivotFrom: number, pivotTo: number):
   const durationSec = movingSeconds(samples, from, to)
   if (Math.abs(elevationM) < MIN_ELEVATION_M || durationSec < MIN_DURATION_SEC) return undefined
   const distanceM = (end.d - start.d) * 1000
-  const heartRates = samples.slice(from + 1, to + 1).flatMap((s) => (s.hr === undefined ? [] : [s.hr]))
+  const avgHeartRate = mean(samples.slice(from + 1, to + 1).flatMap((s) => (s.hr === undefined ? [] : [s.hr])))
   return {
     startKm: round2(start.d),
     endKm: round2(end.d),
@@ -146,7 +147,7 @@ function segment(samples: ActivitySample[], pivotFrom: number, pivotTo: number):
     durationSec: Math.round(durationSec),
     gradePct: distanceM > 0 ? Math.round((elevationM / distanceM) * 1000) / 10 : 0,
     verticalSpeed: Math.round((Math.abs(elevationM) / durationSec) * 3600),
-    avgHeartRate: heartRates.length ? Math.round(heartRates.reduce((a, b) => a + b, 0) / heartRates.length) : undefined,
+    avgHeartRate: avgHeartRate === undefined ? undefined : Math.round(avgHeartRate),
   }
 }
 
@@ -179,8 +180,4 @@ export function aggregateVerticalSpeed(parts: Climb[]): number | undefined {
   const seconds = parts.reduce((s, c) => s + c.durationSec, 0)
   if (seconds === 0) return undefined
   return Math.round((parts.reduce((s, c) => s + Math.abs(c.elevationM), 0) / seconds) * 3600)
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100
 }

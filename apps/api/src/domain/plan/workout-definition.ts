@@ -64,7 +64,7 @@ export function toWorkoutDefinition(session: PlannedSession): WorkoutDefinition 
       items.push(toTimed(step))
     }
   }
-  return { name: `${session.title}`.slice(0, NAME_MAX), sport: session.sport === 'BIKE' ? 'BIKE' : 'RUN', items }
+  return { name: session.title.slice(0, NAME_MAX), sport: session.sport === 'BIKE' ? 'BIKE' : 'RUN', items }
 }
 
 function toTimed(step: WorkoutStep): TimedStep {

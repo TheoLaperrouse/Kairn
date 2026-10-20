@@ -1,5 +1,6 @@
 import type { TerrainAccess } from '../athlete/athlete-profile'
 import type { RaceGoal } from '../goal/race-goal'
+import { clamp } from '../shared/math'
 import type { TrainingPhase } from './phase'
 import type { SessionType, WorkoutStep, Zone } from './training-plan'
 
@@ -58,7 +59,7 @@ function warmupAndCooldown(total: number, core: WorkoutStep[]): WorkoutStep[] {
 }
 
 function interpolate(from: number, to: number, progress: number): number {
-  return Math.round(from + (to - from) * Math.min(Math.max(progress, 0), 1))
+  return Math.round(from + (to - from) * clamp(progress, 0, 1))
 }
 
 export function describeSession(type: SessionType, ctx: SessionContext): SessionContent {
@@ -148,8 +149,7 @@ export function describeSession(type: SessionType, ctx: SessionContext): Session
     }
     case 'COTES_COURTES': {
       const short = phase === 'FONCIER'
-      const reps = short ? interpolate(8, 12, progress) : interpolate(8, 12, progress)
-      const effortMin = short ? 10 / 60 : 0.5
+      const reps = interpolate(8, 12, progress)
       return {
         title: short ? 'Sprints en côte' : 'Côtes courtes (VMA en montée)',
         objective: short
@@ -158,11 +158,11 @@ export function describeSession(type: SessionType, ctx: SessionContext): Session
         zone: 5,
         keySession: true,
         steps: warmupAndCooldown(d, [
-          step('EFFORT', short ? '10" sprint en côte, très dynamique' : '30" vif en côte, foulée courte', effortMin, 5, {
+          step('EFFORT', short ? '10" sprint en côte, très dynamique' : '30" vif en côte, foulée courte', short ? 10 / 60 : 0.5, 5, {
             repeat: reps,
             terrain: hill,
           }),
-          step('RECUP', 'Redescente en marchant / trottinant', short ? 1.5 : 1.5, 1, { repeat: reps }),
+          step('RECUP', 'Redescente en marchant / trottinant', 1.5, 1, { repeat: reps }),
         ]),
         tips: ['Buste droit, regard loin, bras actifs : pousse le sol derrière toi.', `Terrain : ${hill}.`],
         verticalShare: 0.6,

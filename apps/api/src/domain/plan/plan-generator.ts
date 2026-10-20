@@ -15,6 +15,7 @@ import {
 } from '../goal/race-goal'
 import { addDays, daysBetween, startOfWeek, weekday, type IsoDate } from '../shared/dates'
 import { DomainError } from '../shared/errors'
+import { clamp, round1, roundTo } from '../shared/math'
 import type { StrengthRoutine } from '../strength/routine'
 import type { TrainingPhase } from './phase'
 import { describeSession } from './session-library'
@@ -73,6 +74,16 @@ const PHASE_FOCUS: Record<TrainingPhase, string> = {
   COURSE: 'Repos actif, sommeil, charge glucidique les 2 derniers jours.',
 }
 
+/** Données communes à toutes les semaines du plan. */
+interface PlanContext {
+  request: PlanRequest
+  category: TrailCategory
+  raceDurationH: number
+  speedKme: number
+  verticalRatio: number
+  simulationWeek?: number
+}
+
 interface WeekSkeleton {
   index: number
   startDate: IsoDate
@@ -96,14 +107,20 @@ export function generatePlan(request: PlanRequest): TrainingPlan {
   }
 
   const warnings = collectWarnings(goal, profile, category, totalWeeks)
-  const skeleton = buildSkeleton(start, totalWeeks, category, profile, goal, request.trainingSpeedKme ?? TRAINING_SPEED_KME[profile.level])
-  const raceDurationH = estimateRaceDurationH(goal, profile.level)
+  const speedKme = request.trainingSpeedKme ?? TRAINING_SPEED_KME[profile.level]
+  const skeleton = buildSkeleton(start, totalWeeks, category, profile, goal, speedKme)
+  const ctx: PlanContext = {
+    request,
+    category,
+    raceDurationH: estimateRaceDurationH(goal, profile.level),
+    speedKme,
+    verticalRatio: effectiveVerticalRatio(goal, profile),
+    simulationWeek: pickSimulationWeek(skeleton),
+  }
 
   const sessions: PlannedSession[] = []
   const weeks: PlanWeek[] = skeleton.map((week) => {
-    const weekSessions = buildWeekSessions(week, skeleton, request, category, raceDurationH).filter(
-      (s) => s.date >= today,
-    )
+    const weekSessions = buildWeekSessions(week, ctx).filter((s) => s.date >= today)
     sessions.push(...weekSessions)
     const runs = weekSessions.filter((s) => s.sport === 'RUN' && s.type !== 'COURSE')
     return {
@@ -178,11 +195,9 @@ function buildSkeleton(
     ...Array<TrainingPhase>(developpement).fill('DEVELOPPEMENT'),
     ...Array<TrainingPhase>(specifique).fill('SPECIFIQUE'),
   ].slice(0, buildWeeks)
-  while (phases.length < buildWeeks) phases.push('SPECIFIQUE')
 
   const peak = Math.min(PEAK_HOURS[category] * LEVEL_VOLUME_FACTOR[profile.level], profile.maxWeeklyHours)
-  const currentHours =
-    kmEffort(profile.currentWeeklyKm, profile.currentWeeklyElevationM) / speedKme
+  const currentHours = kmEffort(profile.currentWeeklyKm, profile.currentWeeklyElevationM) / speedKme
   const startHours = Math.min(clamp(currentHours * 1.05, peak * 0.45, peak * 0.85), peak)
 
   // Cycle 3:1 — toutes les 4e semaines de construction sont allégées, sauf juste avant l'affûtage.
@@ -271,48 +286,32 @@ function runTypesFor(week: WeekSkeleton, goal: RaceGoal, category: TrailCategory
   }
 }
 
-function buildWeekSessions(
-  week: WeekSkeleton,
-  skeleton: WeekSkeleton[],
-  request: PlanRequest,
-  category: TrailCategory,
-  raceDurationH: number,
-): PlannedSession[] {
-  const { goal, profile, planId } = request
+function buildWeekSessions(week: WeekSkeleton, ctx: PlanContext): PlannedSession[] {
+  const { goal, profile, planId } = ctx.request
   const days = [...profile.availableDays].sort((a, b) => a - b)
-  const simulationWeek = pickSimulationWeek(skeleton)
   const raceDay = week.phase === 'COURSE' ? weekday(goal.raceDate) : undefined
 
   let runCount = Math.min(RUNNING_SESSIONS_BY_LEVEL[profile.level], days.length)
   if (week.isRecovery) runCount = Math.max(3, runCount - 1)
   if (week.phase === 'COURSE') runCount = Math.min(runCount, 3)
-  const runTypes = runTypesFor(week, goal, category, simulationWeek === week.index).slice(0, runCount)
+  const runTypes = runTypesFor(week, goal, ctx.category, ctx.simulationWeek === week.index).slice(0, runCount)
 
   // Répartition du volume : le vélo prend ~20 % des heures s'il est activé.
   const cycling = profile.crossTraining.cycling && week.phase !== 'COURSE'
   const totalMin = week.hours * 60
   const runMin = cycling ? totalMin * 0.8 : totalMin
-  const durations = allocateDurations(runTypes, runMin, category, profile.level, week)
+  const durations = allocateDurations(runTypes, runMin, ctx.category, profile.level, week)
 
   const raceDayAvailable = raceDay === undefined ? days : days.filter((d) => d < raceDay - 1 || d === raceDay - 2)
   const placement = placeRuns(runTypes, raceDayAvailable.length >= 2 ? raceDayAvailable : days, profile.longRunDay, raceDay)
 
-  const sessions: Array<Omit<PlannedSession, 'id'>> = []
-  const ratio = effectiveVerticalRatio(goal, profile)
-  for (const { type, day } of placement) {
-    const durationMin = durations.get(type)?.shift() ?? 45
-    sessions.push(createSession(type, addDays(week.startDate, day), durationMin, week, request, ratio, raceDurationH))
-  }
-
-  if (cycling) {
-    const bikeMin = totalMin - runMin
-    sessions.push(...placeCycling(week, profile, sessions, bikeMin, request, ratio, raceDurationH))
-  }
-  if (profile.crossTraining.strength) {
-    sessions.push(...placeStrength(week, profile, sessions, request))
-  }
+  const sessions: DraftSession[] = placement.map(({ type, day }) =>
+    createSession(type, addDays(week.startDate, day), durations.get(type)?.shift() ?? 45, week, ctx),
+  )
+  if (cycling) sessions.push(...placeCycling(week, sessions, totalMin - runMin, ctx))
+  if (profile.crossTraining.strength) sessions.push(...placeStrength(week, sessions, ctx))
   if (week.phase === 'COURSE') {
-    sessions.push(createSession('COURSE', goal.raceDate, Math.round(raceDurationH * 60), week, request, ratio, raceDurationH))
+    sessions.push(createSession('COURSE', goal.raceDate, Math.round(ctx.raceDurationH * 60), week, ctx))
   }
 
   return sessions
@@ -321,6 +320,8 @@ function buildWeekSessions(
 }
 
 const SPORT_ORDER = { RUN: 0, BIKE: 1, STRENGTH: 2 } as const
+
+type DraftSession = Omit<PlannedSession, 'id'>
 
 function pickSimulationWeek(skeleton: WeekSkeleton[]): number | undefined {
   const loading = skeleton.filter((w) => w.phase === 'SPECIFIQUE' && !w.isRecovery)
@@ -429,19 +430,12 @@ function placeRuns(types: SessionType[], days: number[], longRunDay: number, rac
   return placed
 }
 
-function placeCycling(
-  week: WeekSkeleton,
-  profile: AthleteProfile,
-  existing: Array<Omit<PlannedSession, 'id'>>,
-  bikeMin: number,
-  request: PlanRequest,
-  ratio: number,
-  raceDurationH: number,
-): Array<Omit<PlannedSession, 'id'>> {
+function placeCycling(week: WeekSkeleton, existing: DraftSession[], bikeMin: number, ctx: PlanContext): DraftSession[] {
+  const { profile } = ctx.request
   const count = profile.crossTraining.cyclingSessionsPerWeek
   const usedDays = new Set(existing.map((s) => weekday(s.date)))
   const freeDays = profile.availableDays.filter((d) => !usedDays.has(d))
-  const result: Array<Omit<PlannedSession, 'id'>> = []
+  const result: DraftSession[] = []
 
   for (let n = 0; n < count; n++) {
     const type: SessionType =
@@ -456,25 +450,21 @@ function placeCycling(
       existing.splice(existing.indexOf(swap), 1)
       day = weekday(swap.date)
     }
-    result.push(createSession(type, addDays(week.startDate, day), duration, week, request, ratio, raceDurationH))
+    result.push(createSession(type, addDays(week.startDate, day), duration, week, ctx))
   }
   return result
 }
 
-function placeStrength(
-  week: WeekSkeleton,
-  profile: AthleteProfile,
-  existing: Array<Omit<PlannedSession, 'id'>>,
-  request: PlanRequest,
-): Array<Omit<PlannedSession, 'id'>> {
+function placeStrength(week: WeekSkeleton, existing: DraftSession[], ctx: PlanContext): DraftSession[] {
+  const { profile, goal } = ctx.request
   const tapering = week.phase === 'AFFUTAGE' || week.phase === 'COURSE' || week.isRecovery
   const count = tapering ? 1 : profile.crossTraining.strengthSessionsPerWeek
-  const routines = pickRoutines(request.routines, week, count)
+  const routines = pickRoutines(ctx.request.routines, week, count)
   if (routines.length === 0) return []
 
   const hard = new Set(existing.filter((s) => s.keySession || s.type === 'VELO_FORCE').map((s) => weekday(s.date)))
   const dayBeforeLong = (profile.longRunDay + 6) % 7
-  const lastAllowed = week.phase === 'COURSE' ? weekday(request.goal.raceDate) - 4 : 6
+  const lastAllowed = week.phase === 'COURSE' ? weekday(goal.raceDate) - 4 : 6
   const candidates = profile.availableDays
     .filter((d) => d <= lastAllowed && d !== profile.longRunDay && d !== dayBeforeLong)
     .sort((a, b) => Number(hard.has(a)) - Number(hard.has(b)) || a - b)
@@ -486,14 +476,13 @@ function placeStrength(
   }
   return chosen.map((day, i) => {
     const routine = routines[i]!
-    const session = createSession('RENFORCEMENT', addDays(week.startDate, day), routine.durationMin, week, request, 0, 0)
+    const session = createSession('RENFORCEMENT', addDays(week.startDate, day), routine.durationMin, week, ctx)
     return { ...session, title: routine.name, routineId: routine.id }
   })
 }
 
 function pickRoutines(routines: RoutineSummary[], week: WeekSkeleton, count: number): RoutineSummary[] {
-  const phase: TrainingPhase = week.phase
-  const eligible = routines.filter((r) => r.phases.includes(phase))
+  const eligible = routines.filter((r) => r.phases.includes(week.phase))
   if (eligible.length === 0) return []
   if (week.isRecovery) {
     return [eligible.reduce((a, b) => (a.durationMin <= b.durationMin ? a : b))]
@@ -509,26 +498,18 @@ function effectiveVerticalRatio(goal: RaceGoal, profile: AthleteProfile): number
   return Math.min(verticalRatio(goal), cap)
 }
 
-function createSession(
-  type: SessionType,
-  date: IsoDate,
-  durationMin: number,
-  week: WeekSkeleton,
-  request: PlanRequest,
-  ratio: number,
-  raceDurationH: number,
-): Omit<PlannedSession, 'id'> {
-  const { goal, profile } = request
+function createSession(type: SessionType, date: IsoDate, durationMin: number, week: WeekSkeleton, ctx: PlanContext): DraftSession {
+  const { goal, profile } = ctx.request
   const content = describeSession(type, {
     durationMin,
     phase: week.phase,
     progress: week.progress,
     goal,
     terrain: profile.terrain,
-    raceDurationH,
+    raceDurationH: ctx.raceDurationH,
   })
   const sport = SESSION_SPORT[type]
-  const base: Omit<PlannedSession, 'id'> = {
+  const base: DraftSession = {
     weekIndex: week.index,
     date,
     type,
@@ -545,25 +526,12 @@ function createSession(
   if (sport !== 'RUN') return base
   if (type === 'COURSE') return { ...base, distanceKm: goal.distanceKm, elevationGainM: goal.elevationGainM }
 
-  const sessionRatio = ratio * content.verticalShare
-  const speed = request.trainingSpeedKme ?? TRAINING_SPEED_KME[profile.level]
-  const effort = (durationMin / 60) * speed * (content.zone >= 4 ? 1.05 : 1)
+  const sessionRatio = ctx.verticalRatio * content.verticalShare
+  const effort = (durationMin / 60) * ctx.speedKme * (content.zone >= 4 ? 1.05 : 1)
   const distanceKm = effort / (1 + sessionRatio / 100)
   return {
     ...base,
     distanceKm: round1(distanceKm),
     elevationGainM: roundTo(distanceKm * sessionRatio, 10),
   }
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max)
-}
-
-function round1(value: number): number {
-  return Math.round(value * 10) / 10
-}
-
-function roundTo(value: number, step: number): number {
-  return Math.round(value / step) * step
 }

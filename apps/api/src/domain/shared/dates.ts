@@ -9,7 +9,7 @@ function toUtc(date: IsoDate): number {
 }
 
 function fromUtc(ms: number): IsoDate {
-  return new Date(ms).toISOString().slice(0, 10)
+  return toIsoDate(new Date(ms))
 }
 
 export function addDays(date: IsoDate, days: number): IsoDate {
