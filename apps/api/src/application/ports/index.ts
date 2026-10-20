@@ -1,6 +1,6 @@
 /**
- * Ports de l'hexagone : le domaine et les cas d'usage ne dépendent que de ces interfaces.
- * Les adaptateurs (SQLite, parseurs de fichiers, Strava, horloge…) vivent dans `infrastructure/`.
+ * Hexagon ports: the domain and the use cases depend only on these interfaces.
+ * The adapters (SQLite, file parsers, Strava, clock…) live in `infrastructure/`.
  */
 import type { DeviceSession, User } from '../../domain/account/account'
 import type { Activity, ActivitySample, ImportedActivity } from '../../domain/activity/activity'
@@ -42,7 +42,7 @@ export interface GoalRepository {
 
 export interface PlanRepository {
   get(userId: string): TrainingPlan | undefined
-  /** Remplace le plan existant de l'utilisateur. */
+  /** Replaces the user's existing plan. */
   save(userId: string, plan: TrainingPlan): void
   updateSession(userId: string, session: PlannedSession): void
 }
@@ -63,7 +63,7 @@ export interface RaceCourseRepository {
 }
 
 export interface CheckInRepository {
-  /** Bilans à partir de `from` inclus, triés par date croissante. */
+  /** Check-ins from `from` inclusive, sorted by ascending date. */
   listSince(userId: string, from: string): CheckIn[]
   save(userId: string, checkIn: CheckIn): void
 }
@@ -75,12 +75,12 @@ export interface ContentCatalog {
 }
 
 export interface ActivityFileParser {
-  /** Extension prise en charge, en minuscules (`.fit`). */
+  /** Supported extension, lowercase (`.fit`). */
   readonly extension: string
   parse(content: Buffer, filename: string): Promise<ImportedActivity>
 }
 
-/** Tracé officiel lu depuis un fichier (GPX de l'organisation). */
+/** Official course read from a file (the organiser's GPX). */
 export interface CourseFile {
   name: string
   track: TrackPoint[]
@@ -96,7 +96,7 @@ export interface WorkoutEncoder {
   encode(workout: WorkoutDefinition): Buffer
 }
 
-/** Dépôt de fichiers vers la montre (ex. dossier `GARMIN/NewFiles` monté en USB). */
+/** Drops files onto the watch (e.g. the `GARMIN/NewFiles` folder mounted over USB). */
 export interface WatchOutbox {
   isConfigured(): boolean
   deliver(filename: string, content: Buffer): Promise<void>
@@ -106,7 +106,7 @@ export interface IntegrationTokens {
   accessToken: string
   refreshToken: string
   expiresAt: number
-  /** Identifiant du compte chez le fournisseur : relie ses notifications (webhook) à l'utilisateur. */
+  /** Account id on the provider side: links its notifications (webhook) to the user. */
   athleteId?: string
   athleteName?: string
   lastSyncAt?: string
@@ -120,7 +120,7 @@ export interface IntegrationStore {
   findUserByAthleteId(provider: string, athleteId: string): string | undefined
 }
 
-/** Fournisseur d'activités distant (Strava aujourd'hui, Garmin si l'API rouvre). */
+/** Remote activity provider (Strava today, Garmin if its API reopens). */
 export interface ActivityProvider {
   readonly name: string
   isConfigured(): boolean
@@ -129,13 +129,13 @@ export interface ActivityProvider {
   refresh(tokens: IntegrationTokens): Promise<IntegrationTokens>
   fetchSince(tokens: IntegrationTokens, since: Date): Promise<ImportedActivity[]>
   /**
-   * Trace détaillée d'une activité (altitude, FC…), récupérée à part chez les fournisseurs
-   * qui ne la livrent pas avec la liste. Tableau vide si l'activité n'en a pas.
+   * Detailed track of an activity (elevation, HR…), fetched separately from providers
+   * that do not include it in the list. Empty array if the activity has none.
    */
   fetchSamples?(tokens: IntegrationTokens, externalId: string): Promise<ActivitySample[]>
 }
 
-/** Quota du fournisseur atteint : on réessaiera à la prochaine synchronisation. */
+/** Provider quota reached: retried on the next sync. */
 export class RateLimitedError extends Error {
   constructor(provider: string) {
     super(`Quota d'appels ${provider} atteint`)
@@ -147,7 +147,7 @@ export interface TimeZoneProvider {
   timeZoneOf(userId: string): string
 }
 
-/** Prévenu à chaque nouvelle activité (analyse et notification après une synchro automatique). */
+/** Notified of each new activity (analysis and notification after an automatic sync). */
 export interface ActivityImportListener {
   activityImported(userId: string, activity: Activity, automatic: boolean): void
 }
@@ -175,7 +175,7 @@ export interface NotificationSettingsRepository {
   save(userId: string, settings: NotificationSettings, state: NotificationState): void
 }
 
-/** Envoi d'une notification Web Push ; `GONE` : l'abonnement n'existe plus chez le navigateur. */
+/** Sends a Web Push notification; `GONE`: the subscription no longer exists in the browser. */
 export interface PushSender {
   publicKey(): string
   send(subscription: PushSubscription, message: PushMessage): Promise<'SENT' | 'GONE'>
@@ -191,7 +191,7 @@ export interface CalendarFeed {
   name: string
   sessions: PlannedSession[]
   goal?: RaceGoal
-  /** Adresse publique de Kairn, pour les liens vers chaque séance. */
+  /** Kairn's public URL, for links to each session. */
   baseUrl: string
   generatedAt: Date
 }
@@ -206,9 +206,9 @@ export interface PasswordHasher {
 }
 
 export interface TokenService {
-  /** Jeton aléatoire opaque destiné au cookie. */
+  /** Opaque random token for the cookie. */
   generate(): string
-  /** Empreinte déterministe, seule valeur persistée. */
+  /** Deterministic digest, the only value persisted. */
   digest(token: string): string
 }
 

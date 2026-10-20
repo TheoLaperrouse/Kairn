@@ -43,7 +43,7 @@ export function clearSessionCookie(reply: FastifyReply): void {
   reply.header('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`)
 }
 
-/** Hook `preHandler` : rattache l'utilisateur à la requête ou renvoie 401. */
+/** `preHandler` hook: attaches the user to the request or replies 401. */
 export function requireAuth(accounts: AccountService) {
   return async (request: FastifyRequest) => {
     const token = readCookie(request, SESSION_COOKIE)
@@ -59,8 +59,8 @@ export function userId(request: FastifyRequest): string {
 }
 
 /**
- * Limiteur de tentatives en mémoire (fenêtre glissante) contre le bourrinage
- * des mots de passe. Suffisant pour une instance unique auto-hébergée.
+ * In-memory attempt limiter (sliding window) against password brute-forcing.
+ * Enough for a single self-hosted instance.
  */
 export class AttemptLimiter {
   private readonly attempts = new Map<string, number[]>()

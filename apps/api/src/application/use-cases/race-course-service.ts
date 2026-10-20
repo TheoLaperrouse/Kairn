@@ -15,7 +15,7 @@ import type { Clock, CourseFileParser, GoalRepository, ProfileRepository, RaceCo
 export interface RaceCourseView {
   course: RaceCourse
   plan: RacePlan
-  /** Écart entre le tracé et l'objectif saisi (distance, D+), pour proposer une mise à jour. */
+  /** Gap between the course and the entered goal (distance, elevation gain), to suggest an update. */
   goalMismatch?: { distanceKm: number; elevationGainM: number }
 }
 
@@ -79,7 +79,7 @@ export class RaceCourseService {
     return this.view(userId, updated)
   }
 
-  /** Aligne l'objectif (distance, D+, altitude max) sur le tracé officiel. */
+  /** Aligns the goal (distance, elevation gain, max altitude) with the official course. */
   applyToGoal(userId: string): RaceGoal {
     const course = this.requireCourse(userId)
     const goal = this.goals.get(userId)

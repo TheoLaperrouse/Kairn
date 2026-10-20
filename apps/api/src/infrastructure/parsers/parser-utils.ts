@@ -10,17 +10,17 @@ const xml = new XMLParser({
   isArray: (name) => ['trk', 'trkseg', 'trkpt', 'rte', 'rtept', 'wpt', 'Activity', 'Lap', 'Track', 'Trackpoint'].includes(name),
 })
 
-/** GPX et TCX : attributs à plat, sans espaces de noms, éléments répétables toujours en tableau. */
+/** GPX and TCX: flat attributes, no namespaces, repeatable elements always as arrays. */
 export function parseXml(content: Buffer): XmlNode {
   return xml.parse(content.toString('utf8')) as XmlNode
 }
 
-/** Points `trkpt` de toutes les traces et segments d'un GPX. */
+/** `trkpt` points from every track and segment of a GPX. */
 export function gpxTrackPoints(tracks: XmlNode[]): XmlNode[] {
   return tracks.flatMap((t) => ((t.trkseg as XmlNode[] | undefined) ?? []).flatMap((seg) => (seg.trkpt as XmlNode[] | undefined) ?? []))
 }
 
-/** Identifiant stable d'un fichier importé : le réimporter est reconnu comme un doublon. */
+/** Stable id of an imported file: importing it again is recognised as a duplicate. */
 export function fileExternalId(prefix: string, content: Buffer): string {
   return `${prefix}:${createHash('sha1').update(content).digest('hex')}`
 }

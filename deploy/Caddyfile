@@ -1,4 +1,4 @@
-# HTTPS automatique (Let's Encrypt) pour le domaine défini dans deploy/.env.
+# Automatic HTTPS (Let's Encrypt) for the domain set in deploy/.env.
 {$DOMAIN} {
 	encode zstd gzip
 
@@ -11,7 +11,7 @@
 		-Server
 	}
 
-	# Les fichiers compilés (noms hachés) peuvent être mis en cache longtemps.
+	# Built files (hashed names) can be cached for a long time.
 	@assets path /assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"
 

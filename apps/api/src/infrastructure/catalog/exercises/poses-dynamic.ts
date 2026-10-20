@@ -1,7 +1,7 @@
 import type { Pose } from '../../../domain/strength/exercise'
 import { pose } from './poses'
 
-/** Inverse côté proche / côté éloigné, pieds compris (alternance des jambes et des bras). */
+/** Swaps near and far sides, feet included (alternating legs and arms). */
 export const swapSides = (p: Pose): Pose => ({
   ...p,
   nearThigh: p.farThigh,
@@ -16,7 +16,7 @@ export const swapSides = (p: Pose): Pose => ({
   farForearm: p.nearForearm,
 })
 
-/** Position horizontale du bassin pour que la cheville proche reste à `ankleX` (appui fixe au sol). */
+/** Horizontal pelvis position so the near ankle stays at `ankleX` (fixed ground contact). */
 export const hipForAnkle = (ankleX: number, thigh: number, shin: number): number =>
   ankleX - Math.sin((thigh * Math.PI) / 180) - Math.sin((shin * Math.PI) / 180)
 

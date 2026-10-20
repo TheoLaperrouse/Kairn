@@ -45,7 +45,7 @@ export const STRENGTH_EXERCISES: Exercise[] = [
     regression: 'Squat sur une chaise (toucher puis se relever).',
     progression: 'Goblet squat avec haltère ou sac lesté, puis tempo lent.',
     animation: {
-      // Descente 1 s (hanches d'abord), courte pause en bas, remontée 0,9 s.
+      // Descent 1 s (hips first), short pause at the bottom, rise 0.9 s.
       durationMs: 2600,
       keyframes: [SQUAT_START, SQUAT_MID, SQUAT_BOTTOM, SQUAT_BOTTOM, SQUAT_MID],
       timing: [0, 0.2, 0.4, 0.5, 0.72],
@@ -73,7 +73,7 @@ export const STRENGTH_EXERCISES: Exercise[] = [
     progression: 'Fentes marchées avec haltères ou sac chargé.',
     animation: {
       repsPerCycle: 2,
-      // Une fente de chaque côté : pas en avant, descente, pause, retour en poussant sur le talon avant.
+      // One lunge per side: step forwards, descend, pause, return by pushing through the front heel.
       durationMs: 5600,
       keyframes: [
         SQUAT_START,
@@ -113,7 +113,7 @@ export const STRENGTH_EXERCISES: Exercise[] = [
     regression: 'Fente avant statique, pied arrière au sol.',
     progression: 'Haltères en mains, ou tempo excentrique 4 secondes.',
     animation: {
-      // Descente contrôlée en ~2 s, pause, remontée en 1,2 s.
+      // Controlled descent in ~2 s, pause, rise in 1.2 s.
       durationMs: 3600,
       props: [{ kind: 'BENCH', x: -1.58, width: 0.8, height: 0.4 }],
       keyframes: [BULGARIAN_TOP, BULGARIAN_MID, BULGARIAN_BOTTOM, BULGARIAN_BOTTOM, BULGARIAN_MID],
@@ -141,7 +141,7 @@ export const STRENGTH_EXERCISES: Exercise[] = [
     regression: 'Marche basse (20 cm).',
     progression: 'Box plus haute, haltères ou sac d’ultra lesté (5-8 kg).',
     animation: {
-      // Poussée sur la jambe du haut, genou libre monté, redescente lente pointe d'abord.
+      // Push through the top leg, free knee raised, slow step down toes first.
       durationMs: 3400,
       props: [{ kind: 'BOX', x: 0.72, width: 0.8, height: 0.5 }],
       keyframes: [STEP_START, STEP_DRIVE, STEP_LIFT, STEP_TOP, STEP_TOP, STEP_LIFT, STEP_DRIVE, STEP_START],
@@ -169,7 +169,7 @@ export const STRENGTH_EXERCISES: Exercise[] = [
     regression: 'Pointe du pied arrière posée au sol pour l’équilibre.',
     progression: 'Charge dans la main opposée à la jambe d’appui.',
     animation: {
-      // Bascule en 1,4 s, tenue, remontée en serrant le fessier.
+      // Hinge in 1.4 s, hold, rise while squeezing the glute.
       durationMs: 3600,
       keyframes: [SINGLE_LEG_STAND, SINGLE_LEG_HALF, SINGLE_LEG_HINGE, SINGLE_LEG_HINGE, SINGLE_LEG_HALF],
       timing: [0, 0.2, 0.4, 0.52, 0.72],
@@ -196,7 +196,7 @@ export const STRENGTH_EXERCISES: Exercise[] = [
     regression: 'Sur sol plat, deux pieds.',
     progression: 'Sur une jambe, avec sac lesté.',
     animation: {
-      // Montée en 1 s jusqu'à la pointe, pause, descente lente talon sous la marche.
+      // Rise in 1 s onto tiptoe, pause, slow descent with the heel below the step.
       durationMs: 3800,
       props: [{ kind: 'BOX', x: 0.57, width: 0.8, height: 0.25 }, { kind: 'WALL', x: 1.3 }],
       keyframes: [CALF_BOTTOM, CALF_FLAT, CALF_TOP, CALF_TOP, CALF_FLAT, CALF_BOTTOM],
@@ -219,7 +219,7 @@ export const STRENGTH_EXERCISES: Exercise[] = [
     regression: 'Angle plus ouvert (cuisses à 45°).',
     progression: 'Sur une jambe, ou avec un poids sur les cuisses.',
     animation: {
-      // Isométrie : position tenue, respiration ample et régulière.
+      // Isometric: position held, deep and steady breathing.
       durationMs: 4000,
       props: [{ kind: 'WALL', x: -0.25 }],
       keyframes: [WALL_SIT, WALL_SIT_BREATH, WALL_SIT_BREATH, WALL_SIT],

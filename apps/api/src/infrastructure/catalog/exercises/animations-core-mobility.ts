@@ -2,21 +2,21 @@ import type { ExerciseAnimation, Pose } from '../../../domain/strength/exercise'
 import { pose } from './poses'
 
 /**
- * Animations de gainage et de mobilité, calibrées géométriquement :
- * appuis réellement au sol (épaisseur des membres comprise via `groundOffset`),
- * corps rectiligne en gainage, tempo réaliste (`timing`) et micro-mouvements de respiration
- * pendant les maintiens.
+ * Core and mobility animations, geometrically calibrated:
+ * contact points truly on the ground (limb thickness included via `groundOffset`),
+ * straight body in core holds, realistic tempo (`timing`) and breathing micro-movements
+ * during holds.
  */
 
 /**
- * Cinématique inverse du bras (coude vers le bas) : angles absolus du bras et de l'avant-bras
- * pour que la main atteigne une cible donnée par rapport au cou (x vers l'avant, y vers le HAUT).
+ * Inverse kinematics of the arm (elbow down): absolute angles of the upper arm and forearm
+ * so the hand reaches a target given relative to the neck (x forwards, y UP).
  */
 function reach(dx: number, dyUp: number): { upper: number; fore: number } {
   const L1 = 0.65
   const L2 = 0.6
   const vx = dx
-  const vy = -dyUp // repère du squelette : y vers le bas
+  const vy = -dyUp // skeleton frame: y points down
   const dist = Math.min(Math.hypot(vx, vy), L1 + L2 - 0.005)
   const base = Math.atan2(vx, vy)
   const offset = Math.acos((L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist))
@@ -28,18 +28,18 @@ function reach(dx: number, dyUp: number): { upper: number; fore: number } {
   return { upper: deg(a1), fore: deg(a2) }
 }
 
-/** Position du cou par rapport à la hanche (y vers le haut) pour une inclinaison de tronc donnée. */
+/** Neck position relative to the hip (y up) for a given trunk lean. */
 function neckFromHip(torso: number): { x: number; y: number } {
   const t = (torso * Math.PI) / 180
   return { x: 1.3 * Math.sin(t), y: 1.3 * Math.cos(t) }
 }
 
 const ARMS_ON_FOREARMS = { nearUpperArm: 0, nearForearm: 90, farUpperArm: 0, farForearm: 90 }
-/** Épaisseur de l'avant-bras / du genou : les articulations sont légèrement au-dessus du sol. */
+/** Forearm / knee thickness: the joints sit slightly above the ground. */
 const FOREARM_CONTACT = 0.045
 const KNEE_CONTACT = 0.09
 
-// Planche : ligne droite chevilles (orteils repliés) → épaules à 0,65 au-dessus des coudes.
+// Plank: straight line from ankles (toes tucked) → shoulders 0.65 above the elbows.
 const PLANK: Pose = pose({
   torso: 83,
   head: 6,
@@ -65,7 +65,7 @@ export const PLANK_ANIMATION: ExerciseAnimation = {
   timing: [0, 0.12, 0.24, 0.36, 0.5, 0.62, 0.74, 0.86],
 }
 
-// Planche latérale, vue de face : avant-bras d'appui sous l'épaule, pieds empilés sur la tranche.
+// Side plank, front view: supporting forearm under the shoulder, feet stacked on their edges.
 const side = (torso: number, legs: number): Pose =>
   pose({
     torso,
@@ -82,7 +82,7 @@ const side = (torso: number, legs: number): Pose =>
     farFoot: -60,
     groundOffset: FOREARM_CONTACT,
   })
-/** Corps aligné, bassin légèrement affaissé, bassin au-dessus de l'alignement. */
+/** Body aligned, pelvis slightly sagging, pelvis above the line. */
 const SIDE_LINE = side(81, -81)
 const SIDE_DIP = side(72, -87)
 const SIDE_TOP = side(88, -77)
@@ -95,7 +95,7 @@ export const SIDE_PLANK_ANIMATION: ExerciseAnimation = {
   timing: [0, 0.25, 0.6, 0.78],
 }
 
-// Dead bug : dos à plat (tête à gauche), hanches et genoux à 90°, bras vers le plafond.
+// Dead bug: flat back (head on the left), hips and knees at 90°, arms towards the ceiling.
 const TABLETOP: Pose = pose({
   torso: -90,
   head: 0,
@@ -110,7 +110,7 @@ const TABLETOP: Pose = pose({
   nearFoot: 170,
   farFoot: 170,
 })
-/** Bras proche derrière la tête (au-dessus du sol), jambe opposée allongée juste au-dessus du sol. */
+/** Near arm behind the head (above the ground), opposite leg extended just above the ground. */
 const DEADBUG_A: Pose = { ...TABLETOP, nearUpperArm: 262, nearForearm: 262, farThigh: 93.5, farShin: 93.5, farFoot: 160 }
 const DEADBUG_A_HOLD: Pose = { ...DEADBUG_A, nearUpperArm: 264, nearForearm: 264, farThigh: 92.5, farShin: 92.5 }
 const DEADBUG_B: Pose = { ...TABLETOP, farUpperArm: 262, farForearm: 262, nearThigh: 93.5, nearShin: 93.5, nearFoot: 160 }
@@ -123,7 +123,7 @@ export const DEAD_BUG_ANIMATION: ExerciseAnimation = {
   timing: [0, 0.3, 0.4, 0.5, 0.8, 0.9],
 }
 
-// Bird dog : mains sous les épaules, genoux sous les hanches, dos plat, regard au sol.
+// Bird dog: hands under the shoulders, knees under the hips, flat back, eyes on the ground.
 const QUADRUPED: Pose = pose({
   torso: 78,
   head: 12,
@@ -139,7 +139,7 @@ const QUADRUPED: Pose = pose({
   farFoot: -95,
   groundOffset: 0.1,
 })
-/** Bras proche devant + jambe éloignée derrière, à l'horizontale. */
+/** Near arm forwards + far leg backwards, horizontal. */
 const BIRD_A: Pose = { ...QUADRUPED, torso: 80, nearUpperArm: 96, nearForearm: 96, farThigh: -90, farShin: -90, farFoot: -5 }
 const BIRD_A_HOLD: Pose = { ...BIRD_A, nearUpperArm: 98, nearForearm: 98, farThigh: -92, farShin: -92 }
 const BIRD_B: Pose = { ...QUADRUPED, torso: 80, farUpperArm: 96, farForearm: 96, nearThigh: -90, nearShin: -90, nearFoot: -5 }
@@ -152,8 +152,8 @@ export const BIRD_DOG_ANIMATION: ExerciseAnimation = {
   timing: [0, 0.25, 0.4, 0.5, 0.75, 0.9],
 }
 
-// Pont fessier unipodal. Épaules et pied d'appui fixes au sol ; en haut, épaules-hanche-genou alignés.
-// Angles obtenus par intersection de cercles (épaule → genou = 2,3 ; genou → cheville = 1).
+// Single-leg glute bridge. Shoulders and supporting foot fixed on the ground; at the top, shoulders-hip-knee aligned.
+// Angles obtained by intersecting circles (shoulder → knee = 2.3; knee → ankle = 1).
 const BRIDGE_DOWN: Pose = pose({
   torso: -90,
   head: 0,
@@ -187,10 +187,10 @@ export const GLUTE_BRIDGE_ANIMATION: ExerciseAnimation = {
   timing: [0, 0.4, 0.62],
 }
 
-// Fente basse psoas. Jambe proche = jambe arrière (genou au sol, cou-de-pied à plat) : c'est elle
-// qu'on étire, donc ses fléchisseurs de hanche s'allument. Pied avant fixe, bassin qui avance.
+// Low lunge psoas stretch. Near leg = back leg (knee on the ground, instep flat): it is the one
+// being stretched, so its hip flexors light up. Front foot fixed, pelvis moving forwards.
 const halfKneel = (backThigh: number, frontShin: number, hipX: number, torso: number, arm: number): Pose => {
-  // Main libre posée sur la cuisse avant (horizontale, dessus à ~0,19 au-dessus de la hanche).
+  // Free hand resting on the front thigh (horizontal, top ~0.19 above the hip).
   const neck = neckFromHip(torso)
   const hand = reach(0.62 - neck.x, 0.24 - neck.y)
   return pose({
@@ -221,9 +221,9 @@ export const HIP_FLEXOR_LUNGE_ANIMATION: ExerciseAnimation = {
   timing: [0, 0.3, 0.55, 0.78],
 }
 
-// Mobilité de cheville genou au mur. Jambe proche = jambe avant (talon collé au sol).
-// Genou arrière fixe ; à l'avancée, cuisse avant horizontale, tibias avant et cuisse arrière à −35°.
-/** Mains à plat sur le mur (x = 1,72, hauteur 1,95) : les coudes se plient quand le corps avance. */
+// Knee-to-wall ankle mobility. Near leg = front leg (heel glued to the ground).
+// Back knee fixed; when moving forwards, front thigh horizontal, front shin and back thigh at −35°.
+/** Hands flat on the wall (x = 1.72, height 1.95): the elbows bend as the body moves forwards. */
 const WALL_X = 1.78
 const HAND_ON_WALL = { x: WALL_X - 0.08, y: 1.95 }
 const ankle = (angle: number, hipX: number, hipHeight: number, torso: number): Pose => {
@@ -247,7 +247,7 @@ const ankle = (angle: number, hipX: number, hipHeight: number, torso: number): P
     groundOffset: KNEE_CONTACT,
   })
 }
-// Hauteur de hanche : 1 + contact genou (0,09) au départ ; cos(35°) + 0,09 à l'avancée.
+// Hip height: 1 + knee contact (0.09) at the start; cos(35°) + 0.09 when forwards.
 const ANKLE_BACK = ankle(0, 0, 1.09, 26)
 const ANKLE_FORWARD = ankle(35, 0.574, 0.909, 16)
 const ANKLE_FORWARD_HOLD = ankle(36, 0.588, 0.899, 15)

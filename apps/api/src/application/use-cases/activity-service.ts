@@ -44,13 +44,13 @@ export interface UserSyncResult {
   error?: string
 }
 
-/** Fenêtre de synchronisation initiale lors de la première connexion d'un fournisseur. */
+/** Initial sync window when a provider is first connected. */
 const INITIAL_SYNC_DAYS = 60
-/** Traces détaillées récupérées après coup à chaque synchro (quota Strava : 100 lectures / 15 min). */
+/** Detailed tracks fetched afterwards on each sync (Strava quota: 100 reads / 15 min). */
 const BACKFILL_PER_SYNC = 20
 
 export class ActivityService {
-  /** Synchronisations en cours, par utilisateur et fournisseur : un webhook et la synchro périodique ne se doublent pas. */
+  /** Syncs in progress, per user and provider: a webhook and the periodic sync never run twice. */
   private readonly running = new Map<string, Promise<ImportOutcome[]>>()
 
   constructor(
@@ -65,7 +65,7 @@ export class ActivityService {
     private readonly timeZones: TimeZoneProvider = { timeZoneOf: () => DEFAULT_TIME_ZONE },
   ) {}
 
-  /** Liste allégée : la trace détaillée n'est renvoyée qu'avec une activité seule. */
+  /** Lightweight list: the detailed track is only returned with a single activity. */
   list(userId: string, limit?: number): Activity[] {
     return this.activities.list(userId, limit).map(withoutSamples)
   }
@@ -83,7 +83,7 @@ export class ActivityService {
     this.relinkDay(userId, activityDay(activity))
   }
 
-  /** `automatic` : import sans action de l'utilisateur (dossier surveillé), qui mérite une notification. */
+  /** `automatic`: import without user action (watched folder), which deserves a notification. */
   async importFile(userId: string, filename: string, content: Buffer, automatic = false): Promise<ImportOutcome> {
     const parser = this.parsers.find((p) => filename.toLowerCase().endsWith(p.extension))
     if (!parser) return { status: 'FAILED', filename, reason: 'Format non pris en charge (FIT, GPX ou TCX attendu)' }
@@ -94,7 +94,7 @@ export class ActivityService {
     }
   }
 
-  /** Point d'entrée commun à tous les imports : dédoublonnage puis rattachement au plan. */
+  /** Common entry point for all imports: deduplication, then matching against the plan. */
   store(userId: string, imported: ImportedActivity, label = imported.name, automatic = false): ImportOutcome {
     if (this.activities.existsByExternalId(userId, imported.externalId)) return { status: 'DUPLICATE', filename: label }
 
@@ -150,7 +150,7 @@ export class ActivityService {
     return run
   }
 
-  /** Synchronisation de tous les comptes connectés (tâche périodique). Une erreur n'interrompt pas les autres comptes. */
+  /** Syncs every connected account (periodic job). One failure does not stop the other accounts. */
   async syncAll(providerName: string): Promise<UserSyncResult[]> {
     const results: UserSyncResult[] = []
     for (const userId of this.integrations.connectedUsers(providerName)) results.push(await this.syncSafely(userId, providerName))
@@ -158,8 +158,8 @@ export class ActivityService {
   }
 
   /**
-   * Notification du fournisseur : une activité a été créée sur le compte `athleteId`.
-   * Les connexions antérieures à l'enregistrement de l'identifiant sont toutes synchronisées.
+   * Provider notification: an activity was created on the `athleteId` account.
+   * Connections made before the athlete id was stored are all synced.
    */
   async syncAthlete(providerName: string, athleteId: string): Promise<UserSyncResult[]> {
     const owner = this.integrations.findUserByAthleteId(providerName, athleteId)
@@ -169,15 +169,15 @@ export class ActivityService {
     return Promise.all(userIds.map((userId) => this.syncSafely(userId, providerName)))
   }
 
-  /** Activité supprimée chez le fournisseur : on la retire aussi, et sa séance repasse « prévue ». */
+  /** Activity deleted on the provider side: remove it here too, and its session goes back to planned. */
   removeProviderActivity(providerName: string, athleteId: string, externalId: string): void {
     const found = this.providerActivity(providerName, athleteId, externalId)
     if (found) this.delete(found.owner, found.activity.id)
   }
 
   /**
-   * Activité modifiée chez le fournisseur. Un changement de sport (rando passée en course…)
-   * peut changer la séance qui lui correspond : on refait le rattachement.
+   * Activity updated on the provider side. A sport change (hike turned into a run…)
+   * can change its matching session, so the day is matched again.
    */
   updateProviderActivity(providerName: string, athleteId: string, externalId: string, change: { name?: string; sportLabel?: string }): void {
     const found = this.providerActivity(providerName, athleteId, externalId)
@@ -190,7 +190,7 @@ export class ActivityService {
     if (sport !== activity.sport) this.relinkDay(owner, activityDay(activity))
   }
 
-  /** L'athlète a retiré l'accès à Kairn depuis le fournisseur. */
+  /** The athlete revoked Kairn's access from the provider. */
   disconnectAthlete(providerName: string, athleteId: string): void {
     const owner = this.integrations.findUserByAthleteId(providerName, athleteId)
     if (owner) this.integrations.delete(owner, providerName)
@@ -225,7 +225,7 @@ export class ActivityService {
     const fetched = await provider.fetchSince(tokens, since)
     const fresh = fetched.filter((a) => !this.activities.existsByExternalId(userId, a.externalId))
     const budget = { remaining: BACKFILL_PER_SYNC }
-    // Les plus récentes d'abord : ce sont elles qu'on analyse et notifie.
+    // Most recent first: those are the ones analysed and notified.
     for (const activity of [...fresh].sort((a, b) => b.startTime.localeCompare(a.startTime))) {
       activity.samples = await this.fetchSamples(provider, tokens, activity.externalId, budget)
     }
@@ -235,7 +235,7 @@ export class ActivityService {
     return outcomes
   }
 
-  /** Trace détaillée, dans la limite du budget d'appels ; `undefined` si on n'a pas pu la lire. */
+  /** Detailed track, within the call budget; `undefined` if it could not be read. */
   private async fetchSamples(
     provider: ActivityProvider,
     tokens: IntegrationTokens,
@@ -252,7 +252,7 @@ export class ActivityService {
     }
   }
 
-  /** Complète les activités importées avant la récupération des traces (ou quand le quota était atteint). */
+  /** Fills in activities imported before their tracks were fetched (or while the quota was exhausted). */
   private async backfillSamples(userId: string, provider: ActivityProvider, tokens: IntegrationTokens, budget: { remaining: number }) {
     const source = provider.name.toUpperCase()
     const missing = this.activities.list(userId).filter((a) => a.source === source && a.samples === undefined)
@@ -272,9 +272,9 @@ export class ActivityService {
   }
 
   /**
-   * Recalcule les rattachements d'une journée : séances du jour libres ou déjà
-   * liées à une activité du jour. Une séance cochée à la main sans activité peut être reprise ;
-   * si elle ne l'est pas, elle reste faite.
+   * Recomputes a day's matches: the day's sessions that are free or already
+   * linked to one of the day's activities. A session ticked by hand without an activity can be taken over;
+   * if it is not, it stays done.
    */
   private relinkDay(userId: string, day: IsoDate): void {
     const activities = this.activities.list(userId, 200).filter((a) => activityDay(a) === day)
@@ -307,7 +307,7 @@ function withoutSamples({ samples: _samples, ...activity }: Activity): Activity 
   return activity
 }
 
-/** Profil d'altitude reconstruit depuis la trace quand le fournisseur n'en donne pas. */
+/** Elevation profile rebuilt from the track when the provider does not supply one. */
 function completeProfile(profile: ProfilePoint[], samples: ActivitySample[] | undefined): ProfilePoint[] {
   return profile.length < 2 && samples?.length ? profileFromSamples(samples) : profile
 }

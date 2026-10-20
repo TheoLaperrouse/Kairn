@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Préparation d'un VPS Debian/Ubuntu neuf : Docker, pare-feu, mises à jour de sécurité automatiques.
-# Exécuté à distance par deploy.sh (une seule fois, idempotent).
+# Prepares a fresh Debian/Ubuntu VPS: Docker, firewall, automatic security updates.
+# Run remotely by deploy.sh (once, idempotent).
 set -euo pipefail
 
 SUDO=""

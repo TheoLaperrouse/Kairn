@@ -10,8 +10,8 @@ function toPoint(node: XmlNode): TrackPoint | undefined {
 }
 
 /**
- * GPX officiel d'une course : tracé (`trk` ou `rte`) et points remarquables (`wpt`),
- * que les organisateurs utilisent pour les ravitaillements et bases de vie.
+ * Official race GPX: course (`trk` or `rte`) and waypoints (`wpt`),
+ * which organisers use for aid stations and life bases.
  */
 export class GpxCourseParser implements CourseFileParser {
   parse(content: Buffer): CourseFile {

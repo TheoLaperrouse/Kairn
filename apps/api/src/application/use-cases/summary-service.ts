@@ -13,7 +13,7 @@ export class SummaryService {
     private readonly clock: Clock,
   ) {}
 
-  /** Semaine présentée par défaut : celle en cours le dimanche, sinon la précédente (terminée). */
+  /** Week shown by default: the current one on Sundays, otherwise the previous (completed) one. */
   private defaultWeek(): IsoDate {
     const today = toIsoDate(this.clock.now())
     const current = startOfWeek(today)

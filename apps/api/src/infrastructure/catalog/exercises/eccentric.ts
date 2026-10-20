@@ -2,7 +2,7 @@ import type { Exercise, Pose } from '../../../domain/strength/exercise'
 import { STAND, pose, KNEEL_SHIN } from './poses'
 import { anchored } from './poses-dynamic'
 
-/** Nordic : corps rectiligne basculé de `lean` degrés autour des genoux, fixés au sol à x = −0,5. */
+/** Nordic: straight body tilted by `lean` degrees around the knees, fixed on the ground at x = −0.5. */
 const nordic = (lean: number, arms: Partial<Pose>): Pose =>
   pose({
     torso: lean,
@@ -15,14 +15,14 @@ const nordic = (lean: number, arms: Partial<Pose>): Pose =>
   })
 
 /**
- * Alfredson : avant-pied proche posé sur le bord de la marche (h = 0,3), main sur le mur.
- * `foot` = angle du pied proche (< 90 sur la pointe, > 90 talon sous la marche) ; la pointe reste au bord.
+ * Alfredson: near forefoot on the edge of the step (h = 0.3), hand on the wall.
+ * `foot` = near foot angle (< 90 on tiptoe, > 90 heel below the step); the toes stay on the edge.
  */
 const calfStep = (foot: number, overrides: Partial<Pose>): Pose => {
   const rad = (foot * Math.PI) / 180
-  // L'orteil reste en x = 0,3 : la cheville recule quand le talon descend.
+  // The toe stays at x = 0.3: the ankle moves back as the heel drops.
   const ankleX = 0.3 - 0.3 * Math.sin(rad)
-  // Le point le plus bas est l'orteil (pointe) ou la cheville (talon sous la marche).
+  // The lowest point is the toe (on tiptoe) or the ankle (heel below the step).
   const groundOffset = 0.3 - Math.max(0, -0.3 * Math.cos(rad))
   return pose({
     nearFoot: foot,
@@ -58,7 +58,7 @@ export const ECCENTRIC_EXERCISES: Exercise[] = [
       "La descente est ce qui détruit les cuisses en ultra : chaque appui en descente est une contraction excentrique. Ce travail réduit les courbatures et l'effondrement des quadriceps après 50 km.",
     regression: 'Descente en 3 secondes, amplitude réduite.',
     progression: 'Goblet squat lesté, ou version unipodale (pistol assisté).',
-    // Tempo 3-1-1 : descente freinée ~3 s (deux temps pour garder les talons fixes), pause en bas, remontée ~1 s.
+    // Tempo 3-1-1: braked descent ~3 s (two beats to keep the heels fixed), pause at the bottom, rise ~1 s.
     animation: {
       durationMs: 4400,
       timing: [0, 0.34, 0.68, 0.78, 0.89],
@@ -91,7 +91,7 @@ export const ECCENTRIC_EXERCISES: Exercise[] = [
       'Simule précisément une marche de descente : renforce le quadriceps en freinage et le contrôle du genou, la meilleure prévention du syndrome rotulien du traileur.',
     regression: 'Marche plus basse (10 cm), main sur un appui.',
     progression: 'Marche plus haute, haltère en main.',
-    // Pied d'appui (proche) fixe sur la box ; descente freinée ~3 s, talon libre qui effleure le sol, remontée ~1 s.
+    // Supporting (near) foot fixed on the box; braked descent ~3 s, free heel brushing the ground, rise ~1 s.
     animation: {
       durationMs: 4200,
       timing: [0, 0.36, 0.7, 0.78, 0.9],
@@ -125,7 +125,7 @@ export const ECCENTRIC_EXERCISES: Exercise[] = [
       "Réduit nettement le risque de lésion des ischio-jambiers, très sollicités en descente rapide et en relance. Un classique de la prévention des blessures.",
     regression: 'Amplitude réduite, ou élastique attaché derrière soi pour assister.',
     progression: 'Tenir 2 secondes à mi-course à chaque répétition.',
-    // Genoux fixes au sol, chevilles bloquées : bascule freinée corps gainé (~3 s), réception sur les mains, retour poussé.
+    // Knees fixed on the ground, ankles locked: braked fall with a braced body (~3 s), catch on the hands, push back up.
     animation: {
       durationMs: 4600,
       timing: [0, 0.36, 0.7, 0.78, 0.9],
@@ -154,7 +154,7 @@ export const ECCENTRIC_EXERCISES: Exercise[] = [
       "Protocole de référence pour renforcer le tendon d'Achille, le point faible n°1 du traileur qui augmente son dénivelé.",
     regression: 'Sur sol plat.',
     progression: 'Avec sac lesté.',
-    // Montée sur deux pieds, transfert sur un pied, descente lente du talon sous la marche (~3 s), retour à deux pieds.
+    // Rise on both feet, shift onto one foot, slow heel drop below the step (~3 s), back onto both feet.
     animation: {
       durationMs: 5000,
       timing: [0, 0.1, 0.42, 0.7, 0.8, 0.9],

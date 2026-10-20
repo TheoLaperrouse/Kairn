@@ -25,7 +25,7 @@ export class WorkoutExportService {
     return this.encode(session)
   }
 
-  /** Dépose les séances (course et vélo) d'une semaine directement sur la montre. */
+  /** Drops a week's sessions (running and cycling) straight onto the watch. */
   async sendWeekToWatch(userId: string, weekIndex: number): Promise<string[]> {
     this.requireWatch()
     const sessions = (this.plans.get(userId)?.sessions ?? []).filter(

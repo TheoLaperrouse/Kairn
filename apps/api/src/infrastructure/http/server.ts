@@ -64,7 +64,7 @@ export interface ServerOptions {
   secureCookies: boolean
   webDist?: string
   logger: boolean
-  /** Notifications Strava : jeton de vérification de l'abonnement (absent = webhook désactivé). */
+  /** Strava notifications: subscription verification token (absent = webhook disabled). */
   stravaWebhook?: { verifyToken: string }
 }
 
@@ -74,8 +74,8 @@ const OAUTH_STATE_TTL_MS = 10 * 60_000
 type IdParams = { Params: { id: string } }
 
 export async function buildServer(services: Services, options: ServerOptions): Promise<FastifyInstance> {
-  // Seul le proxy directement devant l'API (Caddy, cloudflared) est cru : l'IP client est la dernière
-  // entrée de X-Forwarded-For, celles qui précèdent peuvent être forgées par le client.
+  // Only the proxy directly in front of the API (Caddy, cloudflared) is trusted: the client IP is the last
+  // X-Forwarded-For entry, the ones before it can be forged by the client.
   const app = Fastify({ logger: options.logger, trustProxy: (_address, hop) => hop === 0, bodyLimit: 1024 * 1024 })
   await app.register(multipart, { limits: { fileSize: MAX_UPLOAD_BYTES, files: 50 } })
 
@@ -89,7 +89,7 @@ export async function buildServer(services: Services, options: ServerOptions): P
     return reply.status(500).send({ error: 'Erreur interne du serveur' })
   })
 
-  // Sonde de santé publique (supervision, healthcheck Docker).
+  // Public health probe (monitoring, Docker healthcheck).
   app.get('/api/health', async () => ({ ok: true }))
 
   registerAuthRoutes(app, services.accounts, options.secureCookies)
@@ -109,7 +109,7 @@ export async function buildServer(services: Services, options: ServerOptions): P
 
   if (options.webDist && existsSync(options.webDist)) {
     await app.register(fastifyStatic, { root: options.webDist, wildcard: false })
-    // Application monopage : toute route inconnue hors /api renvoie index.html.
+    // Single-page app: any unknown route outside /api serves index.html.
     app.setNotFoundHandler((request, reply) =>
       request.url.startsWith('/api/') ? reply.status(404).send({ error: 'Route inconnue' }) : reply.sendFile('index.html'),
     )
@@ -217,7 +217,7 @@ function registerActivityRoutes(api: FastifyInstance, activities: ActivityServic
     return { url: activities.authorizationUrl(request.params.provider, state) }
   })
 
-  // Le retour OAuth arrive par redirection du navigateur : le cookie de session est présent (SameSite=Lax).
+  // The OAuth callback arrives through a browser redirect: the session cookie is present (SameSite=Lax).
   api.get<{ Params: { provider: string }; Querystring: { code?: string; state?: string; error?: string } }>(
     '/api/integrations/:provider/callback',
     async (request, reply) => {
@@ -241,8 +241,8 @@ function registerActivityRoutes(api: FastifyInstance, activities: ActivityServic
 }
 
 /**
- * Routes publiques appelées par Strava. Une notification ne transporte aucune donnée importée :
- * elle déclenche seulement une synchronisation authentifiée par les jetons OAuth de l'athlète.
+ * Public routes called by Strava. A notification carries no imported data:
+ * it only triggers a sync authenticated with the athlete's OAuth tokens.
  */
 function registerStravaWebhook(app: FastifyInstance, activities: ActivityService, verifyToken: string): void {
   app.get<{ Querystring: Record<string, string | undefined> }>('/api/webhooks/strava', async (request, reply) => {
@@ -251,7 +251,7 @@ function registerStravaWebhook(app: FastifyInstance, activities: ActivityService
     return { 'hub.challenge': query['hub.challenge'] }
   })
 
-  // Strava attend une réponse en moins de 2 s : la synchronisation se poursuit en arrière-plan.
+  // Strava expects a response within 2 s: the sync carries on in the background.
   app.post<{ Body: StravaWebhookEvent }>('/api/webhooks/strava', async (request) => {
     const event = request.body
     const athleteId = event?.owner_id ? String(event.owner_id) : undefined
@@ -268,8 +268,8 @@ function registerStravaWebhook(app: FastifyInstance, activities: ActivityService
     } else if (event.object_type === 'activity' && event.aspect_type === 'create') {
       void activities.syncAthlete('strava', athleteId).then((results) => {
         for (const result of results) {
-          if (result.error) request.log.warn(`Synchro Strava (webhook) en échec : ${result.error}`)
-          else request.log.info(`Synchro Strava (webhook) : ${result.imported} activité(s) importée(s)`)
+          if (result.error) request.log.warn(`Strava sync (webhook) failed: ${result.error}`)
+          else request.log.info(`Strava sync (webhook): ${result.imported} activity(ies) imported`)
         }
       })
     }
@@ -310,7 +310,7 @@ function registerNotificationRoutes(api: FastifyInstance, notifications: Notific
   api.post('/api/calendar/regenerate', async (request) => ({ url: calendar.regenerate(userId(request)) }))
 }
 
-/** Flux iCalendar public : l'agenda le relit sans cookie, le jeton secret de l'URL fait foi. */
+/** Public iCalendar feed: the calendar re-reads it without a cookie, the secret token in the URL is authoritative. */
 function registerCalendarFeed(app: FastifyInstance, calendar: CalendarService): void {
   app.get<{ Params: { file: string } }>('/api/calendar/:file', async (request, reply) => {
     const token = request.params.file.replace(/\.ics$/, '')

@@ -4,8 +4,8 @@ import { DatabaseSync } from 'node:sqlite'
 import { migrateToEnglishVocabulary } from './english-vocabulary-migration'
 
 /**
- * Migrations versionnées via `PRAGMA user_version`. On n'en modifie jamais une
- * déjà publiée : on en ajoute une nouvelle à la fin de la liste.
+ * Migrations versioned through `PRAGMA user_version`. A published migration is never
+ * modified: a new one is appended to the end of the list instead.
  * A migration is either a SQL script or a function, for data rewrites SQL cannot express.
  */
 type Migration = string | ((db: DatabaseSync) => void)

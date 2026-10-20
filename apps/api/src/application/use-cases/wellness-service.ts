@@ -6,7 +6,7 @@ import type { CheckInRepository, Clock, PlanRepository } from '../ports'
 export interface CheckInResult {
   checkIn: CheckIn
   readiness: Readiness
-  /** Séances du jour concernées par la recommandation (encore prévues). */
+  /** The day's sessions affected by the recommendation (still planned). */
   affectedSessions: PlannedSession[]
 }
 

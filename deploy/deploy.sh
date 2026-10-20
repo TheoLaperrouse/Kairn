@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Déploie Kairn sur un VPS en une commande.
+# Deploys Kairn to a VPS in one command.
 #
-#   ./deploy/deploy.sh debian@51.38.12.34                 # domaine gratuit 51-38-12-34.sslip.io
-#   ./deploy/deploy.sh debian@51.38.12.34 kairn.mondomaine.fr
+#   ./deploy/deploy.sh debian@51.38.12.34                 # free domain 51-38-12-34.sslip.io
+#   ./deploy/deploy.sh debian@51.38.12.34 kairn.mydomain.com
 #   SSH_KEY=~/.ssh/id_ed25519_perso ./deploy/deploy.sh debian@51.38.12.34
 #
-# Premier lancement : prépare le VPS (Docker, pare-feu), crée deploy/.env sur le serveur.
-# Lancements suivants : envoie le code, reconstruit et redémarre sans perte de données.
+# First run: prepares the VPS (Docker, firewall) and creates deploy/.env on the server.
+# Later runs: upload the code, rebuild and restart without data loss.
 set -euo pipefail
 
 TARGET="${1:?Usage : deploy.sh utilisateur@ip [domaine]}"
@@ -16,7 +16,7 @@ SSH_OPTS=(-o StrictHostKeyChecking=accept-new)
 [ -n "${SSH_KEY:-}" ] && SSH_OPTS+=(-i "$SSH_KEY")
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Domaine : celui fourni, sinon <ip>.sslip.io (résout vers l'IP, HTTPS valide sans rien acheter).
+# Domain: the one given, otherwise <ip>.sslip.io (resolves to the IP, valid HTTPS without buying anything).
 if [ -n "${2:-}" ]; then
   DOMAIN="$2"
 else

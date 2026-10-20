@@ -3,8 +3,8 @@ import { join } from 'node:path'
 import type { WatchOutbox } from '../../application/ports'
 
 /**
- * Dépose les séances dans le dossier `GARMIN/NewFiles` de la montre montée en USB :
- * à la déconnexion, la montre les intègre à son menu « Entraînements ».
+ * Drops sessions into the `GARMIN/NewFiles` folder of the watch mounted over USB:
+ * once unplugged, the watch adds them to its "Workouts" menu.
  */
 export class FolderWatchOutbox implements WatchOutbox {
   constructor(private readonly directory: string | undefined) {}

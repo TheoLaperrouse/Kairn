@@ -3,10 +3,10 @@ import type { WorkoutEncoder } from '../../application/ports'
 import type { StepIntensity, TimedStep, WorkoutDefinition } from '../../domain/plan/workout-definition'
 
 /**
- * Encodeur minimal de fichiers FIT « workout » (profil FIT 2.0), le format que les montres Garmin
- * lisent dans le dossier `GARMIN/NewFiles` ou importent dans Garmin Connect.
+ * Minimal encoder for FIT "workout" files (FIT profile 2.0), the format Garmin watches
+ * read from the `GARMIN/NewFiles` folder or import into Garmin Connect.
  *
- * Structure : en-tête 14 octets, messages file_id (0), workout (26), workout_step (27), CRC final.
+ * Layout: 14-byte header, file_id (0), workout (26) and workout_step (27) messages, trailing CRC.
  */
 
 const FIT_EPOCH_S = 631_065_600 // 1989-12-31T00:00:00Z
@@ -62,7 +62,7 @@ class FitWriter {
   define(local: number, global: Mesg, fields: FieldDef[]): void {
     const header = Buffer.alloc(6)
     header.writeUInt8(0x40 | local, 0)
-    header.writeUInt8(0, 1) // réservé
+    header.writeUInt8(0, 1) // reserved
     header.writeUInt8(0, 2) // little endian
     header.writeUInt16LE(global, 3)
     header.writeUInt8(fields.length, 5)
@@ -79,7 +79,7 @@ class FitWriter {
       const value = values[i]!
       if (type === BaseType.String) {
         const encoded = Buffer.from(String(value), 'utf8').subarray(0, fieldSize - 1)
-        encoded.copy(record, offset) // le reste est déjà à zéro (terminateur)
+        encoded.copy(record, offset) // the rest is already zeroed (terminator)
       } else if (fieldSize === 1) record.writeUInt8(Number(value), offset)
       else if (fieldSize === 2) record.writeUInt16LE(Number(value), offset)
       else record.writeUInt32LE(Number(value), offset)
@@ -139,7 +139,7 @@ export class FitWorkoutEncoder implements WorkoutEncoder {
     writer.define(0, Mesg.FileId, FILE_ID_FIELDS)
     writer.write(0, FILE_ID_FIELDS, [
       5, // workout
-      255, // développement
+      255, // development
       0,
       randomInt(1, 0x7fffffff),
       Math.floor(this.now().getTime() / 1000) - FIT_EPOCH_S,
@@ -152,7 +152,7 @@ export class FitWorkoutEncoder implements WorkoutEncoder {
   }
 }
 
-/** Aplatit la séance en étapes FIT ; une répétition pointe vers sa première étape. */
+/** Flattens the session into FIT steps; a repeat points back to its first step. */
 function flatten(workout: WorkoutDefinition): FieldValue[][] {
   const rows: FieldValue[][] = []
   const timed = (step: TimedStep): FieldValue[] => [

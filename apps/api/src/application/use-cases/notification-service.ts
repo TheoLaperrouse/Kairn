@@ -38,12 +38,12 @@ export interface NotificationStatus {
   devices: Array<{ endpoint: string; deviceLabel: string; createdAt: string }>
 }
 
-/** Au-delà, une activité synchronisée est de l'historique : pas de notification. */
+/** Beyond this, a synced activity is history: no notification. */
 const ANALYSIS_MAX_AGE_MS = 36 * 3600_000
 
 /**
- * Notifications sur le téléphone : rappel du matin les jours de séance, bilan du dimanche soir,
- * analyse d'une sortie dès sa synchronisation. `tick()` est appelé chaque minute.
+ * Phone notifications: morning reminder on session days, Sunday evening summary,
+ * analysis of an outing as soon as it is synced. `tick()` is called every minute.
  */
 export class NotificationService implements ActivityImportListener {
   constructor(
@@ -70,7 +70,7 @@ export class NotificationService implements ActivityImportListener {
     if (!/^https:\/\//.test(subscription.endpoint)) throw new DomainError('Abonnement de notification invalide')
     this.subscriptions.save({ ...subscription, userId, deviceLabel, createdAt: this.clock.now().toISOString() })
     const current = this.settingsStore.get(userId)
-    // Premier appareil : le fuseau du téléphone devient celui des rappels.
+    // First device: the phone's time zone becomes the reminders' time zone.
     if (!current && timeZone && isValidTimeZone(timeZone)) {
       this.settingsStore.save(userId, { ...DEFAULT_NOTIFICATION_SETTINGS, timeZone }, {})
     }
@@ -100,14 +100,14 @@ export class NotificationService implements ActivityImportListener {
     return sent
   }
 
-  /** Tâche minute : envoie ce qui est dû à chaque utilisateur, dans son fuseau. */
+  /** Per-minute job: sends whatever is due to each user, in their time zone. */
   async tick(): Promise<void> {
     const now = this.clock.now()
     for (const userId of this.subscriptions.usersWithSubscriptions()) {
       try {
         await this.tickUser(userId, now)
       } catch (error) {
-        this.log(`Notifications de ${userId} : ${error instanceof Error ? error.message : String(error)}`)
+        this.log(`Notifications for ${userId}: ${error instanceof Error ? error.message : String(error)}`)
       }
     }
   }
@@ -116,7 +116,7 @@ export class NotificationService implements ActivityImportListener {
     if (!automatic || this.clock.now().getTime() - Date.parse(activity.startTime) - activity.durationSec * 1000 > ANALYSIS_MAX_AGE_MS) return
     if (!this.load(userId).settings.analysis.enabled || this.subscriptions.listByUser(userId).length === 0) return
     const analysis = this.analyses.analyzeActivity(userId, activity)
-    void this.deliver(userId, analysisMessage(activity, analysis)).catch((error: Error) => this.log(`Notification d’analyse : ${error.message}`))
+    void this.deliver(userId, analysisMessage(activity, analysis)).catch((error: Error) => this.log(`Analysis notification: ${error.message}`))
   }
 
   private async tickUser(userId: string, now: Date): Promise<void> {
@@ -151,7 +151,7 @@ export class NotificationService implements ActivityImportListener {
     }
   }
 
-  /** Envoie à tous les appareils de l'utilisateur ; oublie ceux que le navigateur a désabonnés. */
+  /** Sends to all of the user's devices; forgets those the browser has unsubscribed. */
   private async deliver(userId: string, message: PushMessage): Promise<number> {
     let sent = 0
     for (const subscription of this.subscriptions.listByUser(userId)) {
@@ -159,7 +159,7 @@ export class NotificationService implements ActivityImportListener {
         if ((await this.sender.send(subscription, message)) === 'GONE') this.subscriptions.delete(subscription.endpoint)
         else sent++
       } catch (error) {
-        this.log(`Notification vers ${subscription.deviceLabel} : ${error instanceof Error ? error.message : String(error)}`)
+        this.log(`Notification to ${subscription.deviceLabel}: ${error instanceof Error ? error.message : String(error)}`)
       }
     }
     return sent
@@ -170,7 +170,7 @@ export class NotificationService implements ActivityImportListener {
     return stored ? { settings: normalizeSettings(stored.settings), state: stored.state } : { settings: DEFAULT_NOTIFICATION_SETTINGS, state: {} }
   }
 
-  /** Bilan du matin d'aujourd'hui ou d'hier, s'il y en a un. */
+  /** Today's or yesterday's morning check-in, if any. */
   private latestReadiness(userId: string, today: IsoDate): LatestReadiness | undefined {
     const history = this.checkIns.listSince(userId, addDays(today, -16))
     const latest = history.filter((c) => c.date <= today && c.date >= addDays(today, -1)).at(-1)

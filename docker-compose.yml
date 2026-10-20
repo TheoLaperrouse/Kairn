@@ -10,9 +10,9 @@ services:
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
     volumes:
       - kairn-data:/data
-      # Décommente pour l'import automatique depuis une montre Garmin montée en USB :
+      # Uncomment for automatic import from a Garmin watch mounted over USB:
       # - /media/${USER}/GARMIN/GARMIN/Activity:/garmin:ro
-      # Et pour envoyer les séances sur la montre (GARMIN_NEWFILES_DIR=/garmin-newfiles) :
+      # And to send sessions to the watch (GARMIN_NEWFILES_DIR=/garmin-newfiles):
       # - /media/${USER}/GARMIN/GARMIN/NewFiles:/garmin-newfiles
     restart: unless-stopped
 

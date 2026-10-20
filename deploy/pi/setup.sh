@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Préparation d'une Raspberry Pi sous Ubuntu : Docker et mises à jour de sécurité automatiques.
-# Pas de pare-feu imposé : la Pi peut héberger d'autres services (Pi-hole, autres apps…) qu'il couperait.
-# Exécuté à distance par deploy/pi/deploy.sh (une seule fois, idempotent).
+# Prepares a Raspberry Pi running Ubuntu: Docker and automatic security updates.
+# No firewall enforced: the Pi may host other services (Pi-hole, other apps…) it would cut off.
+# Run remotely by deploy/pi/deploy.sh (once, idempotent).
 set -euo pipefail
 
 SUDO=""

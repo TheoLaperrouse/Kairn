@@ -2,8 +2,8 @@ import { NotFoundError } from '../../domain/shared/errors'
 import type { CalendarEncoder, CalendarFeedRepository, Clock, GoalRepository, PlanRepository, TokenService } from '../ports'
 
 /**
- * Abonnement agenda : une URL secrète par utilisateur, lisible sans cookie par Google Agenda
- * ou Apple Calendrier. Régénérer le lien révoque l'ancien.
+ * Calendar subscription: one secret URL per user, readable without a cookie by Google Calendar
+ * or Apple Calendar. Regenerating the link revokes the old one.
  */
 export class CalendarService {
   constructor(

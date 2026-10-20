@@ -1,4 +1,4 @@
-// Lance l'API (port 3000) et le front Vite (port 5173) en parallèle.
+// Runs the API (port 3000) and the Vite front end (port 5173) side by side.
 import { spawn } from 'node:child_process'
 
 const processes = [
@@ -11,7 +11,7 @@ const processes = [
     stream.on('data', (chunk) => process.stdout.write(chunk.toString().replace(/^(?=.)/gm, prefix)))
   }
   child.on('exit', (code) => {
-    console.log(`${prefix}arrêté (code ${code})`)
+    console.log(`${prefix}stopped (code ${code})`)
     shutdown()
   })
   return child

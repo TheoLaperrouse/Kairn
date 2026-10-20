@@ -1,7 +1,7 @@
-# Déploiement sur une Raspberry Pi (Ubuntu 64 bits) : Kairn + Cloudflare Tunnel + sauvegardes.
-# Lancé par deploy/pi/deploy.sh ; variables lues dans .env (PUBLIC_URL, TUNNEL_TOKEN, STRAVA_*…).
-# Le tunnel ne démarre que si .env contient COMPOSE_PROFILES=tunnel (écrit avec le jeton par deploy.sh).
-# L'image kairn:latest est construite sur le PC (ARM64) et chargée sur la Pi : rien n'est compilé ici.
+# Deployment on a Raspberry Pi (64-bit Ubuntu): Kairn + Cloudflare Tunnel + backups.
+# Started by deploy/pi/deploy.sh; variables read from .env (PUBLIC_URL, TUNNEL_TOKEN, STRAVA_*…).
+# The tunnel only starts if .env contains COMPOSE_PROFILES=tunnel (written along with the token by deploy.sh).
+# The kairn:latest image is built on the PC (ARM64) and loaded onto the Pi: nothing is compiled here.
 name: kairn
 
 services:
@@ -13,13 +13,13 @@ services:
       DATABASE_PATH: /data/kairn.db
     volumes:
       - kairn-data:/data
-    # Accès direct sur le réseau local (http://<ip-de-la-pi>:3100) ; Internet passe par le tunnel.
+    # Direct access on the local network (http://<pi-ip>:3100); Internet traffic goes through the tunnel.
     ports:
       - '${KAIRN_PORT:-3100}:3000'
     restart: unless-stopped
 
-  # Connexion sortante vers Cloudflare, qui sert https://<domaine> et termine le HTTPS.
-  # Dans le tableau de bord du tunnel, le « Public hostname » pointe vers http://kairn:3000.
+  # Outbound connection to Cloudflare, which serves https://<domain> and terminates HTTPS.
+  # In the tunnel dashboard, the "Public hostname" points to http://kairn:3000.
   cloudflared:
     image: cloudflare/cloudflared:2025.8.1
     command: tunnel --no-autoupdate run
@@ -31,7 +31,7 @@ services:
       - kairn
     restart: unless-stopped
 
-  # Sauvegarde quotidienne cohérente de la base SQLite, 14 jours conservés.
+  # Consistent daily backup of the SQLite database, 14 days kept.
   backup:
     image: alpine:3.22
     volumes:

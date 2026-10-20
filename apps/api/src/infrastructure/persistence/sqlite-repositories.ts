@@ -27,7 +27,7 @@ import { transaction } from './database'
 
 type Row = Record<string, unknown>
 
-/** Petit socle commun : la plupart des tables stockent l'objet en JSON dans une colonne `data`. */
+/** Small shared base: most tables store the object as JSON in a `data` column. */
 abstract class SqliteRepository {
   constructor(protected readonly db: DatabaseSync) {}
 
@@ -52,7 +52,7 @@ abstract class SqliteRepository {
     return this.rows(sql, ...params).map((row) => Object.values(row)[0] as string)
   }
 
-  /** Exécute une écriture et renvoie le nombre de lignes touchées. */
+  /** Runs a write and returns the number of affected rows. */
   protected run(sql: string, ...params: SQLInputValue[]): number {
     return Number(this.db.prepare(sql).run(...params).changes)
   }
@@ -130,7 +130,7 @@ function toSession(row: Row): DeviceSession {
   }
 }
 
-/** Dépôt « un document JSON par utilisateur ». */
+/** "One JSON document per user" repository. */
 class JsonDocumentRepository<T> extends SqliteRepository {
   constructor(
     db: DatabaseSync,
@@ -187,7 +187,7 @@ export class SqliteCheckInRepository extends SqliteRepository implements CheckIn
   }
 }
 
-/** Le plan est stocké en deux parties : l'en-tête (semaines, alertes) et une ligne par séance. */
+/** The plan is stored in two parts: the header (weeks, warnings) and one row per session. */
 export class SqlitePlanRepository extends SqliteRepository implements PlanRepository {
   private readonly headers = new JsonDocumentRepository<Omit<TrainingPlan, 'sessions'>>(this.db, 'plans')
 
@@ -272,7 +272,7 @@ export class SqliteIntegrationStore extends SqliteRepository implements Integrat
 }
 
 export class SqlitePushSubscriptionRepository extends SqliteRepository implements PushSubscriptionRepository {
-  /** Un même navigateur réabonné (ou passé à un autre compte) remplace l'abonnement existant. */
+  /** The same browser subscribing again (or switching to another account) replaces the existing subscription. */
   save(subscription: StoredPushSubscription): void {
     this.run(
       `INSERT INTO push_subscriptions (endpoint, user_id, data) VALUES (?, ?, ?)
@@ -323,7 +323,7 @@ export class SqliteCalendarFeedRepository extends SqliteRepository implements Ca
   }
 }
 
-/** Secrets propres à l'instance (clés VAPID…), générés au premier démarrage. */
+/** Instance-specific secrets (VAPID keys…), generated on first start. */
 export class SqliteSecretStore extends SqliteRepository {
   getOrCreate(name: string, create: () => string): string {
     const [existing] = this.column('SELECT value FROM app_secrets WHERE name = ?', name)

@@ -15,7 +15,7 @@ interface TrackPoint {
   ele?: number
   time?: string
   hr?: number
-  /** Distance cumulée fournie par l'appareil (TCX), en mètres. */
+  /** Cumulative distance supplied by the device (TCX), in metres. */
   distanceM?: number
 }
 
@@ -24,7 +24,7 @@ function asNumber(value: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined
 }
 
-/** Construit une activité à partir d'une trace : distance, D+ lissé, durée, FC. */
+/** Builds an activity from a track: distance, smoothed elevation gain, duration, HR. */
 function fromTrack(points: TrackPoint[], meta: { source: 'GPX' | 'TCX'; sportLabel?: string; name?: string; content: Buffer }): ImportedActivity {
   if (points.length < 2) throw new Error('La trace contient moins de deux points')
   let distanceKm = 0

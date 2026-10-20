@@ -1,5 +1,5 @@
-# Déploiement production sur un VPS : Kairn + Caddy (HTTPS automatique Let's Encrypt) + sauvegardes.
-# Lancé par deploy/deploy.sh ; variables lues dans deploy/.env (DOMAIN, PUBLIC_URL, STRAVA_*…).
+# Production deployment on a VPS: Kairn + Caddy (automatic Let's Encrypt HTTPS) + backups.
+# Started by deploy/deploy.sh; variables read from deploy/.env (DOMAIN, PUBLIC_URL, STRAVA_*…).
 name: kairn
 
 services:
@@ -13,7 +13,7 @@ services:
     volumes:
       - kairn-data:/data
     restart: unless-stopped
-    # Pas de port publié : seul Caddy est exposé.
+    # No published port: only Caddy is exposed.
 
   caddy:
     image: caddy:2.10-alpine
@@ -30,7 +30,7 @@ services:
       - caddy-config:/config
     restart: unless-stopped
 
-  # Sauvegarde quotidienne cohérente de la base SQLite, 14 jours conservés.
+  # Consistent daily backup of the SQLite database, 14 days kept.
   backup:
     image: alpine:3.22
     volumes:

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Déploie Kairn sur une Raspberry Pi (Ubuntu 64 bits), en local et éventuellement via un Cloudflare Tunnel.
+# Deploys Kairn to a Raspberry Pi (64-bit Ubuntu), locally and optionally through a Cloudflare Tunnel.
 #
-#   ./deploy/pi/deploy.sh theolap@192.168.1.11                                          # réseau local : http://192.168.1.11:3100
-#   TUNNEL_TOKEN=eyJ... ./deploy/pi/deploy.sh theolap@192.168.1.11 kairn.mondomaine.fr  # active le tunnel
-#   ./deploy/pi/deploy.sh theolap@192.168.1.11 kairn.mondomaine.fr                      # mises à jour
+#   ./deploy/pi/deploy.sh theolap@192.168.1.11                                          # local network: http://192.168.1.11:3100
+#   TUNNEL_TOKEN=eyJ... ./deploy/pi/deploy.sh theolap@192.168.1.11 kairn.mydomain.com   # enables the tunnel
+#   ./deploy/pi/deploy.sh theolap@192.168.1.11 kairn.mydomain.com                       # updates
 #
-# L'image est construite sur ce PC pour ARM64 (émulation QEMU) puis chargée sur la Pi :
-# une Pi 3 n'a pas la mémoire pour compiler le front. Relançable sans perte de données.
+# The image is built on this PC for ARM64 (QEMU emulation) then loaded onto the Pi:
+# a Pi 3 does not have the memory to build the front end. Can be re-run without data loss.
 set -euo pipefail
 
 TARGET="${1:?Usage : deploy.sh utilisateur@ip [domaine]}"
@@ -32,7 +32,7 @@ if ! ssh_run "command -v docker >/dev/null"; then
   echo "→ Préparation de la Pi (première fois)"
   ssh_run "bash -s" < "$ROOT/deploy/pi/setup.sh"
 fi
-# Sans appartenance au groupe docker, on passe par sudo (sans mot de passe interactif).
+# Without docker group membership, fall back to sudo (no interactive password).
 DOCKER="docker"
 ssh_run "docker info >/dev/null 2>&1" || DOCKER="sudo -n docker"
 
@@ -43,7 +43,7 @@ ssh_run "mkdir -p $REMOTE_DIR/backups && cd $REMOTE_DIR && touch .env && chmod 6
   printf 'PUBLIC_URL=%s\nKAIRN_PORT=%s\n' '$PUBLIC_URL' '$KAIRN_PORT' >> .env.tmp && mv .env.tmp .env"
 if [ -n "${TUNNEL_TOKEN:-}" ]; then
   [ -z "$DOMAIN" ] && { echo "Le tunnel a besoin du domaine : $0 $TARGET kairn.mondomaine.fr"; exit 1; }
-  # Le jeton passe par l'entrée standard pour ne jamais apparaître dans une ligne de commande.
+  # The token goes through standard input so it never shows up on a command line.
   printf 'TUNNEL_TOKEN=%s\nCOMPOSE_PROFILES=tunnel\n' "$TUNNEL_TOKEN" | ssh_run "cd $REMOTE_DIR &&
     { grep -v -E '^(TUNNEL_TOKEN|COMPOSE_PROFILES)=' .env || true; } > .env.tmp && cat >> .env.tmp && mv .env.tmp .env"
 fi

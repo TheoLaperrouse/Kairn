@@ -1,10 +1,10 @@
 import type { Recipe } from '../../domain/nutrition/recipe'
 
 /**
- * Catalogue de recettes nutrition orientées trail / ultra-trail.
- * Macros indicatives par portion, calculées à partir des ingrédients listés.
- * Repères : 60-90 g de glucides/h en course (jusqu'à 120 g/h avec un intestin entraîné),
- * 500-700 mg de sodium par litre de boisson (ISSN), davantage par forte chaleur.
+ * Catalogue of nutrition recipes for trail / ultra-trail.
+ * Approximate macros per serving, computed from the listed ingredients.
+ * Guidelines: 60-90 g of carbs/h while racing (up to 120 g/h with a trained gut),
+ * 500-700 mg of sodium per litre of drink (ISSN), more in strong heat.
  */
 export const RECIPES: Recipe[] = [
   {
