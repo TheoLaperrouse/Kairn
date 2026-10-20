@@ -25,7 +25,7 @@ export class TrainingService {
     private readonly catalog: ContentCatalog,
     private readonly clock: Clock,
     private readonly ids: IdGenerator,
-    private readonly activities?: ActivityRepository,
+    private readonly activities: ActivityRepository,
   ) {}
 
   presets(): RacePreset[] {
@@ -67,7 +67,7 @@ export class TrainingService {
       today: toIsoDate(now),
       createdAt: now.toISOString(),
       routines: this.catalog.routines(),
-      trainingSpeedKme: this.activities ? personalTrainingSpeed(this.activities.list(userId), toIsoDate(now)) : undefined,
+      trainingSpeedKme: personalTrainingSpeed(this.activities.list(userId), toIsoDate(now)),
     })
     const merged = withHistory(plan, this.plans.get(userId))
     this.plans.save(userId, merged)

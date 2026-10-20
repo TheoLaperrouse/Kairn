@@ -21,9 +21,7 @@ describe('FitActivityParser', () => {
     expect(activity.externalId).toMatch(/^fit:[0-9a-f]{40}$/)
   })
 
-  it('only supports .fit files', () => {
-    const parser = new FitActivityParser()
-    expect(parser.supports('Morning_Run.FIT')).toBe(true)
-    expect(parser.supports('trace.gpx')).toBe(false)
+  it('declares the .fit extension', () => {
+    expect(new FitActivityParser().extension).toBe('.fit')
   })
 })

@@ -2,7 +2,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { AccountService, PublicUser } from '../../application/use-cases/account-service'
 import { SESSION_TTL_DAYS } from '../../domain/account/account'
 
-export const SESSION_COOKIE = 'kairn_session'
+const SESSION_COOKIE = 'kairn_session'
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -17,7 +17,7 @@ export class UnauthorizedError extends Error {
   }
 }
 
-export function readCookie(request: FastifyRequest, name: string): string | undefined {
+function readCookie(request: FastifyRequest, name: string): string | undefined {
   const header = request.headers.cookie
   if (!header) return undefined
   for (const part of header.split(';')) {

@@ -27,23 +27,29 @@ export class WorkoutExportService {
 
   /** Dépose les séances (course et vélo) d'une semaine directement sur la montre. */
   async sendWeekToWatch(userId: string, weekIndex: number): Promise<string[]> {
-    if (!this.outbox.isConfigured()) throw new DomainError('Aucune montre configurée sur le serveur (GARMIN_NEWFILES_DIR)')
+    this.requireWatch()
     const sessions = (this.plans.get(userId)?.sessions ?? []).filter(
       (s) => s.weekIndex === weekIndex && s.status === 'PLANNED' && isExportable(s),
     )
     const sent: string[] = []
     for (const session of sessions) {
-      const file = this.encode(session)
-      await this.outbox.deliver(file.filename, file.content)
+      await this.deliver(this.encode(session))
       sent.push(session.title)
     }
     return sent
   }
 
   async sendSessionToWatch(userId: string, sessionId: string): Promise<void> {
+    this.requireWatch()
+    await this.deliver(this.exportSession(userId, sessionId))
+  }
+
+  private requireWatch(): void {
     if (!this.outbox.isConfigured()) throw new DomainError('Aucune montre configurée sur le serveur (GARMIN_NEWFILES_DIR)')
-    const file = this.exportSession(userId, sessionId)
-    await this.outbox.deliver(file.filename, file.content)
+  }
+
+  private deliver(file: ExportedWorkout): Promise<void> {
+    return this.outbox.deliver(file.filename, file.content)
   }
 
   private encode(session: PlannedSession): ExportedWorkout {

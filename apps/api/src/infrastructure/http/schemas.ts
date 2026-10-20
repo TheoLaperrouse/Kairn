@@ -1,6 +1,12 @@
 /** Schémas JSON des corps de requête : Fastify rejette en 400 tout ce qui ne correspond pas. */
 
 const day = { type: 'integer', minimum: 0, maximum: 6 } as const
+const scale = { enum: [1, 2, 3, 4, 5] } as const
+const date = { type: 'string', format: 'date' } as const
+const time = { type: 'string', pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' } as const
+const temperatureC = { type: 'number', minimum: -30, maximum: 50 } as const
+const sweat = { enum: ['FAIBLE', 'MOYEN', 'FORT'] } as const
+const gut = { enum: ['AUCUN', 'PARTIEL', 'ENTRAINE'] } as const
 
 export const credentialsSchema = {
   type: 'object',
@@ -60,10 +66,10 @@ export const goalSchema = {
   properties: {
     id: { type: 'string', maxLength: 64 },
     name: { type: 'string', maxLength: 80 },
-    raceDate: { type: 'string', format: 'date' },
+    raceDate: date,
     distanceKm: { type: 'number' },
     elevationGainM: { type: 'number' },
-    technicity: { enum: [1, 2, 3, 4, 5] },
+    technicity: scale,
     maxAltitudeM: { type: 'number', minimum: 0, maximum: 9000 },
     polesAllowed: { type: 'boolean' },
     nightSections: { type: 'boolean' },
@@ -87,10 +93,10 @@ export const fuelingSchema = {
   additionalProperties: false,
   properties: {
     durationH: { type: 'number' },
-    temperatureC: { type: 'number', minimum: -30, maximum: 50 },
+    temperatureC,
     weightKg: { type: 'number' },
-    sweat: { enum: ['FAIBLE', 'MOYEN', 'FORT'] },
-    gut: { enum: ['AUCUN', 'PARTIEL', 'ENTRAINE'] },
+    sweat,
+    gut,
   },
 } as const
 
@@ -99,13 +105,13 @@ export const checkInSchema = {
   required: ['date', 'sleepHours', 'sleepQuality', 'soreness', 'fatigue', 'motivation', 'stress', 'illnessSymptoms'],
   additionalProperties: false,
   properties: {
-    date: { type: 'string', format: 'date' },
+    date,
     sleepHours: { type: 'number' },
-    sleepQuality: { enum: [1, 2, 3, 4, 5] },
-    soreness: { enum: [1, 2, 3, 4, 5] },
-    fatigue: { enum: [1, 2, 3, 4, 5] },
-    motivation: { enum: [1, 2, 3, 4, 5] },
-    stress: { enum: [1, 2, 3, 4, 5] },
+    sleepQuality: scale,
+    soreness: scale,
+    fatigue: scale,
+    motivation: scale,
+    stress: scale,
     restingHr: { type: 'number' },
     hrv: { type: 'number' },
     illnessSymptoms: { type: 'boolean' },
@@ -118,8 +124,8 @@ export const unavailabilitySchema = {
   required: ['from', 'to', 'reason', 'crossTrainingOk'],
   additionalProperties: false,
   properties: {
-    from: { type: 'string', format: 'date' },
-    to: { type: 'string', format: 'date' },
+    from: date,
+    to: date,
     reason: { enum: ['MALADIE', 'BLESSURE', 'INDISPONIBLE'] },
     crossTrainingOk: { type: 'boolean' },
   },
@@ -156,17 +162,15 @@ export const raceCourseUpdateSchema = {
       required: ['startTime', 'temperatureC', 'sweat', 'gut', 'weightKg'],
       additionalProperties: false,
       properties: {
-        startTime: { type: 'string', pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' },
-        temperatureC: { type: 'number', minimum: -30, maximum: 50 },
-        sweat: { enum: ['FAIBLE', 'MOYEN', 'FORT'] },
-        gut: { enum: ['AUCUN', 'PARTIEL', 'ENTRAINE'] },
+        startTime: time,
+        temperatureC,
+        sweat,
+        gut,
         weightKg: { type: 'number', minimum: 35, maximum: 150 },
       },
     },
   },
 } as const
-
-const time = { type: 'string', pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' } as const
 
 export const pushSubscriptionSchema = {
   type: 'object',
@@ -196,15 +200,22 @@ export const unsubscribeSchema = {
   properties: { endpoint: { type: 'string', maxLength: 2048 } },
 } as const
 
+const timedToggle = {
+  type: 'object',
+  required: ['enabled', 'time'],
+  additionalProperties: false,
+  properties: { enabled: { type: 'boolean' }, time },
+} as const
+
 export const notificationSettingsSchema = {
   type: 'object',
   required: ['timeZone', 'morning', 'weekly', 'analysis'],
   additionalProperties: false,
   properties: {
     timeZone: { type: 'string', maxLength: 64 },
-    morning: { type: 'object', required: ['enabled', 'time'], additionalProperties: false, properties: { enabled: { type: 'boolean' }, time } },
-    weekly: { type: 'object', required: ['enabled', 'time'], additionalProperties: false, properties: { enabled: { type: 'boolean' }, time } },
+    morning: timedToggle,
+    weekly: timedToggle,
     analysis: { type: 'object', required: ['enabled'], additionalProperties: false, properties: { enabled: { type: 'boolean' } } },
-    checkIn: { type: 'object', required: ['enabled', 'time'], additionalProperties: false, properties: { enabled: { type: 'boolean' }, time } },
+    checkIn: timedToggle,
   },
 } as const

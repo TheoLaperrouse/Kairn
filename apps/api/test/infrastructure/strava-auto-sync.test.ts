@@ -4,7 +4,7 @@ import type { ActivityProvider, IntegrationTokens } from '../../src/application/
 import type { ActivityService } from '../../src/application/use-cases/activity-service'
 import type { ImportedActivity } from '../../src/domain/activity/activity'
 import type { SqliteIntegrationStore } from '../../src/infrastructure/persistence/sqlite-repositories'
-import { buildTestApp } from '../fixtures/test-app'
+import { buildTestApp, registerUser } from '../fixtures/test-app'
 
 /** Fake Strava: each athlete (identified by their access token) has their own activities. */
 class FakeStrava implements ActivityProvider {
@@ -62,10 +62,8 @@ beforeAll(async () => {
   strava = new FakeStrava()
   ;({ app, integrations, activityService } = await buildTestApp(new Date('2027-03-03T08:00:00Z'), { providers: [strava], stravaVerifyToken: VERIFY_TOKEN }))
   for (const email of ['a@kairn.test', 'b@kairn.test', 'c@kairn.test']) {
-    const register = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email, password: 'ultra-trail-2027' } })
-    const cookie = String(register.headers['set-cookie']).split(';')[0]!
-    const me = await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie } })
-    users.push({ id: me.json().user.id, cookie })
+    const { cookie, userId } = await registerUser(app, email)
+    users.push({ id: userId, cookie })
   }
 })
 

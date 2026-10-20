@@ -75,7 +75,8 @@ export interface ContentCatalog {
 }
 
 export interface ActivityFileParser {
-  supports(filename: string): boolean
+  /** Extension prise en charge, en minuscules (`.fit`). */
+  readonly extension: string
   parse(content: Buffer, filename: string): Promise<ImportedActivity>
 }
 

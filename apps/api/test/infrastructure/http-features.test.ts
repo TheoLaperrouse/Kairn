@@ -2,8 +2,7 @@ import { readdirSync } from 'node:fs'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { syntheticCourseGpx } from '../fixtures/course-gpx'
-import { aGoal, aProfile } from '../fixtures/factories'
-import { buildTestApp, multipart } from '../fixtures/test-app'
+import { buildTestApp, multipart, registerUser, setUpPlan } from '../fixtures/test-app'
 
 let app: FastifyInstance
 let watchDir: string
@@ -11,11 +10,8 @@ let cookie: string
 
 beforeAll(async () => {
   ;({ app, watchDir } = await buildTestApp(new Date('2027-03-03T06:30:00Z')))
-  const register = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email: 'f@kairn.test', password: 'ultra-trail-2027' } })
-  cookie = String(register.headers['set-cookie']).split(';')[0]!
-  await app.inject({ method: 'PUT', url: '/api/profile', headers: { cookie }, payload: aProfile() })
-  await app.inject({ method: 'PUT', url: '/api/goal', headers: { cookie }, payload: aGoal() })
-  await app.inject({ method: 'POST', url: '/api/plan/generate', headers: { cookie } })
+  ;({ cookie } = await registerUser(app, 'f@kairn.test'))
+  await setUpPlan(app, cookie)
 })
 
 afterAll(() => app.close())

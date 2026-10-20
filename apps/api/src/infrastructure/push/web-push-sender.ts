@@ -14,7 +14,7 @@ const MAX_PAYLOAD_BYTES = 3000
 const TTL_SECONDS = 24 * 3600
 const JWT_LIFETIME_SECONDS = 12 * 3600
 
-export function base64url(buffer: Buffer | Uint8Array): string {
+function base64url(buffer: Buffer | Uint8Array): string {
   return Buffer.from(buffer).toString('base64url')
 }
 

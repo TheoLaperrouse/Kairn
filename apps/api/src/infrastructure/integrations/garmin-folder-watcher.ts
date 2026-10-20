@@ -19,7 +19,6 @@ export interface FolderWatcherOptions {
  * Le dédoublonnage par empreinte rend les passages répétés sans effet.
  */
 export class GarminFolderWatcher {
-  private timer?: NodeJS.Timeout
   private readonly seen = new Map<string, number>()
   private running = false
 
@@ -31,11 +30,7 @@ export class GarminFolderWatcher {
   start(): void {
     this.options.log(`Surveillance du dossier Garmin : ${this.options.directory}`)
     void this.scan()
-    this.timer = setInterval(() => void this.scan(), this.options.intervalMs)
-  }
-
-  stop(): void {
-    clearInterval(this.timer)
+    setInterval(() => void this.scan(), this.options.intervalMs)
   }
 
   private async scan(): Promise<void> {

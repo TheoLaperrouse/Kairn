@@ -1,33 +1,10 @@
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { ActivityProvider, IntegrationTokens } from '../../src/application/ports'
 import type { ActivityService } from '../../src/application/use-cases/activity-service'
 import type { NotificationService } from '../../src/application/use-cases/notification-service'
-import type { ImportedActivity } from '../../src/domain/activity/activity'
 import { StravaActivityProvider } from '../../src/infrastructure/integrations/strava-provider'
 import type { SqliteIntegrationStore } from '../../src/infrastructure/persistence/sqlite-repositories'
-import { aGoal, aProfile } from '../fixtures/factories'
-import { buildTestApp, multipart, type RecordingPushSender } from '../fixtures/test-app'
-
-class FakeStrava implements ActivityProvider {
-  readonly name = 'strava'
-  feed: ImportedActivity[] = []
-  isConfigured() {
-    return true
-  }
-  authorizationUrl() {
-    return 'https://strava.test'
-  }
-  async exchangeCode(): Promise<IntegrationTokens> {
-    throw new Error('not used')
-  }
-  async refresh(tokens: IntegrationTokens) {
-    return tokens
-  }
-  async fetchSince() {
-    return this.feed.map((a) => ({ ...a }))
-  }
-}
+import { FakeStrava, buildTestApp, multipart, registerUser, setUpPlan, type RecordingPushSender } from '../fixtures/test-app'
 
 const VERIFY = 'verify-token'
 let app: FastifyInstance
@@ -49,12 +26,8 @@ beforeAll(async () => {
     providers: [strava],
     stravaVerifyToken: VERIFY,
   }))
-  const register = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email: 'r@kairn.test', password: 'ultra-trail-2027' } })
-  cookie = String(register.headers['set-cookie']).split(';')[0]!
-  userId = (await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie } })).json().user.id
-  await app.inject({ method: 'PUT', url: '/api/profile', headers: { cookie }, payload: aProfile() })
-  await app.inject({ method: 'PUT', url: '/api/goal', headers: { cookie }, payload: aGoal() })
-  await app.inject({ method: 'POST', url: '/api/plan/generate', headers: { cookie } })
+  ;({ cookie, userId } = await registerUser(app, 'r@kairn.test'))
+  await setUpPlan(app, cookie)
   integrations.save(userId, 'strava', { accessToken: 'a', refreshToken: 'r', expiresAt: 4_000_000_000, athleteId: '42' })
 })
 

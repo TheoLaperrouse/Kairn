@@ -1,37 +1,19 @@
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { RateLimitedError, type ActivityProvider, type IntegrationTokens } from '../../src/application/ports'
+import { RateLimitedError, type IntegrationTokens } from '../../src/application/ports'
 import type { ActivityService } from '../../src/application/use-cases/activity-service'
 import type { NotificationService } from '../../src/application/use-cases/notification-service'
 import type { ActivitySample, ImportedActivity } from '../../src/domain/activity/activity'
 import type { SqliteIntegrationStore } from '../../src/infrastructure/persistence/sqlite-repositories'
-import { aGoal, aProfile } from '../fixtures/factories'
-import { buildTestApp, multipart, type RecordingPushSender } from '../fixtures/test-app'
+import { FakeStrava, buildTestApp, multipart, registerUser, setUpPlan, type RecordingPushSender } from '../fixtures/test-app'
 import { track } from '../fixtures/tracks'
 
 /** Fake Strava: activity list without tracks, tracks served separately, simulated quota. */
-class FakeStrava implements ActivityProvider {
-  readonly name = 'strava'
-  feed: ImportedActivity[] = []
+class FakeStravaWithStreams extends FakeStrava {
   readonly streams = new Map<string, ActivitySample[]>()
   sampleCalls = 0
   quota = Infinity
 
-  isConfigured() {
-    return true
-  }
-  authorizationUrl() {
-    return 'https://strava.test'
-  }
-  async exchangeCode(): Promise<IntegrationTokens> {
-    throw new Error('not used')
-  }
-  async refresh(tokens: IntegrationTokens) {
-    return tokens
-  }
-  async fetchSince() {
-    return this.feed.map((a) => ({ ...a }))
-  }
   async fetchSamples(_tokens: IntegrationTokens, externalId: string) {
     this.sampleCalls++
     if (this.quota-- <= 0) throw new RateLimitedError('Strava')
@@ -48,19 +30,15 @@ let push: RecordingPushSender
 let notifications: NotificationService
 let activityService: ActivityService
 let integrations: SqliteIntegrationStore
-let strava: FakeStrava
+let strava: FakeStravaWithStreams
 let cookie: string
 let userId: string
 
 beforeAll(async () => {
-  strava = new FakeStrava()
+  strava = new FakeStravaWithStreams()
   ;({ app, clock, push, notifications, activityService, integrations } = await buildTestApp(NOW, { providers: [strava] }))
-  const register = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email: 'i@kairn.test', password: 'ultra-trail-2027' } })
-  cookie = String(register.headers['set-cookie']).split(';')[0]!
-  userId = (await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie } })).json().user.id
-  await app.inject({ method: 'PUT', url: '/api/profile', headers: { cookie }, payload: aProfile() })
-  await app.inject({ method: 'PUT', url: '/api/goal', headers: { cookie }, payload: aGoal() })
-  await app.inject({ method: 'POST', url: '/api/plan/generate', headers: { cookie } })
+  ;({ cookie, userId } = await registerUser(app, 'i@kairn.test'))
+  await setUpPlan(app, cookie)
 })
 
 afterAll(() => app.close())

@@ -53,6 +53,7 @@ const env = process.env
 const production = env.NODE_ENV === 'production'
 const port = Number(env.PORT ?? 3000)
 const publicUrl = env.PUBLIC_URL ?? `http://localhost:${production ? port : 5173}`
+const https = publicUrl.startsWith('https://')
 
 const db = openDatabase(resolve(env.DATABASE_PATH ?? 'data/kairn.db'))
 const clock = new SystemClock()
@@ -74,7 +75,7 @@ const strava = new StravaActivityProvider({
 // Strava n'appelle que des URL publiques en HTTPS. Le jeton ne sert qu'à la vérification de l'abonnement :
 // un nouveau à chaque démarrage suffit.
 const stravaWebhook =
-  strava.isConfigured() && publicUrl.startsWith('https://') && env.STRAVA_WEBHOOK !== 'off'
+  strava.isConfigured() && https && env.STRAVA_WEBHOOK !== 'off'
     ? { verifyToken: randomBytes(16).toString('hex') }
     : undefined
 
@@ -83,7 +84,7 @@ const summaries = new SummaryService(profiles, goals, plans, activityRepository,
 // Clés VAPID générées au premier démarrage et conservées en base : les abonnements des téléphones en dépendent.
 const pushSender = new WebPushSender({
   privateKey: new SqliteSecretStore(db).getOrCreate('vapid', generateVapidKeys),
-  subject: env.VAPID_SUBJECT ?? (publicUrl.startsWith('https://') ? publicUrl : 'mailto:kairn@localhost'),
+  subject: env.VAPID_SUBJECT ?? (https ? publicUrl : 'mailto:kairn@localhost'),
 })
 const notificationSettings = new SqliteNotificationSettingsRepository(db)
 const notifications = new NotificationService(
@@ -125,7 +126,7 @@ const services = {
 }
 
 const app = await buildServer(services, {
-  secureCookies: publicUrl.startsWith('https://'),
+  secureCookies: https,
   webDist: production ? resolve(import.meta.dirname, '../../web/dist') : undefined,
   logger: true,
   stravaWebhook,

@@ -1,4 +1,12 @@
-import { activityDay, profileFromSamples, sportFromLabel, type Activity, type ImportedActivity } from '../../domain/activity/activity'
+import {
+  activityDay,
+  profileFromSamples,
+  sportFromLabel,
+  type Activity,
+  type ActivitySample,
+  type ImportedActivity,
+  type ProfilePoint,
+} from '../../domain/activity/activity'
 import { isGenericName, suggestActivityName } from '../../domain/activity/activity-name'
 import { assignDay } from '../../domain/activity/session-matcher'
 import { DEFAULT_TIME_ZONE, localTime, type IsoDate } from '../../domain/shared/dates'
@@ -59,7 +67,7 @@ export class ActivityService {
 
   /** Liste allégée : la trace détaillée n'est renvoyée qu'avec une activité seule. */
   list(userId: string, limit?: number): Activity[] {
-    return this.activities.list(userId, limit).map(({ samples: _samples, ...activity }) => activity)
+    return this.activities.list(userId, limit).map(withoutSamples)
   }
 
   get(userId: string, id: string): Activity {
@@ -77,7 +85,7 @@ export class ActivityService {
 
   /** `automatic` : import sans action de l'utilisateur (dossier surveillé), qui mérite une notification. */
   async importFile(userId: string, filename: string, content: Buffer, automatic = false): Promise<ImportOutcome> {
-    const parser = this.parsers.find((p) => p.supports(filename))
+    const parser = this.parsers.find((p) => filename.toLowerCase().endsWith(p.extension))
     if (!parser) return { status: 'FAILED', filename, reason: 'Format non pris en charge (FIT, GPX ou TCX attendu)' }
     try {
       return this.store(userId, await parser.parse(content, filename), filename, automatic)
@@ -91,15 +99,20 @@ export class ActivityService {
     if (this.activities.existsByExternalId(userId, imported.externalId)) return { status: 'DUPLICATE', filename: label }
 
     const localDate = imported.localDate ?? localTime(new Date(imported.startTime), this.timeZones.timeZoneOf(userId)).date
-    const profile = imported.profile.length < 2 && imported.samples?.length ? profileFromSamples(imported.samples) : imported.profile
     const id = this.ids.next()
-    this.activities.save({ ...imported, localDate, profile, id, userId, autoNamed: isGenericName(imported.name) })
+    this.activities.save({
+      ...imported,
+      localDate,
+      profile: completeProfile(imported.profile, imported.samples),
+      id,
+      userId,
+      autoNamed: isGenericName(imported.name),
+    })
     this.relinkDay(userId, localDate)
     const activity = this.activities.get(userId, id)!
     for (const listener of this.listeners) listener.activityImported(userId, activity, automatic)
     const session = this.plans.get(userId)?.sessions.find((s) => s.id === activity.plannedSessionId)
-    const { samples: _samples, ...light } = activity
-    return { status: 'IMPORTED', activity: light, matchedSessionTitle: session?.title }
+    return { status: 'IMPORTED', activity: withoutSamples(activity), matchedSessionTitle: session?.title }
   }
 
   providerStatuses(userId: string): ProviderStatus[] {
@@ -158,9 +171,8 @@ export class ActivityService {
 
   /** Activité supprimée chez le fournisseur : on la retire aussi, et sa séance repasse « prévue ». */
   removeProviderActivity(providerName: string, athleteId: string, externalId: string): void {
-    const owner = this.integrations.findUserByAthleteId(providerName, athleteId)
-    const activity = owner ? this.activities.findByExternalId(owner, externalId) : undefined
-    if (owner && activity) this.delete(owner, activity.id)
+    const found = this.providerActivity(providerName, athleteId, externalId)
+    if (found) this.delete(found.owner, found.activity.id)
   }
 
   /**
@@ -168,9 +180,9 @@ export class ActivityService {
    * peut changer la séance qui lui correspond : on refait le rattachement.
    */
   updateProviderActivity(providerName: string, athleteId: string, externalId: string, change: { name?: string; sportLabel?: string }): void {
-    const owner = this.integrations.findUserByAthleteId(providerName, athleteId)
-    const activity = owner ? this.activities.findByExternalId(owner, externalId) : undefined
-    if (!owner || !activity) return
+    const found = this.providerActivity(providerName, athleteId, externalId)
+    if (!found) return
+    const { owner, activity } = found
     const sport = change.sportLabel ? sportFromLabel(change.sportLabel) : activity.sport
     const name = change.name?.trim()
     const updated: Activity = { ...activity, sport, ...(name ? { name, autoNamed: isGenericName(name) } : {}) }
@@ -182,6 +194,12 @@ export class ActivityService {
   disconnectAthlete(providerName: string, athleteId: string): void {
     const owner = this.integrations.findUserByAthleteId(providerName, athleteId)
     if (owner) this.integrations.delete(owner, providerName)
+  }
+
+  private providerActivity(providerName: string, athleteId: string, externalId: string): { owner: string; activity: Activity } | undefined {
+    const owner = this.integrations.findUserByAthleteId(providerName, athleteId)
+    const activity = owner ? this.activities.findByExternalId(owner, externalId) : undefined
+    return owner && activity ? { owner, activity } : undefined
   }
 
   private async syncSafely(userId: string, providerName: string): Promise<UserSyncResult> {
@@ -242,8 +260,7 @@ export class ActivityService {
       if (budget.remaining <= 0) return
       const samples = await this.fetchSamples(provider, tokens, activity.externalId, budget)
       if (samples === undefined) continue
-      const profile = activity.profile.length < 2 && samples.length ? profileFromSamples(samples) : activity.profile
-      this.activities.save({ ...activity, samples, profile })
+      this.activities.save({ ...activity, samples, profile: completeProfile(activity.profile, samples) })
     }
   }
 
@@ -284,4 +301,13 @@ export class ActivityService {
     const session = this.plans.get(userId)?.sessions.find((s) => s.id === sessionId)
     if (session) this.plans.updateSession(userId, { ...session, status: 'PLANNED', activityId: undefined })
   }
+}
+
+function withoutSamples({ samples: _samples, ...activity }: Activity): Activity {
+  return activity
+}
+
+/** Profil d'altitude reconstruit depuis la trace quand le fournisseur n'en donne pas. */
+function completeProfile(profile: ProfilePoint[], samples: ActivitySample[] | undefined): ProfilePoint[] {
+  return profile.length < 2 && samples?.length ? profileFromSamples(samples) : profile
 }

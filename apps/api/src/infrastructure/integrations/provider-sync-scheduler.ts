@@ -11,8 +11,6 @@ export interface SyncSchedulerOptions {
  * Filet de sécurité du webhook : rattrape les notifications perdues (serveur éteint, tunnel coupé).
  */
 export class ProviderSyncScheduler {
-  private timer?: NodeJS.Timeout
-
   constructor(
     private readonly activities: ActivityService,
     private readonly options: SyncSchedulerOptions,
@@ -20,11 +18,7 @@ export class ProviderSyncScheduler {
 
   start(): void {
     void this.run()
-    this.timer = setInterval(() => void this.run(), this.options.intervalMs)
-  }
-
-  stop(): void {
-    clearInterval(this.timer)
+    setInterval(() => void this.run(), this.options.intervalMs)
   }
 
   private async run(): Promise<void> {

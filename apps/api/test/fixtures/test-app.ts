@@ -1,7 +1,8 @@
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { ActivityProvider, Clock, PushSender, PushSubscription } from '../../src/application/ports'
+import type { FastifyInstance } from 'fastify'
+import type { ActivityProvider, Clock, IntegrationTokens, PushSender, PushSubscription } from '../../src/application/ports'
 import { AccountService } from '../../src/application/use-cases/account-service'
 import { ActivityService } from '../../src/application/use-cases/activity-service'
 import { AnalysisService } from '../../src/application/use-cases/analysis-service'
@@ -10,6 +11,7 @@ import { ContentService } from '../../src/application/use-cases/content-service'
 import { NotificationService } from '../../src/application/use-cases/notification-service'
 import { ProgressService } from '../../src/application/use-cases/progress-service'
 import { SummaryService } from '../../src/application/use-cases/summary-service'
+import type { ImportedActivity } from '../../src/domain/activity/activity'
 import type { PushMessage } from '../../src/domain/notifications/notification'
 import { IcsCalendarEncoder } from '../../src/infrastructure/calendar/ics-calendar-encoder'
 import { DashboardService } from '../../src/application/use-cases/dashboard-service'
@@ -26,6 +28,7 @@ import { GpxActivityParser } from '../../src/infrastructure/parsers/xml-track-pa
 import { openDatabase } from '../../src/infrastructure/persistence/database'
 import * as repos from '../../src/infrastructure/persistence/sqlite-repositories'
 import { RandomTokenService, ScryptPasswordHasher, UuidGenerator } from '../../src/infrastructure/system/system-adapters'
+import { aGoal, aProfile } from './factories'
 
 /** Fake push service: records sent messages; endpoints containing "gone" are expired. */
 export class RecordingPushSender implements PushSender {
@@ -39,6 +42,28 @@ export class RecordingPushSender implements PushSender {
     if (subscription.endpoint.includes('gone')) return 'GONE' as const
     this.sent.push({ endpoint: subscription.endpoint, message })
     return 'SENT' as const
+  }
+}
+
+/** Fake Strava: every connected account receives `feed`; OAuth is not exercised. */
+export class FakeStrava implements ActivityProvider {
+  readonly name = 'strava'
+  feed: ImportedActivity[] = []
+
+  isConfigured() {
+    return true
+  }
+  authorizationUrl() {
+    return 'https://strava.test'
+  }
+  async exchangeCode(): Promise<IntegrationTokens> {
+    throw new Error('not used')
+  }
+  async refresh(tokens: IntegrationTokens) {
+    return tokens
+  }
+  async fetchSince(_tokens: IntegrationTokens, _since: Date): Promise<ImportedActivity[]> {
+    return this.feed.map((a) => ({ ...a }))
   }
 }
 
@@ -125,4 +150,19 @@ export function multipart(field: string, filename: string, content: string, type
     headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
     payload: `--${boundary}\r\nContent-Disposition: form-data; name="${field}"; filename="${filename}"\r\nContent-Type: ${type}\r\n\r\n${content}\r\n--${boundary}--\r\n`,
   }
+}
+
+/** Registers an account and returns its session cookie and id. */
+export async function registerUser(app: FastifyInstance, email: string) {
+  const register = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email, password: 'ultra-trail-2027' } })
+  const cookie = String(register.headers['set-cookie']).split(';')[0]!
+  const userId: string = (await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie } })).json().user.id
+  return { cookie, userId }
+}
+
+/** Default profile and goal, then a generated plan. */
+export async function setUpPlan(app: FastifyInstance, cookie: string) {
+  await app.inject({ method: 'PUT', url: '/api/profile', headers: { cookie }, payload: aProfile() })
+  await app.inject({ method: 'PUT', url: '/api/goal', headers: { cookie }, payload: aGoal() })
+  await app.inject({ method: 'POST', url: '/api/plan/generate', headers: { cookie } })
 }

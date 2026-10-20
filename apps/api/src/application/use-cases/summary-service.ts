@@ -14,7 +14,7 @@ export class SummaryService {
   ) {}
 
   /** Semaine présentée par défaut : celle en cours le dimanche, sinon la précédente (terminée). */
-  defaultWeek(): IsoDate {
+  private defaultWeek(): IsoDate {
     const today = toIsoDate(this.clock.now())
     const current = startOfWeek(today)
     return weekday(today) === 6 ? current : addDays(current, -7)

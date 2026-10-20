@@ -1,4 +1,4 @@
-import { activityDay } from '../../domain/activity/activity'
+import { activityDay, type Activity } from '../../domain/activity/activity'
 import { CATEGORY_LABELS, categorize, estimateRaceDurationH, kmEffort, type TrailCategory } from '../../domain/goal/race-goal'
 import { computeLoadSeries, type LoadPoint } from '../../domain/training-load/training-load'
 import type { PlanWeek, PlannedSession } from '../../domain/plan/training-plan'
@@ -102,11 +102,7 @@ export class DashboardService {
     }
   }
 
-  private volumeOf(
-    week: PlanWeek,
-    sessions: PlannedSession[],
-    activities: ReturnType<ActivityRepository['list']>,
-  ): WeekVolume {
+  private volumeOf(week: PlanWeek, sessions: PlannedSession[], activities: Activity[]): WeekVolume {
     const end = addDays(week.startDate, 7)
     const done = activities.filter((a) => activityDay(a) >= week.startDate && activityDay(a) < end)
     const runs = done.filter((a) => a.sport === 'RUN')
