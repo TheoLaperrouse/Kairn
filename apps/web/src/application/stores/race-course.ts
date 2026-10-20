@@ -20,7 +20,7 @@ export const useRaceCourseStore = defineStore('race-course', () => {
     view.value = await api.updateRaceCourse(change)
   }
 
-  /** Aligne l'objectif sur le tracé officiel ; le plan d'entraînement est régénéré dans la foulée. */
+  /** Aligns the goal with the official course; the training plan is regenerated right after. */
   async function applyToGoal() {
     await api.applyRaceCourseToGoal()
     const training = useTrainingStore()

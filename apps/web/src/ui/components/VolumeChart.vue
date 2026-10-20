@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Volume hebdomadaire : prévu (barre fantôme) contre réalisé (barre pleine). */
+/** Weekly volume: planned (ghost bar) versus completed (solid bar). */
 import { computed, ref } from 'vue'
 import { PHASE_LABELS, formatNumber, formatShortDate } from '../../domain/format'
 import type { TrainingPhase, WeekVolume } from '../../domain/models'
@@ -38,7 +38,7 @@ const barW = computed(() => Math.max(slot.value - 2, 2))
 const y = (v: number) => margin.top + innerH * (1 - v / max.value)
 const baseline = margin.top + innerH
 
-/** Barre à coins supérieurs arrondis (4 px), ancrée sur la ligne de base. */
+/** Bar with rounded top corners (4 px), anchored on the baseline. */
 function bar(x: number, w: number, value: number): string {
   const top = y(value)
   const h = baseline - top

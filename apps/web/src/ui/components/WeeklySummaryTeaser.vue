@@ -12,7 +12,7 @@ onMounted(async () => {
 })
 
 const ICONS = { POSITIVE: CircleCheck, ATTENTION: CircleAlert, INFO: Info } as const
-/** Les points d'attention d'abord : ce sont eux qui demandent une action. */
+/** Attention points first: they are the ones that call for action. */
 const top = computed(() =>
   [...(summary.value?.insights ?? [])].sort((a, b) => (a.tone === 'ATTENTION' ? -1 : 0) - (b.tone === 'ATTENTION' ? -1 : 0)).slice(0, 3),
 )

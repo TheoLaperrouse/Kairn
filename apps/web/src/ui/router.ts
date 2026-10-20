@@ -4,11 +4,11 @@ import { useTrainingStore } from '../application/stores/training'
 
 declare module 'vue-router' {
   interface RouteMeta {
-    /** Accessible sans être connecté. */
+    /** Accessible without being logged in. */
     public?: boolean
-    /** Affichée sans la navigation (plein écran). */
+    /** Shown without the navigation (full screen). */
     bare?: boolean
-    /** Nécessite un plan généré (sinon redirection vers l'accueil guidé). */
+    /** Requires a generated plan (otherwise redirects to onboarding). */
     needsPlan?: boolean
     title?: string
   }

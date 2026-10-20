@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Forme de fond (CTL), fatigue (ATL) et fraîcheur (TSB) sur un axe unique.
- * La partie future est projetée à partir des séances prévues (pointillés).
+ * Fitness (CTL), fatigue (ATL) and form (TSB) on a single axis.
+ * The future part is projected from planned sessions (dashed).
  */
 import { computed, ref } from 'vue'
 import { formatLongDate, formatShortDate, formatNumber } from '../../domain/format'
@@ -59,7 +59,7 @@ const xTicks = computed(() => {
   return Array.from({ length: count }, (_, k) => Math.round((k / (count - 1)) * (n - 1)))
 })
 
-/** Étiquettes directes en bout de ligne, écartées pour ne pas se chevaucher. */
+/** Direct labels at line ends, spread apart so they do not overlap. */
 const endLabels = computed(() => {
   const last = props.points.length - 1
   if (last < 0) return []

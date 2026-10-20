@@ -41,7 +41,7 @@ async function reloadAnalysis() {
 
 const hasTrace = computed(() => (activity.value?.samples?.length ?? 0) >= 2)
 
-/** Indicateurs secondaires, affichés seulement s'ils ont un sens pour cette sortie. */
+/** Secondary metrics, shown only when they make sense for this activity. */
 const metrics = computed(() => {
   const a = analysis.value
   if (!a) return []
@@ -201,7 +201,7 @@ async function remove() {
 .metrics .sub {
   display: block;
 }
-/* Une cellule de grille ne rétrécit pas sous son contenu : sans cela, le tableau des montées élargit la page sur mobile. */
+/* A grid cell does not shrink below its content: without this, the climbs table widens the page on mobile. */
 .grid > .card {
   min-width: 0;
 }

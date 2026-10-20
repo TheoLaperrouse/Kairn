@@ -1,8 +1,8 @@
 import type { Exercise, RoutineBlock } from './models'
 
 /**
- * File d'étapes d'une séance guidée : chaque série (et chaque côté pour l'unilatéral)
- * devient une étape d'effort, suivie d'un repos — sauf après la toute dernière.
+ * Step queue of a guided session: each set (and each side for unilateral work)
+ * becomes an effort step followed by a rest, except after the very last one.
  */
 export type Side = 'LEFT' | 'RIGHT'
 
@@ -16,13 +16,13 @@ export interface EffortStep {
   reps?: number
   durationSec?: number
   tempo?: string
-  /** Durée d'une répétition en secondes (rythme du compteur et de la démo). */
+  /** Duration of one rep in seconds (pace of the counter and the demo). */
   repSec: number
-  /** Durée d'un cycle complet de l'animation, calée sur le rythme des répétitions. */
+  /** Duration of a full animation cycle, synced to the rep pace. */
   animationCycleMs: number
-  /** Premier effort de ce bloc : annonce + compte à rebours de préparation. */
+  /** First effort of this block: announcement + prep countdown. */
   firstOfBlock: boolean
-  /** Compte à rebours de préparation avant l'effort (nouvel exercice ou changement de côté). */
+  /** Prep countdown before the effort (new exercise or side switch). */
   needsPrep: boolean
   lastSet: boolean
   notes?: string
@@ -40,7 +40,7 @@ export type QueueStep = EffortStep | RestStep
 const DEFAULT_REP_SEC = 2.5
 export const PREP_SEC = 3
 
-/** Durée d'une répétition depuis un tempo « 3-1-1 » (secondes par phase), sinon 2,5 s. */
+/** Rep duration from a "3-1-1" tempo (seconds per phase), otherwise 2.5 s. */
 export function repDuration(tempo?: string): number {
   if (!tempo) return DEFAULT_REP_SEC
   const parts = tempo.split(/[-–/ ]+/).map(Number)
@@ -49,7 +49,7 @@ export function repDuration(tempo?: string): number {
   return total > 0 ? total : DEFAULT_REP_SEC
 }
 
-/** Rythme naturel d'un exercice, tiré de son animation (cycle et répétitions par cycle). */
+/** Natural rhythm of an exercise, taken from its animation (cycle and reps per cycle). */
 export interface ExerciseRhythm {
   cycleSec: number
   repsPerCycle: number
@@ -60,8 +60,8 @@ export function rhythmOf(exercise: Pick<Exercise, 'animation'>): ExerciseRhythm 
 }
 
 /**
- * Durée d'une répétition : le tempo imposé par la routine s'il existe, sinon le rythme de l'animation
- * (une fente de chaque côté par cycle = deux répétitions), sinon 2,5 s.
+ * Rep duration: the tempo set by the routine if any, otherwise the animation's rhythm
+ * (one lunge per side per cycle = two reps), otherwise 2.5 s.
  */
 function repSecFor(tempo: string | undefined, rhythm: ExerciseRhythm | undefined): number {
   if (tempo) return repDuration(tempo)
@@ -102,7 +102,7 @@ export function buildQueue(blocks: RoutineBlock[], rhythms: Record<string, Exerc
     queue.push(effort)
     const next = efforts[i + 1]
     if (!next) return
-    // Entre les deux côtés d'une même série, pas de repos : on enchaîne après la préparation.
+    // No rest between the two sides of a set: go straight on after the prep.
     if (effort.side === 'LEFT' && next.side === 'RIGHT' && next.blockIndex === effort.blockIndex) return
     const rest = blocks[effort.blockIndex]!.restSec
     if (rest > 0) queue.push({ kind: 'REST', blockIndex: effort.blockIndex, durationSec: rest, nextExerciseId: next.exerciseId })
@@ -110,7 +110,7 @@ export function buildQueue(blocks: RoutineBlock[], rhythms: Record<string, Exerc
   return queue
 }
 
-/** Durée estimée d'une étape, préparation comprise. */
+/** Estimated duration of a step, prep included. */
 export function stepDurationSec(step: QueueStep): number {
   if (step.kind === 'REST') return step.durationSec
   const work = step.durationSec ?? (step.reps ?? 10) * step.repSec

@@ -1,6 +1,6 @@
 import type { ProfilePoint } from '../../domain/models'
 
-/** Pas « rond » (1, 2 ou 5 × 10ⁿ) pour découper `range` en environ `target` intervalles. */
+/** "Round" step (1, 2 or 5 × 10ⁿ) splitting `range` into about `target` intervals. */
 export function niceStep(range: number, target: number): number {
   const raw = range / Math.max(target, 1)
   const magnitude = 10 ** Math.floor(Math.log10(raw))
@@ -8,7 +8,7 @@ export function niceStep(range: number, target: number): number {
   return (normalized >= 5 ? 10 : normalized >= 2 ? 5 : normalized >= 1 ? 2 : 1) * magnitude
 }
 
-/** Graduations de `from` à `to` inclus, arrondies pour gommer les erreurs de virgule flottante. */
+/** Ticks from `from` to `to` inclusive, rounded to smooth out floating-point errors. */
 export function ticksBetween(from: number, to: number, step: number, digits = 2): number[] {
   const factor = 10 ** digits
   const list: number[] = []
@@ -16,7 +16,7 @@ export function ticksBetween(from: number, to: number, step: number, digits = 2)
   return list
 }
 
-/** Abscisse du pointeur dans le repère du graphique (le SVG peut être mis à l'échelle). */
+/** Pointer x coordinate in the chart's coordinate system (the SVG may be scaled). */
 export function pointerX(event: PointerEvent, width: number): number {
   const rect = (event.currentTarget as Element).getBoundingClientRect()
   return ((event.clientX - rect.left) / rect.width) * width
@@ -28,7 +28,7 @@ export function linePath(points: Array<readonly [number, number]>): string {
 
 export type ProfileScale = ReturnType<typeof profileScale>
 
-/** Échelles d'un profil altimétrique : altitude en ordonnée, distance en abscisse. */
+/** Scales of an elevation profile: altitude on the y axis, distance on the x axis. */
 export function profileScale(
   points: ProfilePoint[],
   box: { width: number; height: number; pad: { top: number; right: number; bottom: number; left: number } },
@@ -57,7 +57,7 @@ export function profileScale(
   }
 }
 
-/** Ligne du profil et surface sous la courbe. */
+/** Profile line and area under the curve. */
 export function profilePaths(points: ProfilePoint[], scale: ProfileScale): { line: string; area: string } {
   const line = linePath(points.map((p) => [scale.x(p.distanceKm), scale.y(p.altitudeM)]))
   if (points.length < 2) return { line, area: '' }

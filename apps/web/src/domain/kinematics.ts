@@ -1,8 +1,8 @@
 import type { Pose, SceneProp } from './models'
 
 /**
- * Cinématique du personnage de démonstration (vue de profil, regard vers +x, y vers le bas).
- * Même modèle que les films Claude Motion : angles absolus, mise au sol automatique.
+ * Kinematics of the demo figure (side view, facing +x, y pointing down).
+ * Same model as the Claude Motion films: absolute angles, automatic grounding.
  */
 const SEGMENT = {
   thigh: 1,
@@ -38,15 +38,15 @@ export interface Limbs {
 
 const rad = (deg: number) => (deg * Math.PI) / 180
 
-/** Segment « pendant » : 0° = vers le bas, positif = vers l'avant. */
+/** "Hanging" segment: 0° = pointing down, positive = forward. */
 function hang(from: Point, angle: number, length: number): Point {
   return { x: from.x + length * Math.sin(rad(angle)), y: from.y + length * Math.cos(rad(angle)) }
 }
 
 /**
- * Angle du pied par défaut : à plat (90°) tant que le tibia est proche de la verticale (appui au sol),
- * puis transition douce vers le prolongement du tibia (+90°) quand la jambe passe en l'air ou à l'horizontale
- * (planche, jambe arrière de fente, genou montant). La transition évite tout saut pendant l'animation.
+ * Default foot angle: flat (90°) while the shin is near vertical (standing on the ground),
+ * then a smooth transition to the shin's extension (+90°) when the leg is in the air or horizontal
+ * (plank, rear leg of a lunge, knee drive). The transition avoids any jump during the animation.
  */
 export function defaultFootAngle(shin: number): number {
   const t = Math.min(Math.max((Math.abs(shin) - 35) / 25, 0), 1)
@@ -88,11 +88,11 @@ function build(pose: Pose, hip: Point): Skeleton {
   }
 }
 
-/** Point le plus bas du squelette (le sol est à y = 0, les y positifs vont vers le bas). */
-/** Épaisseur de semelle sous la ligne cheville → orteils (mêmes cotes que la chaussure dessinée). */
+/** Lowest point of the skeleton (the ground is at y = 0, positive y points down). */
+/** Sole thickness below the ankle → toes line (same dimensions as the drawn shoe). */
 const SOLE = { heelBack: 0.1, toeFront: 0.35, heel: 0.075, toe: 0.065 } as const
 
-/** Dessous de la semelle (talon et pointe) : ce sont eux qui touchent le sol, pas la cheville. */
+/** Underside of the sole (heel and toe): these touch the ground, not the ankle. */
 function solePoints(ankle: Point, toe: Point): Point[] {
   const dx = toe.x - ankle.x
   const dy = toe.y - ankle.y
@@ -114,14 +114,14 @@ function lowestY(s: Skeleton): number {
   return Math.max(...points.map((p) => p.y))
 }
 
-/** Squelette posé au sol (ou à `groundOffset`), soulevé de `air` pour les phases aériennes. */
+/** Skeleton resting on the ground (or at `groundOffset`), lifted by `air` for flight phases. */
 export function solve(pose: Pose): Skeleton {
   const raw = build(pose, { x: pose.hipX ?? 0, y: 0 })
   const shift = -(pose.groundOffset ?? 0) - (pose.air ?? 0) - lowestY(raw)
   return build(pose, { x: pose.hipX ?? 0, y: shift })
 }
 
-/** Valeur d'un angle, en complétant l'angle du pied absent par sa valeur par défaut. */
+/** Value of an angle, filling in a missing foot angle with its default value. */
 function valueOf(pose: Pose, key: keyof Pose): number {
   const value = pose[key]
   if (value !== undefined) return value
@@ -131,9 +131,9 @@ function valueOf(pose: Pose, key: keyof Pose): number {
 }
 
 /**
- * Tangente d'une interpolation cubique monotone (Fritsch–Butland) : nulle aux extrema et sur les
- * maintiens (deux poses identiques), continue ailleurs. Le mouvement traverse donc les poses
- * intermédiaires sans marquer d'arrêt, mais ne dépasse jamais les valeurs des poses-clés.
+ * Tangent of a monotone cubic interpolation (Fritsch–Butland): zero at extrema and during
+ * holds (two identical poses), continuous elsewhere. The movement thus passes through intermediate
+ * poses without stopping, but never overshoots the keyframe values.
  */
 function tangent(prev: number, next: number, hPrev: number, hNext: number): number {
   if (prev === 0 || next === 0 || Math.sign(prev) !== Math.sign(next)) return 0
@@ -143,8 +143,8 @@ function tangent(prev: number, next: number, hPrev: number, hNext: number): numb
 }
 
 /**
- * Pose à l'instant `phase` ∈ [0, 1[ d'un cycle bouclé sur les keyframes (la dernière revient vers la première).
- * `timing` donne l'instant de chaque keyframe ; sans lui, elles sont régulièrement espacées.
+ * Pose at instant `phase` ∈ [0, 1[ of a cycle looping over the keyframes (the last one returns to the first).
+ * `timing` gives the instant of each keyframe; without it, they are evenly spaced.
  */
 export function poseAt(keyframes: Pose[], phase: number, timing?: number[]): Pose {
   const n = keyframes.length
@@ -154,7 +154,7 @@ export function poseAt(keyframes: Pose[], phase: number, timing?: number[]): Pos
   let index = n - 1
   for (let i = 0; i < n; i++) if (times[i]! <= p) index = i
   const at = (i: number) => times[((i % n) + n) % n]! + Math.floor(i / n)
-  // Durées des intervalles autour du segment courant (cycle bouclé).
+  // Durations of the intervals around the current segment (looped cycle).
   const span = (i: number) => Math.max(at(i + 1) - at(i), 1e-6)
   const h = span(index)
   const local = Math.min(Math.max((p < times[index]! ? p + 1 : p) - times[index]!, 0) / h, 1)
@@ -205,15 +205,15 @@ const ANGLE_KEYS = [
 function poseDistance(a: Pose, b: Pose): number {
   let sum = 0
   for (const key of ANGLE_KEYS) sum += Math.abs(a[key] - b[key])
-  // Les déplacements (bassin, envol) comptent comme des angles : 1 unité ≈ 60°.
+  // Displacements (pelvis, flight) count as angles: 1 unit ≈ 60°.
   sum += (Math.abs((a.hipX ?? 0) - (b.hipX ?? 0)) + Math.abs((a.air ?? 0) - (b.air ?? 0))) * 60
   return sum
 }
 
 /**
- * Intensité de l'effort (0 → 1) déduite du mouvement lui-même : écart de la pose courante
- * à la position de départ, rapporté à l'écart maximal atteint dans le cycle. Les muscles
- * s'allument donc à chaque répétition, quel que soit le tempo ou le nombre de répétitions par cycle.
+ * Effort intensity (0 → 1) derived from the movement itself: distance of the current pose
+ * from the starting position, relative to the maximum distance reached in the cycle. Muscles
+ * therefore light up on every rep, whatever the tempo or the number of reps per cycle.
  */
 export function effortOf(keyframes: Pose[], pose: Pose): number {
   const rest = keyframes[0]

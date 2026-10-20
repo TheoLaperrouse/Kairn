@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Boîte de confirmation basée sur `<dialog>` : piège du focus, Échap et fond gérés par le navigateur.
+ * Confirmation box built on `<dialog>`: focus trap, Escape and backdrop are handled by the browser.
  */
 import { ref, watch } from 'vue'
 

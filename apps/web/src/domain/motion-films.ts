@@ -1,21 +1,21 @@
 import type { ExerciseCategory } from './models'
 
 /**
- * Films de démonstration réalisés avec Claude Motion, un par catégorie d'exercices.
+ * Demo films made with Claude Motion, one per exercise category.
  *
- * Chaque exercice occupe un passage d'un nombre entier de cycles du mouvement, qui boucle sans à-coup
- * (pose de départ = pose de fin) : le lecteur de séance guidée rejoue ce passage pendant la série.
+ * Each exercise spans a whole number of movement cycles, which loops seamlessly
+ * (start pose = end pose): the guided-session player replays that span during the set.
  *
- * Les MP4 s'exportent depuis la page de chaque film (bouton « Export ») et se déposent dans
- * `apps/web/public/motion/<fichier>`. Tant qu'un MP4 est absent, l'app retombe sur
- * l'animation anatomique calculée en direct à partir des mêmes poses-clés.
+ * The MP4s are exported from each film's page ("Export" button) and dropped into
+ * `apps/web/public/motion/<file>`. While an MP4 is missing, the app falls back to
+ * the anatomical animation computed live from the same keyframes.
  */
 interface MotionFilm {
   category: ExerciseCategory
   title: string
   url: string
   file: string
-  /** [début, fin, nombre de cycles du mouvement dans le passage] en secondes. */
+  /** [start, end, number of movement cycles in the span] in seconds. */
   segments: Record<string, [number, number, number]>
 }
 
@@ -99,7 +99,7 @@ export interface MotionClip {
   src: string
   start: number
   end: number
-  /** Durée d'un cycle du mouvement dans le film, en secondes. */
+  /** Duration of one movement cycle in the film, in seconds. */
   cycleSec: number
 }
 

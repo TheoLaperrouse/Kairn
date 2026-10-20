@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * Trace d'une sortie : profil altimétrique et fréquence cardiaque en deux panneaux superposés
- * qui partagent l'axe des distances (jamais deux échelles sur un même graphique).
- * Les montées détectées sont numérotées sur le profil, les zones cardiaques en bandes sous la FC.
+ * Activity trace: elevation profile and heart rate in two stacked panels
+ * sharing the distance axis (never two scales on the same chart).
+ * Detected climbs are numbered on the profile, heart rate zones shown as bands under the HR.
  */
 import { computed, ref } from 'vue'
 import { ZONE_LABELS, formatNumber, formatSeconds } from '../../domain/format'
@@ -13,7 +13,7 @@ import { useElementWidth } from './use-element-width'
 const props = defineProps<{
   samples: ActivitySample[]
   climbs?: Climb[]
-  /** Bornes basses de Z2 à Z5 (bpm). */
+  /** Lower bounds of Z2 to Z5 (bpm). */
   zoneBounds?: [number, number, number, number]
 }>()
 
@@ -32,7 +32,7 @@ function ticks(min: number, max: number, target: number) {
   return { lo, hi: hi === lo ? lo + step : hi, list: ticksBetween(lo, hi, step) }
 }
 
-/** Sur tapis ou sans GPS la distance manque : l'axe passe alors au temps. */
+/** On a treadmill or without GPS there is no distance: the axis then switches to time. */
 const byDistance = computed(() => (props.samples.at(-1)?.d ?? 0) > 0.3)
 const xOf = (s: ActivitySample) => (byDistance.value ? s.d : s.t / 60)
 
@@ -65,14 +65,14 @@ const altScale = computed(() => {
 const hrScale = computed(() => {
   const panel = layout.value.hr
   if (!panel) return undefined
-  // Bas de l'échelle au 2e centile : les premières secondes (FC encore au repos) écraseraient la courbe.
+  // Scale floor at the 2nd percentile: the first seconds (HR still at rest) would flatten the curve.
   const hrs = props.samples.flatMap((s) => (s.hr === undefined ? [] : [s.hr])).sort((a, b) => a - b)
   const low = hrs[Math.floor(hrs.length * 0.02)]!
   const t = ticks(Math.min(low - 8, (props.zoneBounds?.[0] ?? low) - 10), hrs.at(-1)! + 6, 4)
   return { ...t, y: (h: number) => panel.top + panel.height - ((Math.min(Math.max(h, t.lo), t.hi) - t.lo) / (t.hi - t.lo)) * panel.height }
 })
 
-/** Tracé d'une série, interrompu là où la valeur manque. */
+/** Path of a series, broken where the value is missing. */
 function path(value: (s: ActivitySample) => number | undefined, y: (v: number) => number): string {
   let d = ''
   let pen = false

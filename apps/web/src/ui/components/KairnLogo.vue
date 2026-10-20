@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Logo Kairn : un cairn (pierres empilées qui balisent le sentier) devant une ligne de crête,
- * éclairé par l'aube.
+ * Kairn logo: a cairn (stacked stones marking the trail) in front of a ridge line,
+ * lit by dawn.
  */
 import { useId } from 'vue'
 

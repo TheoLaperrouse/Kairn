@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Envoi d'une séance structurée sur la montre : fichier .FIT ou dépôt direct dans GARMIN/NewFiles. */
+/** Sends a structured workout to the watch: .FIT file or direct drop into GARMIN/NewFiles. */
 import { CircleCheck, Download, Send, TriangleAlert, Watch } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useApi } from '../../application/api-provider'

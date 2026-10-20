@@ -73,7 +73,7 @@ export const useTrainingStore = defineStore('training', () => {
     return updated
   }
 
-  /** Rattrape les séances clés manquées (idempotent côté serveur), puis recharge si besoin. */
+  /** Catches up on missed key sessions (idempotent server-side), then reloads if needed. */
   async function adaptPlan(): Promise<PlanAdjustment | null> {
     const adjustment = await api.adaptPlan()
     if (adjustment) {

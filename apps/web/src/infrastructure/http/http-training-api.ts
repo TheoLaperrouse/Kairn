@@ -3,7 +3,7 @@ import type { PlanAdjustment, User } from '../../domain/models'
 
 const enc = encodeURIComponent
 
-/** Adaptateur HTTP : la session voyage dans un cookie httpOnly posé par le serveur. */
+/** HTTP adapter: the session travels in an httpOnly cookie set by the server. */
 export function createHttpTrainingApi(onUnauthorized: () => void = () => {}): TrainingApi {
   async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const isForm = body instanceof FormData

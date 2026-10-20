@@ -10,7 +10,7 @@ function readSoundPreference(): boolean {
   }
 }
 
-/** Annonces (lecteur d'écran et synthèse vocale) et bips de la séance guidée. */
+/** Announcements (screen reader and speech synthesis) and beeps for the guided session. */
 export function useVoiceCoach() {
   const sound = ref(readSoundPreference())
   const announcement = ref('')
@@ -23,7 +23,7 @@ export function useVoiceCoach() {
     try {
       localStorage.setItem(SOUND_KEY, sound.value ? 'on' : 'off')
     } catch {
-      /* préférence non mémorisée */
+      /* preference not saved */
     }
   }
 
@@ -44,7 +44,7 @@ export function useVoiceCoach() {
     window.speechSynthesis.speak(utterance)
   }
 
-  /** À appeler sur un geste de l'utilisateur : sans cela, les navigateurs bloquent l'audio. */
+  /** Call on a user gesture: otherwise browsers block audio. */
   function unlockAudio() {
     try {
       audio ??= new AudioContext()

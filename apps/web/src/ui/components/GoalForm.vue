@@ -40,14 +40,14 @@ const category = computed<TrailCategory>(() => {
 })
 const ratio = computed(() => (goal.value.distanceKm > 0 ? Math.round(goal.value.elevationGainM / goal.value.distanceKm) : 0))
 
-/** Prochaine occurrence du mois habituel de l'épreuve, au moins 8 semaines plus tard. */
+/** Next occurrence of the race's usual month, at least 8 weeks ahead. */
 function nextDateFor(month: number): string {
   const today = todayIso()
   const minDate = addDaysIso(today, 56)
   let year = Number(today.slice(0, 4))
   const fifteenth = () => `${year}-${String(month).padStart(2, '0')}-15`
   while (fifteenth() < minDate) year++
-  // Samedi suivant le 15 : la plupart des épreuves ont lieu le week-end.
+  // Saturday after the 15th: most races take place on weekends.
   return addDaysIso(fifteenth(), (12 - weekdayOf(fifteenth())) % 7)
 }
 

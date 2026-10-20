@@ -8,7 +8,7 @@ import type { Exercise } from '../../domain/models'
 const props = withDefaults(
   defineProps<{
     exercise: Pick<Exercise, 'id' | 'name' | 'muscles' | 'animation'>
-    /** Durée d'un cycle complet ; par défaut celle du catalogue. */
+    /** Duration of a full cycle; defaults to the catalog's. */
     cycleMs?: number
     paused?: boolean
     showLabels?: boolean
@@ -45,13 +45,13 @@ const box = computed(() => frameFor(props.exercise.animation.keyframes, props.ex
 const regions = computed(() => regionsFor(props.exercise.muscles))
 const pose = computed(() => poseAt(props.exercise.animation.keyframes, phase.value, props.exercise.animation.timing))
 const shapes = computed(() => bodyShapes(solve(pose.value), regions.value))
-/** Maintiens statiques (gainage) : pulsation douce ; mouvements : intensité suivant le geste. */
+/** Static holds (core work): gentle pulse; movements: intensity follows the motion. */
 const effort = computed(() => {
   const fromMotion = effortOf(props.exercise.animation.keyframes, pose.value)
   return Math.max(fromMotion, 0.35 * effortAt(phase.value))
 })
 
-/** Peau et tissus reçoivent un dégradé (lumière venant du haut) ; le reste une couleur unie. */
+/** Skin and fabric get a gradient (light from above); everything else a flat color. */
 const SHADED: Paint[] = ['skin', 'skinFar', 'top', 'shorts', 'shoe']
 function fillOf(paint: Paint): string {
   return SHADED.includes(paint) ? `url(#${uid}-${paint})` : BODY_PALETTE[paint]
@@ -62,7 +62,7 @@ function darker(hex: string, amount: number): string {
   return `rgb(${channel(16)}, ${channel(8)}, ${channel(0)})`
 }
 
-/** Étiquettes : jusqu'à 3 muscles, alignées à droite du cadre avec un trait de rappel. */
+/** Labels: up to 3 muscles, aligned on the right of the frame with a leader line. */
 const labels = computed(() => {
   if (!props.showLabels) return []
   const right = box.value.minX + box.value.width - 0.06

@@ -21,13 +21,13 @@ const error = ref<string>()
 const ADAPT_KEY = 'kairn-last-adapt'
 const adaptation = ref<PlanAdjustment>()
 
-/** Rattrapage des séances manquées : une fois par jour, au premier passage sur le tableau de bord. */
+/** Catch up on missed sessions: once a day, on the first visit to the dashboard. */
 async function adaptOncePerDay() {
   let last: string | null = null
   try {
     last = localStorage.getItem(ADAPT_KEY)
   } catch {
-    /* stockage indisponible : on adapte quand même, l'appel est idempotent */
+    /* storage unavailable: adapt anyway, the call is idempotent */
   }
   if (last === todayIso()) return
   const adjustment = await training.adaptPlan()
@@ -35,7 +35,7 @@ async function adaptOncePerDay() {
   try {
     localStorage.setItem(ADAPT_KEY, todayIso())
   } catch {
-    /* ignoré */
+    /* ignored */
   }
 }
 

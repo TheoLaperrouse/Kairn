@@ -9,7 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
   const ready = ref(false)
   const devices = ref<Device[]>([])
 
-  /** Restaure la session à partir du cookie (appel unique au démarrage). */
+  /** Restores the session from the cookie (called once at startup). */
   async function restore() {
     if (ready.value) return
     user.value = await api.me()

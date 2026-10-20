@@ -9,7 +9,7 @@ import { PHASE_COLORS } from '../../components/phase-colors'
 
 const props = defineProps<{
   week: PlanWeek
-  /** Toutes les séances de la semaine, avant filtre par sport. */
+  /** All sessions of the week, before filtering by sport. */
   sessions: PlannedSession[]
   sports: Set<Sport>
   currentIndex?: number

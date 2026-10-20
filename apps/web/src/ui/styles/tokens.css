@@ -1,6 +1,6 @@
 /*
- * Thème « Aube alpine » : bleu nuit, orange lever de soleil, turquoise glacier.
- * Le thème sombre est le thème par défaut, le clair suit la préférence système ou le choix manuel.
+ * "Alpine dawn" theme: midnight blue, sunrise orange, glacier turquoise.
+ * Dark is the default theme; light follows the system preference or the manual choice.
  */
 :root {
   --font-display: 'Bricolage Grotesque Variable', 'Inter Variable', system-ui, sans-serif;
@@ -41,7 +41,7 @@
   --warning: #f2c14e;
   --danger: #f06a6a;
 
-  /* Séries de graphiques (validées daltonisme / contraste sur --surface) */
+  /* Chart series (checked for color blindness / contrast on --surface) */
   --series-fitness: #2fa596;
   --series-fatigue: #d46f1f;
   --series-form: #9775f0;

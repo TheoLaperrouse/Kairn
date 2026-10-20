@@ -15,7 +15,7 @@ const STEP_LABELS: Record<WorkoutStep['kind'], string> = {
   CONTINUOUS: 'Continu',
 }
 
-/** Les étapes EFFORT + RECOVERY répétées sont présentées ensemble. */
+/** Repeated EFFORT + RECOVERY steps are shown together. */
 const stepGroups = computed(() => {
   const steps = props.steps
   const groups: Array<{ steps: WorkoutStep[]; repeat?: number }> = []

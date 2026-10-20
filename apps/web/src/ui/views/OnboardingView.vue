@@ -85,7 +85,7 @@ async function generate() {
   try {
     await training.saveGoal(goal.value)
     await training.saveProfile(profile.value)
-    // Laisse le temps de voir l'animation : le calcul serveur est quasi instantané.
+    // Leave time to see the animation: the server computation is nearly instant.
     await Promise.all([training.generatePlan(), new Promise((r) => setTimeout(r, 2600))])
     await router.replace('/')
   } catch (e) {

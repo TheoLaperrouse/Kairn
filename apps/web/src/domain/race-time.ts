@@ -10,7 +10,7 @@ export function formatHours(hours: number): string {
   return `${h} h ${String(m).padStart(2, '0')}`
 }
 
-/** Marge signée : « +1 h 20 », « −35 min ». */
+/** Signed margin: « +1 h 20 », « −35 min ». */
 export function formatMargin(hours: number): string {
   return `${hours < 0 ? '−' : '+'}${formatHours(Math.abs(hours))}`
 }
@@ -26,7 +26,7 @@ function startMinutes(startTime: string): number {
   return (h ?? 0) * 60 + (m ?? 0)
 }
 
-/** Heure locale atteinte après `elapsedH` heures de course. */
+/** Local time reached after `elapsedH` hours of racing. */
 export function clockAt(startTime: string, elapsedH: number): ClockTime {
   const total = startMinutes(startTime) + Math.round(elapsedH * 60)
   const minuteOfDay = ((total % 1440) + 1440) % 1440
@@ -41,7 +41,7 @@ export function dayLabel(day: number): string {
   return day === 0 ? 'Jour J' : `J+${day}`
 }
 
-/** Convertit une heure d'horloge (« 14:30 ») en heures de course depuis le départ, en supposant le premier passage possible. */
+/** Converts a clock time (« 14:30 ») into race hours since the start, assuming the earliest possible pass. */
 export function clockToElapsed(startTime: string, clock: string, day = 0): number {
   const target = startMinutes(clock) + day * 1440
   let delta = target - startMinutes(startTime)

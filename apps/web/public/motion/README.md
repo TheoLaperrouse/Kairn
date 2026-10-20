@@ -1,8 +1,8 @@
-# Films Claude Motion
+# Claude Motion films
 
-Exporte chaque film en MP4 (bouton « Export » sur sa page) et dépose-le ici sous ce nom :
+Export each film as MP4 ("Export" button on its page) and drop it here under this name:
 
-| Fichier            | Film                                                     |
+| File               | Film                                                     |
 |--------------------|----------------------------------------------------------|
 | gainage.mp4        | https://claude.ai/artifact/5MMudwcT8cWzYXMAVgEem2       |
 | force.mp4          | https://claude.ai/artifact/Ax8D1boxSsPnqw75vCZE4T       |
@@ -11,4 +11,4 @@ Exporte chaque film en MP4 (bouton « Export » sur sa page) et dépose-le ici s
 | proprioception.mp4 | https://claude.ai/artifact/9YjLsLupjNF2dLqxG9Xs6w       |
 | mobilite.mp4       | https://claude.ai/artifact/9r7kxSbcWWvG52sMiPfe6v       |
 
-Tant qu'un fichier manque, l'application affiche l'animation anatomique calculée en direct.
+While a file is missing, the app shows the anatomical animation computed live.

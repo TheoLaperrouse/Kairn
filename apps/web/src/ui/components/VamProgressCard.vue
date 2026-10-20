@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * Progression en côte : meilleure VAM tenue 5, 10, 20 ou 30 min, semaine après semaine.
- * Une seule durée à la fois (pas de légende de couleurs à déchiffrer), avec le record
- * et la tendance des 4 dernières semaines face aux 8 précédentes.
+ * Climbing progress: best VAM held for 5, 10, 20 or 30 min, week after week.
+ * One duration at a time (no colour legend to decipher), with the record
+ * and the trend of the last 4 weeks against the previous 8.
  */
 import { Mountain, TrendingDown, TrendingUp, Trophy } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
@@ -21,7 +21,7 @@ const DURATIONS: VamDuration[] = [5, 10, 20, 30]
 
 onMounted(async () => {
   progress.value = await api.vamProgress(26).catch(() => undefined)
-  // Durée par défaut : la plus longue pour laquelle on a déjà un record (sinon 10 min).
+  // Default duration: the longest one that already has a record (otherwise 10 min).
   const recorded = DURATIONS.filter((d) => progress.value?.records[d])
   if (recorded.length && !recorded.includes(duration.value)) duration.value = recorded.at(-1)!
 })
@@ -60,7 +60,7 @@ const scale = computed(() => {
   }
 })
 
-/** Segments reliant deux semaines consécutives avec une montée ; une semaine sans montée coupe la ligne. */
+/** Segments joining two consecutive weeks with a climb; a week without a climb breaks the line. */
 const segments = computed(() => {
   const list: string[] = []
   const pts = points.value

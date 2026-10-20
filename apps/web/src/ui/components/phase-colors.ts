@@ -1,6 +1,6 @@
 import type { TrainingPhase } from '../../domain/models'
 
-/** Couleur d'identification de chaque phase (toujours accompagnée de son libellé). */
+/** Identifying color of each phase (always shown with its label). */
 export const PHASE_COLORS: Record<TrainingPhase, string> = {
   BASE: 'var(--zone-2)',
   BUILD: 'var(--zone-3)',

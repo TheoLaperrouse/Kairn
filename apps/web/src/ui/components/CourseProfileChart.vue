@@ -28,7 +28,7 @@ const scale = computed(() =>
 )
 const paths = computed(() => profilePaths(props.points, scale.value))
 
-/** Portions de nuit déduites de l'heure de passage prévue en chaque point de la chronologie. */
+/** Night sections derived from the expected time of passage at each point of the timeline. */
 const nightBands = computed(() => {
   const bands: Array<{ from: number; to: number }> = []
   let open: number | undefined
@@ -52,7 +52,7 @@ const stationMarks = computed(() =>
     index: i + 1,
     x: scale.value.x(station.km),
     label: compact.value ? String(i + 1) : station.name.length > 16 ? `${station.name.slice(0, 15)}…` : station.name,
-    // Étiquettes en quinconce sur deux rangées quand la place le permet.
+    // Labels staggered over two rows when there is enough room.
     y: PAD.value.top - (!compact.value && i % 2 ? 4 : 18),
   })),
 )

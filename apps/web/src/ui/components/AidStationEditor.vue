@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Édition des ravitaillements : nom, kilomètre, barrière horaire (saisie à l'heure d'horloge,
- * comme sur le règlement de course) et base de vie.
+ * Aid station editor: name, kilometer, cutoff time (entered as clock time,
+ * as in the race rules) and life base.
  */
 import { Plus, Trash2 } from 'lucide-vue-next'
 import { ref, watch } from 'vue'

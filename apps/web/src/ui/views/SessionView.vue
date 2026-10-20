@@ -27,7 +27,7 @@ async function reloadAnalysis() {
   if (done.value) done.value = { ...done.value, analysis: await api.activityAnalysis(done.value.activity.id) }
 }
 
-// Séance faite avec une activité rattachée : son analyse s'affiche sous le statut.
+// Completed session with a linked activity: its analysis is shown below the status.
 watch(
   () => session.value?.activityId,
   async (activityId) => {

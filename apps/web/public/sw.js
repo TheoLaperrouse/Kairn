@@ -1,6 +1,6 @@
 /*
- * Service worker de Kairn : uniquement les notifications (aucun cache hors ligne,
- * l'application est toujours servie fraîche par le serveur).
+ * Kairn service worker: notifications only (no offline cache,
+ * the app is always served fresh by the server).
  */
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
@@ -24,7 +24,7 @@ self.addEventListener('push', (event) => {
   )
 })
 
-// Toucher la notification ouvre la page concernée, dans l'onglet Kairn existant s'il y en a un.
+// Tapping the notification opens the relevant page, in the existing Kairn tab if there is one.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const url = new URL(event.notification.data?.url || '/', self.location.origin).href
@@ -42,7 +42,7 @@ self.addEventListener('notificationclick', (event) => {
   )
 })
 
-// Le navigateur a renouvelé l'abonnement : on prévient le serveur (le cookie de session accompagne la requête).
+// The browser renewed the subscription: notify the server (the session cookie goes with the request).
 self.addEventListener('pushsubscriptionchange', (event) => {
   const key = event.oldSubscription && event.oldSubscription.options.applicationServerKey
   if (!key) return

@@ -1,6 +1,6 @@
 /**
- * Regroupe les libellés de muscles du catalogue en zones dessinables sur le personnage.
- * `anterior` indique de quel côté du segment se trouve le muscle (avant/arrière).
+ * Groups the catalog's muscle labels into regions that can be drawn on the figure.
+ * `anterior` tells which side of the segment the muscle is on (front/back).
  */
 export type MuscleRegion = 'ABS' | 'LOWER_BACK' | 'GLUTES' | 'QUADRICEPS' | 'HAMSTRINGS' | 'CALVES' | 'ANKLES' | 'SHOULDERS'
 

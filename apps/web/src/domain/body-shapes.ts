@@ -1,6 +1,6 @@
 /**
- * Module pur, sans DOM ni dépendance : il est aussi embarqué tel quel dans les films Claude Motion
- * (compilé en IIFE), pour que l'app et les films montrent exactement le même athlète.
+ * Pure module, no DOM and no dependencies: it is also embedded as-is in the Claude Motion films
+ * (compiled to an IIFE), so the app and the films show exactly the same athlete.
  */
 import type { MuscleRegion } from './anatomy'
 import type { Point, Skeleton } from './kinematics'
@@ -26,16 +26,16 @@ export type Paint =
 export interface BodyShape {
   layer: Layer
   paint: Paint
-  /** Chemin SVG (repère du squelette, y vers le bas). */
+  /** SVG path (skeleton frame, y pointing down). */
   d: string
   region?: MuscleRegion
   anchor?: Point
 }
 
-/** Profil d'un segment : à l'abscisse s (0 → 1), demi-épaisseur côté avant et côté arrière. */
+/** Segment profile: at abscissa s (0 → 1), half-thickness on the front and back sides. */
 type Profile = Array<[s: number, front: number, back: number]>
 
-// Profils calibrés sur des proportions d'athlète d'endurance (unité = longueur de cuisse ≈ 46 cm).
+// Profiles calibrated on endurance-athlete proportions (unit = thigh length ≈ 46 cm).
 const THIGH: Profile = [
   [-0.04, 0.2, 0.22],
   [0.15, 0.225, 0.2],
@@ -65,7 +65,7 @@ const FOREARM: Profile = [
   [0.7, 0.046, 0.045],
   [1.0, 0.036, 0.036],
 ]
-/** Tronc, du bassin (0) au cou (1) ; « front » = ventre/poitrine, « back » = dos. */
+/** Torso, from pelvis (0) to neck (1); "front" = belly/chest, "back" = back. */
 const TORSO: Profile = [
   [-0.12, 0.14, 0.17],
   [0.0, 0.17, 0.2],
@@ -123,7 +123,7 @@ const scale = (a: Point, k: number): Point => ({ x: a.x * k, y: a.y * k })
 const lerp = (a: Point, b: Point, t: number): Point => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t })
 const fmt = (n: number) => (Math.round(n * 1000) / 1000).toString()
 
-/** Courbe fermée lissée (Catmull-Rom → Bézier cubiques) passant par les points. */
+/** Smoothed closed curve (Catmull-Rom → cubic Béziers) through the points. */
 function smoothClosed(points: Point[]): string {
   const n = points.length
   const p = (i: number) => points[((i % n) + n) % n]!
@@ -137,8 +137,8 @@ function smoothClosed(points: Point[]): string {
 }
 
 /**
- * Contour d'un segment de A à B selon un profil. `anteriorSign` oriente le côté « avant »
- * (+1 pour les segments pendants : jambes, bras ; −1 pour le tronc, orienté vers le haut).
+ * Outline of a segment from A to B following a profile. `anteriorSign` orients the "front" side
+ * (+1 for hanging segments: legs, arms; −1 for the torso, which points up).
  */
 function outline(a: Point, b: Point, profile: Profile, anteriorSign: 1 | -1, from = -Infinity, to = Infinity): Point[] {
   const dir = sub(b, a)
@@ -148,7 +148,7 @@ function outline(a: Point, b: Point, profile: Profile, anteriorSign: 1 | -1, fro
   const rows = profile.filter(([s]) => s >= from && s <= to)
   const front = rows.map(([s, f]) => add(lerp(a, b, s), scale(n, f)))
   const back = rows.map(([s, , bk]) => add(lerp(a, b, s), scale(n, -bk))).reverse()
-  // Extrémités arrondies : un point au-delà de chaque bout du segment.
+  // Rounded ends: one point beyond each end of the segment.
   const first = rows[0]!
   const last = rows.at(-1)!
   const capEnd = add(lerp(a, b, last[0]), add(scale(u, (last[1] + last[2]) * 0.45), scale(n, (last[1] - last[2]) / 2)))
@@ -164,7 +164,7 @@ function shoe(ankle: Point, toe: Point, far: boolean): BodyShape[] {
   const u = sub(toe, ankle)
   const length = Math.hypot(u.x, u.y) || 1e-6
   const dir = scale(u, 1 / length)
-  // « Haut » du pied : perpendiculaire orientée vers le tibia.
+  // "Top" of the foot: perpendicular pointing towards the shin.
   const up = { x: dir.y, y: -dir.x }
   const at = (along: number, height: number) => add(add(ankle, scale(dir, along)), scale(up, height))
   const upper = [at(-0.09, 0.02), at(-0.07, 0.1), at(0.05, 0.085), at(0.2, 0.05), at(0.32, 0.02), at(0.34, -0.03), at(0.2, -0.05), at(-0.08, -0.05)]
@@ -185,7 +185,7 @@ function head(neck: Point, center: Point): BodyShape[] {
   const dir = sub(center, neck)
   const length = Math.hypot(dir.x, dir.y) || 1e-6
   const up = scale(dir, 1 / length)
-  // Visage vers l'avant (+x quand la tête est droite).
+  // Face pointing forward (+x when the head is upright).
   const fwd = { x: -up.y, y: up.x }
   const at = (f: number, u: number) => add(add(center, scale(fwd, f)), scale(up, u))
   const skull = [
@@ -194,9 +194,9 @@ function head(neck: Point, center: Point): BodyShape[] {
     at(0.0, 0.25),
     at(0.14, 0.18),
     at(0.19, 0.06),
-    at(0.215, -0.02), // nez
+    at(0.215, -0.02), // nose
     at(0.18, -0.06),
-    at(0.17, -0.12), // menton
+    at(0.17, -0.12), // chin
     at(0.08, -0.2),
     at(-0.06, -0.16),
     at(-0.17, -0.1),
@@ -222,7 +222,7 @@ export function bodyShapes(s: Skeleton, regions: MuscleRegion[]): BodyShape[] {
   const { near, far, hip, neck } = s
   const shoulder = lerp(neck, hip, 0.1)
 
-  // Ombre portée au sol (y = 0), proportionnelle à l'emprise du corps.
+  // Drop shadow on the ground (y = 0), proportional to the body's footprint.
   const xs = [hip.x, neck.x, near.toe.x, far.toe.x, near.ankle.x, far.ankle.x, near.wrist.x, far.wrist.x]
   const minX = Math.min(...xs)
   const maxX = Math.max(...xs)
@@ -273,7 +273,7 @@ export function bodyShapes(s: Skeleton, regions: MuscleRegion[]): BodyShape[] {
   return shapes
 }
 
-/** Palette de rendu (peau, tenue) — indépendante du thème clair/sombre de l'app. */
+/** Rendering palette (skin, outfit), independent of the app's light/dark theme. */
 export const BODY_PALETTE: Record<Paint, string> = {
   skin: '#e2a982',
   skinFar: '#b97c5c',

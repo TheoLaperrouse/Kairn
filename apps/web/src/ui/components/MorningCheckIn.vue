@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Bilan du matin : formulaire express (< 20 s), puis score de forme, recommandation
- * et possibilité d'alléger la séance du jour en un geste.
+ * Morning check-in: quick form (< 20 s), then readiness score, recommendation
+ * and a one-tap option to lighten today's session.
  */
 import { CircleCheck, HeartPulse, Moon, Pencil, Sun, TriangleAlert } from 'lucide-vue-next'
 import { computed, onMounted, reactive, ref } from 'vue'
@@ -25,7 +25,7 @@ const showMetrics = ref(false)
 
 onMounted(() => {
   wellness.load().catch(() => {
-    /* le bilan reste utilisable même si l'historique ne charge pas */
+    /* the check-in stays usable even if the history fails to load */
   })
 })
 
@@ -40,7 +40,7 @@ interface ScaleQuestion {
   emojis: [string, string, string, string, string]
 }
 
-/** Chaque échelle va de 1 à 5 ; les libellés rappellent le sens (bas → haut). */
+/** Each scale goes from 1 to 5; the labels recall the direction (low → high). */
 const QUESTIONS: ScaleQuestion[] = [
   { key: 'sleepQuality', label: 'Qualité du sommeil', low: 'Très mauvaise', high: 'Excellente', emojis: ['😫', '😕', '😐', '🙂', '😴'] },
   { key: 'fatigue', label: 'Fatigue', low: 'En pleine forme', high: 'Épuisé', emojis: ['⚡', '🙂', '😐', '🥱', '🪫'] },
