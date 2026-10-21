@@ -1,8 +1,8 @@
-import { randomBytes } from 'node:crypto'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import multipart from '@fastify/multipart'
 import fastifyStatic from '@fastify/static'
-import Fastify, { type FastifyInstance } from 'fastify'
+import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify'
 import type { PushSubscription } from '../../application/ports'
 import type { AccountService } from '../../application/use-cases/account-service'
 import type { ActivityService, ImportOutcome } from '../../application/use-cases/activity-service'
@@ -17,7 +17,7 @@ import type { SummaryService } from '../../application/use-cases/summary-service
 import type { TrainingService } from '../../application/use-cases/training-service'
 import type { WellnessService } from '../../application/use-cases/wellness-service'
 import type { WorkoutExportService } from '../../application/use-cases/workout-export-service'
-import { describeDevice } from '../../domain/account/account'
+import { describeDevice, normalizeEmail } from '../../domain/account/account'
 import type { AthleteProfile } from '../../domain/athlete/athlete-profile'
 import type { RaceGoal } from '../../domain/goal/race-goal'
 import type { NotificationSettings } from '../../domain/notifications/notification'
@@ -65,8 +65,11 @@ export interface ServerOptions {
   secureCookies: boolean
   webDist?: string
   logger: boolean
-  /** Strava notifications: subscription verification token (absent = webhook disabled). */
-  stravaWebhook?: { verifyToken: string }
+  /**
+   * Strava notifications (absent = webhook disabled): subscription verification token, and the secret
+   * segment of the callback URL that only Strava knows, since its notifications are not signed.
+   */
+  stravaWebhook?: { verifyToken: string; pathKey: string }
 }
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024
@@ -99,7 +102,7 @@ export async function buildServer(services: Services, options: ServerOptions): P
   app.get('/api/health', async () => ({ ok: true }))
 
   registerAuthRoutes(app, services.accounts, options.secureCookies)
-  if (options.stravaWebhook) registerStravaWebhook(app, services.activities, options.stravaWebhook.verifyToken)
+  if (options.stravaWebhook) registerStravaWebhook(app, services.activities, options.stravaWebhook)
   registerCalendarFeed(app, services.calendar)
 
   await app.register(async (api) => {
@@ -146,7 +149,7 @@ function registerAuthRoutes(app: FastifyInstance, accounts: AccountService, secu
   })
 
   app.post<{ Body: Credentials }>('/api/auth/login', { schema: { body: credentialsSchema } }, async (request, reply) => {
-    const key = `${request.ip}:${request.body.email.toLowerCase()}`
+    const key = `${request.ip}:${normalizeEmail(request.body.email)}`
     if (limiter.isBlocked(key)) return reply.status(429).send({ error: 'Trop de tentatives, réessaie dans 15 minutes' })
     try {
       const session = await accounts.login(request.body.email, request.body.password, request.headers['user-agent'])
@@ -207,9 +210,10 @@ function registerTrainingRoutes(api: FastifyInstance, { training, dashboard }: S
 function registerActivityRoutes(api: FastifyInstance, activities: ActivityService): void {
   const oauthStates = new Map<string, { userId: string; expires: number }>()
 
-  api.get<{ Querystring: { limit?: string } }>('/api/activities', async (request) =>
-    activities.list(userId(request), request.query.limit ? Number(request.query.limit) : undefined),
-  )
+  api.get<{ Querystring: { limit?: string } }>('/api/activities', async (request) => {
+    const limit = Number(request.query.limit)
+    return activities.list(userId(request), Number.isInteger(limit) && limit > 0 ? limit : undefined)
+  })
   api.get<IdParams>('/api/activities/:id', async (request) =>
     activities.get(userId(request), request.params.id),
   )
@@ -258,18 +262,24 @@ function registerActivityRoutes(api: FastifyInstance, activities: ActivityServic
 }
 
 /**
- * Public routes called by Strava. A notification carries no imported data:
- * it only triggers a sync authenticated with the athlete's OAuth tokens.
+ * Public routes called by Strava. A creation only triggers a sync authenticated with the athlete's OAuth
+ * tokens, but deletions, renames and revocations are applied as received: the secret URL segment keeps
+ * anyone else from sending them.
  */
-function registerStravaWebhook(app: FastifyInstance, activities: ActivityService, verifyToken: string): void {
-  app.get<{ Querystring: Record<string, string | undefined> }>('/api/webhooks/strava', async (request, reply) => {
+function registerStravaWebhook(app: FastifyInstance, activities: ActivityService, { verifyToken, pathKey }: { verifyToken: string; pathKey: string }): void {
+  type WebhookParams = { Params: { key: string } }
+  const unknownRoute = (reply: FastifyReply) => reply.status(404).send({ error: 'Route inconnue' })
+
+  app.get<WebhookParams & { Querystring: Record<string, string | undefined> }>('/api/webhooks/strava/:key', async (request, reply) => {
+    if (!sameSecret(request.params.key, pathKey)) return unknownRoute(reply)
     const query = request.query
     if (query['hub.mode'] !== 'subscribe' || query['hub.verify_token'] !== verifyToken) return reply.status(403).send({ error: 'Jeton invalide' })
     return { 'hub.challenge': query['hub.challenge'] }
   })
 
   // Strava expects a response within 2 s: the sync carries on in the background.
-  app.post<{ Body: StravaWebhookEvent }>('/api/webhooks/strava', async (request) => {
+  app.post<WebhookParams & { Body: StravaWebhookEvent }>('/api/webhooks/strava/:key', async (request, reply) => {
+    if (!sameSecret(request.params.key, pathKey)) return unknownRoute(reply)
     const event = request.body
     const athleteId = event?.owner_id ? String(event.owner_id) : undefined
     if (!athleteId) return { ok: true }
@@ -292,6 +302,12 @@ function registerStravaWebhook(app: FastifyInstance, activities: ActivityService
     }
     return { ok: true }
   })
+}
+
+function sameSecret(given: string, expected: string): boolean {
+  const a = Buffer.from(given)
+  const b = Buffer.from(expected)
+  return a.length === b.length && timingSafeEqual(a, b)
 }
 
 function registerInsightRoutes(api: FastifyInstance, { analyses, summaries, progress }: Services): void {

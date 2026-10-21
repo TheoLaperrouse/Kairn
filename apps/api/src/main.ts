@@ -2,7 +2,7 @@
  * Composition root: the only place that knows both the use cases
  * and the concrete adapters. All of the hexagon's wiring happens here.
  */
-import { randomBytes } from 'node:crypto'
+import { createHmac, randomBytes } from 'node:crypto'
 import { resolve } from 'node:path'
 import { AccountService } from './application/use-cases/account-service'
 import { ActivityService } from './application/use-cases/activity-service'
@@ -72,11 +72,14 @@ const strava = new StravaActivityProvider({
   clientSecret: env.STRAVA_CLIENT_SECRET,
   redirectUri: `${publicUrl}/api/integrations/strava/callback`,
 })
-// Strava only calls public HTTPS URLs. The token is only used to verify the subscription:
-// a fresh one on every start is enough.
+// Strava only calls public HTTPS URLs. The token is only used to verify the subscription: a fresh one on
+// every start is enough. The secret path segment is derived from the client secret, so it survives restarts.
 const stravaWebhook =
   strava.isConfigured() && https && env.STRAVA_WEBHOOK !== 'off'
-    ? { verifyToken: randomBytes(16).toString('hex') }
+    ? {
+        verifyToken: randomBytes(16).toString('hex'),
+        pathKey: createHmac('sha256', env.STRAVA_CLIENT_SECRET!).update('kairn-strava-webhook').digest('hex').slice(0, 32),
+      }
     : undefined
 
 const analyses = new AnalysisService(activityRepository, plans, profiles)
@@ -161,9 +164,9 @@ if (strava.isConfigured()) {
 }
 
 if (stravaWebhook) {
-  const callbackUrl = `${publicUrl}/api/webhooks/strava`
+  const callbackUrl = `${publicUrl}/api/webhooks/strava/${stravaWebhook.pathKey}`
   strava
     .ensureWebhookSubscription(callbackUrl, stravaWebhook.verifyToken)
-    .then((id) => app.log.info(`Notifications Strava actives (abonnement ${id}) → ${callbackUrl}`))
+    .then((id) => app.log.info(`Notifications Strava actives (abonnement ${id})`))
     .catch((error: Error) => app.log.warn(`Notifications Strava indisponibles, synchro périodique seule : ${error.message}`))
 }

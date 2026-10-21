@@ -13,7 +13,7 @@ import { generatePlan } from '../../domain/plan/plan-generator'
 import { sessionPurpose, withPurposes } from '../../domain/plan/session-purpose'
 import { personalTrainingSpeed } from '../../domain/plan/training-speed'
 import type { PlanAdjustment, PlannedSession, SessionStatus, TrainingPlan } from '../../domain/plan/training-plan'
-import { toIsoDate } from '../../domain/shared/dates'
+import { toIsoDate, type IsoDate } from '../../domain/shared/dates'
 import { DomainError, NotFoundError } from '../../domain/shared/errors'
 import type { ActivityRepository, Clock, ContentCatalog, GoalRepository, IdGenerator, PlanRepository, ProfileRepository } from '../ports'
 
@@ -69,7 +69,7 @@ export class TrainingService {
       routines: this.catalog.routines(),
       trainingSpeedKme: personalTrainingSpeed(this.activities.list(userId), toIsoDate(now)),
     })
-    const merged = withHistory(plan, this.plans.get(userId))
+    const merged = withHistory(plan, this.plans.get(userId), toIsoDate(now))
     this.plans.save(userId, merged)
     return this.explained(userId, merged)
   }
@@ -170,21 +170,24 @@ export class TrainingService {
 /**
  * Keeps the old plan's history (past weeks and sessions) ahead of the new one,
  * so tracking is not lost when the goal or availability changes along the way.
+ * A session already done or skipped today stays too, in place of the new one of the same sport.
  */
-function withHistory(plan: TrainingPlan, previous: TrainingPlan | undefined): TrainingPlan {
+function withHistory(plan: TrainingPlan, previous: TrainingPlan | undefined, today: IsoDate): TrainingPlan {
   if (!previous) return plan
   const pastWeeks = previous.weeks.filter((w) => w.startDate < plan.startDate)
   const firstNewDate = plan.sessions[0]?.date ?? plan.startDate
   const shift = pastWeeks.length
   const reindexed = new Map(pastWeeks.map((w, i) => [w.index, i]))
+  const settledToday = new Set(previous.sessions.filter((s) => s.date === today && s.status !== 'PLANNED').map((s) => s.sport))
+  const newSessions = plan.sessions.filter((s) => s.date !== today || !settledToday.has(s.sport))
   const pastSessions = previous.sessions
-    .filter((s) => s.date < firstNewDate)
+    .filter((s) => s.date < firstNewDate || (s.date === today && s.status !== 'PLANNED'))
     .map((s) => ({ ...s, weekIndex: s.date >= plan.startDate ? shift : (reindexed.get(s.weekIndex) ?? 0) }))
   return {
     ...plan,
     adjustments: previous.adjustments,
     startDate: pastWeeks[0]?.startDate ?? plan.startDate,
     weeks: [...pastWeeks.map((w, i) => ({ ...w, index: i })), ...plan.weeks.map((w) => ({ ...w, index: w.index + shift }))],
-    sessions: [...pastSessions, ...plan.sessions.map((s) => ({ ...s, weekIndex: s.weekIndex + shift }))],
+    sessions: [...pastSessions, ...newSessions.map((s) => ({ ...s, weekIndex: s.weekIndex + shift }))],
   }
 }

@@ -22,7 +22,13 @@ function readCookie(request: FastifyRequest, name: string): string | undefined {
   if (!header) return undefined
   for (const part of header.split(';')) {
     const [key, ...value] = part.trim().split('=')
-    if (key === name) return decodeURIComponent(value.join('='))
+    if (key !== name) continue
+    try {
+      return decodeURIComponent(value.join('='))
+    } catch {
+      // Malformed cookie: treated as absent, so the client is sent back to the login screen.
+      return undefined
+    }
   }
   return undefined
 }
@@ -72,7 +78,9 @@ export class AttemptLimiter {
 
   isBlocked(key: string, now = Date.now()): boolean {
     const recent = (this.attempts.get(key) ?? []).filter((t) => now - t < this.windowMs)
-    this.attempts.set(key, recent)
+    // Expired keys are dropped, so the map does not grow with every address and e-mail ever tried.
+    if (recent.length > 0) this.attempts.set(key, recent)
+    else this.attempts.delete(key)
     return recent.length >= this.max
   }
 

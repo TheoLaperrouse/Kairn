@@ -24,6 +24,16 @@ describe('race goal', () => {
     )
     expect(estimateRaceDurationH({ ...goal, targetTimeH: 24 }, 'INTERMEDIATE')).toBe(24)
   })
+
+  it('estimates mid-pack finishing times for an intermediate runner', () => {
+    const hours = (distanceKm: number, elevationGainM: number) =>
+      estimateRaceDurationH(aGoal({ distanceKm, elevationGainM, technicity: 3 }), 'INTERMEDIATE')
+    expect(hours(15, 600)).toBeCloseTo(2, 0)
+    expect(hours(42, 2000)).toBeGreaterThan(6.5)
+    expect(hours(42, 2000)).toBeLessThan(7.5)
+    expect(hours(101, 6100)).toBeCloseTo(22, 0)
+    expect(hours(171, 10_000)).toBeCloseTo(41, 0)
+  })
 })
 
 describe('activities', () => {

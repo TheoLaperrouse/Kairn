@@ -68,6 +68,9 @@ export class FakeStrava implements ActivityProvider {
 }
 
 /** Full application on an in-memory SQLite database, with a controllable clock. */
+export const STRAVA_WEBHOOK_KEY = 'webhook-key'
+export const STRAVA_WEBHOOK_PATH = `/api/webhooks/strava/${STRAVA_WEBHOOK_KEY}`
+
 export async function buildTestApp(now: Date, options: { providers?: ActivityProvider[]; stravaVerifyToken?: string; webDist?: string } = {}) {
   const clock: Clock & { set(date: Date): void } = {
     current: now,
@@ -138,7 +141,7 @@ export async function buildTestApp(now: Date, options: { providers?: ActivityPro
     {
       secureCookies: false,
       logger: false,
-      stravaWebhook: options.stravaVerifyToken ? { verifyToken: options.stravaVerifyToken } : undefined,
+      stravaWebhook: options.stravaVerifyToken ? { verifyToken: options.stravaVerifyToken, pathKey: STRAVA_WEBHOOK_KEY } : undefined,
       webDist: options.webDist,
     },
   )

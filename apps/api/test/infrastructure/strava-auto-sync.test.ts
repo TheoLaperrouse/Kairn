@@ -4,7 +4,7 @@ import type { ActivityProvider, IntegrationTokens } from '../../src/application/
 import type { ActivityService } from '../../src/application/use-cases/activity-service'
 import type { ImportedActivity } from '../../src/domain/activity/activity'
 import type { SqliteIntegrationStore } from '../../src/infrastructure/persistence/sqlite-repositories'
-import { buildTestApp, registerUser } from '../fixtures/test-app'
+import { STRAVA_WEBHOOK_PATH, buildTestApp, registerUser } from '../fixtures/test-app'
 
 /** Fake Strava: each athlete (identified by their access token) has their own activities. */
 class FakeStrava implements ActivityProvider {
@@ -80,17 +80,17 @@ beforeEach(() => {
 })
 
 const activityCount = async (cookie: string) => (await app.inject({ method: 'GET', url: '/api/activities', headers: { cookie } })).json().length
-const notify = (payload: object) => app.inject({ method: 'POST', url: '/api/webhooks/strava', payload })
+const notify = (payload: object) => app.inject({ method: 'POST', url: STRAVA_WEBHOOK_PATH, payload })
 const settle = () => new Promise((resolve) => setTimeout(resolve, 20))
 
 describe('Strava webhook', () => {
   it('validates the subscription only with the right token', async () => {
     const ok = await app.inject({
       method: 'GET',
-      url: `/api/webhooks/strava?hub.mode=subscribe&hub.challenge=abc&hub.verify_token=${VERIFY_TOKEN}`,
+      url: `${STRAVA_WEBHOOK_PATH}?hub.mode=subscribe&hub.challenge=abc&hub.verify_token=${VERIFY_TOKEN}`,
     })
     expect(ok.json()).toEqual({ 'hub.challenge': 'abc' })
-    const forged = await app.inject({ method: 'GET', url: '/api/webhooks/strava?hub.mode=subscribe&hub.challenge=abc&hub.verify_token=faux' })
+    const forged = await app.inject({ method: 'GET', url: `${STRAVA_WEBHOOK_PATH}?hub.mode=subscribe&hub.challenge=abc&hub.verify_token=faux` })
     expect(forged.statusCode).toBe(403)
   })
 
@@ -111,6 +111,15 @@ describe('Strava webhook', () => {
     await settle()
     expect(await activityCount(users[2]!.cookie)).toBe(1)
     expect(strava.calls).toBe(1)
+  })
+
+  it('ignores notifications sent to the webhook without its secret path', async () => {
+    const revoke = { object_type: 'athlete', aspect_type: 'update', object_id: 111, owner_id: 111, subscription_id: 9, updates: { authorized: 'false' } }
+    for (const url of ['/api/webhooks/strava', '/api/webhooks/strava/guessed-key']) {
+      expect((await app.inject({ method: 'POST', url, payload: revoke })).statusCode).toBe(404)
+    }
+    const statuses = (await app.inject({ method: 'GET', url: '/api/integrations', headers: { cookie: users[0]!.cookie } })).json()
+    expect(statuses[0].connected).toBe(true)
   })
 
   it('disconnects an athlete who revokes access from Strava', async () => {

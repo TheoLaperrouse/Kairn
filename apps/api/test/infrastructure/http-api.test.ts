@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { buildTestApp } from '../fixtures/test-app'
+import { buildTestApp, registerUser } from '../fixtures/test-app'
 import { aGoal, aProfile } from '../fixtures/factories'
 
 const PHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit Safari/604.1'
@@ -63,6 +63,32 @@ describe('HTTP API', () => {
     const { name: _name, ...missing } = aProfile()
     expect((await put(missing)).json().error).toBe('Champ obligatoire manquant : « name »')
     expect((await put(aProfile({ weightKg: 500 }))).json().error).toMatch(/^« weightKg » : doit valoir au plus \d+$/)
+  })
+
+  it('keeps the run already done today when the plan is regenerated', async () => {
+    const { cookie } = await registerUser(app, 'regenerate@example.com')
+    await app.inject({ method: 'PUT', url: '/api/profile', headers: { cookie }, payload: aProfile({ availableDays: [0, 2, 3, 5, 6] }) })
+    await app.inject({ method: 'PUT', url: '/api/goal', headers: { cookie }, payload: aGoal() })
+    const plan = (await app.inject({ method: 'POST', url: '/api/plan/generate', headers: { cookie } })).json()
+    const todayRun = plan.sessions.find((s: { date: string; sport: string }) => s.date === '2027-03-01' && s.sport === 'RUN')
+    await app.inject({ method: 'PATCH', url: `/api/sessions/${todayRun.id}`, headers: { cookie }, payload: { status: 'DONE' } })
+
+    const regenerated = (await app.inject({ method: 'POST', url: '/api/plan/generate', headers: { cookie } })).json()
+    const todayRuns = regenerated.sessions.filter((s: { date: string; sport: string }) => s.date === '2027-03-01' && s.sport === 'RUN')
+    expect(todayRuns.map((s: { id: string; status: string }) => [s.id, s.status])).toEqual([[todayRun.id, 'DONE']])
+  })
+
+  it('limits login attempts per account, whatever the spacing or case of the e-mail', async () => {
+    const attempt = (email: string) => app.inject({ method: 'POST', url: '/api/auth/login', payload: { email, password: 'wrong-password' } })
+    for (let i = 0; i < 10; i++) await attempt(`${' '.repeat(i)}Brute@Example.com`)
+    const blocked = await attempt('  brute@example.com ')
+    expect(blocked.statusCode).toBe(429)
+    expect(blocked.json().error).toBe('Trop de tentatives, réessaie dans 15 minutes')
+  })
+
+  it('treats a malformed session cookie as no session', async () => {
+    const response = await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie: 'kairn_session=%E0' } })
+    expect(response.statusCode).toBe(401)
   })
 
   it('answers malformed requests in French rather than with Fastify’s messages', async () => {

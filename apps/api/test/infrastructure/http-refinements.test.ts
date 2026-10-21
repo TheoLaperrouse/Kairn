@@ -4,7 +4,7 @@ import type { ActivityService } from '../../src/application/use-cases/activity-s
 import type { NotificationService } from '../../src/application/use-cases/notification-service'
 import { StravaActivityProvider } from '../../src/infrastructure/integrations/strava-provider'
 import type { SqliteIntegrationStore } from '../../src/infrastructure/persistence/sqlite-repositories'
-import { FakeStrava, buildTestApp, multipart, registerUser, setUpPlan, type RecordingPushSender } from '../fixtures/test-app'
+import { FakeStrava, STRAVA_WEBHOOK_PATH, buildTestApp, multipart, registerUser, setUpPlan, type RecordingPushSender } from '../fixtures/test-app'
 
 const VERIFY = 'verify-token'
 let app: FastifyInstance
@@ -114,7 +114,7 @@ describe('double session and naming', () => {
 })
 
 describe('Strava edits', () => {
-  const notify = (payload: object) => app.inject({ method: 'POST', url: '/api/webhooks/strava', payload })
+  const notify = (payload: object) => app.inject({ method: 'POST', url: STRAVA_WEBHOOK_PATH, payload })
 
   it('follows a rename, a sport change and a deletion made on Strava', async () => {
     const day = '2027-03-06'

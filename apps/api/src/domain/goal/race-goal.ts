@@ -61,13 +61,18 @@ export function verticalRatio(goal: Pick<RaceGoal, 'distanceKm' | 'elevationGain
   return goal.elevationGainM / goal.distanceKm
 }
 
-/** Average race speed in km-effort/h over ~50 km-effort, by level. */
+/**
+ * Race speed in km-effort/h over 50 km-effort, by level. Intermediate is calibrated on mid-pack finishes:
+ * ~2 h for 15 km / 600 m, ~22 h for the CCC, ~41 h for the UTMB.
+ */
 const REFERENCE_SPEED: Record<ExperienceLevel, number> = {
-  BEGINNER: 5.5,
-  INTERMEDIATE: 6.5,
-  ADVANCED: 7.5,
-  EXPERT: 9,
+  BEGINNER: 7.5,
+  INTERMEDIATE: 9,
+  ADVANCED: 10.5,
+  EXPERT: 12.5,
 }
+/** How fast speed drops as the race gets longer (fitted on the same mid-pack finishes). */
+const LENGTH_FATIGUE_EXPONENT = 0.18
 
 const TECHNICITY_FACTOR = [1.05, 1.02, 1, 0.93, 0.85] as const
 
@@ -78,7 +83,7 @@ const TECHNICITY_FACTOR = [1.05, 1.02, 1, 0.93, 0.85] as const
 export function estimateRaceDurationH(goal: RaceGoal, level: ExperienceLevel): number {
   if (goal.targetTimeH) return goal.targetTimeH
   const effort = kmEffort(goal.distanceKm, goal.elevationGainM)
-  const fatigue = Math.pow(50 / Math.max(effort, 10), 0.08)
+  const fatigue = Math.pow(50 / Math.max(effort, 10), LENGTH_FATIGUE_EXPONENT)
   const speed = REFERENCE_SPEED[level] * fatigue * TECHNICITY_FACTOR[goal.technicity - 1]!
   return effort / speed
 }
